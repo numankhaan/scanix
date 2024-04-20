@@ -11,7 +11,7 @@ This Python script is a port scanner with OS fingerprinting capabilities. It all
 
   First Clone the repository:
   
-  ```git clone https://github.com/your_username/port-scanner-with-os-fingerprinting.git```
+  ```git clone https://github.com/NoumanAliKhan006/Port-Scanner-with-OS-Fingerprinting.git```
   
   Navigate to the directory:
   
