@@ -55,7 +55,7 @@ pip install pyfiglet
 Clone the repository
 
 ```bash
-git clone https://github.com/NoumanAliKhan006/scanix.git
+git clone https://github.com/numankhaan/scanix.git
 ```
 Move to Project Floder
 ```bash
