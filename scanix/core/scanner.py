@@ -45,24 +45,36 @@ def scan_ports(target, start_port, end_port, banner=False, max_workers=100):
 
     ports = list(range(start_port, end_port + 1))
     total = len(ports)
-    scanned = 0
-    progress = 10
+
     results = []
 
+    # Thread-safe counters
+    counter_lock = threading.Lock()
+    scanned = 0
+    next_progress = 10
+
     def worker(p):
-        nonlocal scanned, progress
+        nonlocal scanned, next_progress
+
         r = scan_single_port(target, p, do_banner=banner)
         results.append(r)
-        scanned += 1
-        percent = int((scanned / total) * 100)
-        if percent >= progress:
-            safe_print(f"Scanning... {progress}%", info=True)
-            progress += 10
 
-    with ThreadPoolExecutor(max_workers=min(max_workers, total or 1)) as ex:
-        tasks = [ex.submit(worker, p) for p in ports]
-        for _ in as_completed(tasks):
+        # Thread-safe progress update
+        with counter_lock:
+            scanned += 1
+            percent = int((scanned / total) * 100)
+
+            if percent >= next_progress:
+                safe_print(f"Scanning... {next_progress}%", info=True)
+                next_progress += 10
+
+    worker_count = min(max_workers, total or 1)
+
+    with ThreadPoolExecutor(max_workers=worker_count) as ex:
+        futures = [ex.submit(worker, p) for p in ports]
+        for _ in as_completed(futures):
             pass
 
     safe_print("\nScan completed.", success=True)
+
     return results
