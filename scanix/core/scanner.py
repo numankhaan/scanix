@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Nouman Ali Khan
+
 import socket
 import struct
 from datetime import datetime
@@ -6,54 +9,40 @@ import threading
 
 from .os_fingerprint import guess_os_from_ttl
 from .services import get_service_name
-from .banner import grab_banner_for_port, parse_service_version
+from .banner import grab_banner_for_port
 from .utils import safe_print
 
 
-def scan_single_port(target, port, do_banner=False):
+def scan_single_port(target, port, do_banner=False, timeout=1.0, banner_timeout=None):
     result = {
         "target": target,
         "port": port,
         "protocol": "tcp",
         "status": "closed",
         "service": get_service_name(port),
-        "service_version": None,
         "banner": None,
         "os": None,
     }
 
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(1)
+        sock.settimeout(timeout)
         res = sock.connect_ex((target, port))
 
         if res == 0:
             result["status"] = "open"
             safe_print(f"Port {port} open ({result['service']})", success=True)
 
-            # banner + service version detection
             if do_banner:
-                banner = grab_banner_for_port(target, port)
+                bt = banner_timeout if banner_timeout is not None else timeout
+                banner = grab_banner_for_port(target, port, timeout=bt)
                 if banner:
                     result["banner"] = banner
-
-                    info = parse_service_version(port, banner)
-                    if info:
-                        result["service_version"] = info
-                        pretty = info["product"]
-                        if info.get("version"):
-                            pretty += f" {info['version']}"
-                        if info.get("extra"):
-                            pretty += f" {info['extra']}"
-                        safe_print(f"    Service: {pretty}", info=True)
-
                     safe_print(f"    Banner: {banner[:200]}...", info=True)
 
-            # TTL OS guess (best-effort)
             try:
                 ttl = struct.unpack(
-                    "!B",
-                    sock.getsockopt(socket.IPPROTO_IP, socket.IP_TTL, 1)
+                    "!B", sock.getsockopt(socket.IPPROTO_IP, socket.IP_TTL, 1)
                 )[0]
                 result["os"] = guess_os_from_ttl(ttl)
                 if result["os"] != "Unknown":
@@ -69,15 +58,23 @@ def scan_single_port(target, port, do_banner=False):
     return result
 
 
-def scan_ports(target, start_port, end_port, banner=False, max_workers=100):
+def scan_ports(
+    target,
+    start_port,
+    end_port,
+    banner=False,
+    max_workers=100,
+    timeout=1.0,
+    banner_timeout=None,
+):
     safe_print("\n--- Scanix TCP Connect Scanner ---", info=True)
     safe_print(f"Target: {target}  Ports: {start_port}-{end_port}", info=True)
     safe_print(f"Started: {datetime.now()}\n", info=True)
 
     ports = list(range(start_port, end_port + 1))
     total = len(ports)
-
     results = []
+
     counter_lock = threading.Lock()
     scanned = 0
     next_progress = 10
@@ -85,7 +82,13 @@ def scan_ports(target, start_port, end_port, banner=False, max_workers=100):
     def worker(p):
         nonlocal scanned, next_progress
 
-        r = scan_single_port(target, p, do_banner=banner)
+        r = scan_single_port(
+            target,
+            p,
+            do_banner=banner,
+            timeout=timeout,
+            banner_timeout=banner_timeout,
+        )
         results.append(r)
 
         with counter_lock:
