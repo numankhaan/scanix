@@ -1,76 +1,75 @@
 <div align="center">
 
-  `Scanix`
+# Scanix
+
+Fast, modular port scanner and network reconnaissance tool written in Python.
 
 </div>
-
-> [!CAUTION]
->
-> ### For Learning Purposes Only
->
-> This project is built for **educational purposes** and is not intended for **unauthorized scanning**.
->
-> Use only on hosts and networks where you have explicit permission.
 
 <details open="open">
 <summary>Table of Contents</summary>
 
 - [About](#about)
-- [Features](#features)
-- [Requirements](#requirements)
-- [Usage](#usage)
-- [Example](#example)
+- [What Scanix Can Do](#what-scanix-can-do)
+- [Install](#install)
+- [Quick Start](#quick-start)
+- [Commands](#commands)
+- [Output Files](#output-files)
+- [Examples](#examples)
+- [Notes and Limitations](#notes-and-limitations)
 - [Disclaimer](#disclaimer)
+
 </details>
 
 ---
 
 ## About
 
-`Scanix` is a simple Python-based port scanner with **basic OS fingerprinting**.
-It attempts to identify the operating system of a target host by analyzing **TTL values** and reports open ports in a given range.
+Scanix is a fast, modular network scanner written in Python. It discovers open ports, identifies running services and versions, performs OS fingerprinting, and supports multiple scanning techniques including TCP connect, SYN scan, and UDP probing.
+Scanix is designed for security professionals, researchers, and developers who need a transparent, extensible scanning tool.
 
-This tool is a lightweight alternative to larger scanners and is intended for **educational and experimental** use.
+---
 
 ## Features
+* TCP connect scanning
+* SYN scanning (raw packets)
+* UDP probing
+* Service and version detection
+* Basic OS fingerprinting
+* Host discovery and traceroute
+* Parallel scanning for high speed
+* JSON, CSV, and HTML output
 
-- Scans a range of TCP ports on a target host
-- Guesses the operating system based on **TTL values**
-- Prints detected **open ports** with OS guess
-- Minimal and easy-to-read Python code
+---
 
-## Requirements
-
-- Python **3.7+**
-- `pyfiglet` (for ASCII banner)
-
-Install requirements:
-```bash
-pip install pyfiglet
-```
-
-## Usage
-<div align="left">
-
-Clone the repository
+## Installation
 
 ```bash
 git clone https://github.com/numankhaan/scanix.git
+<<<<<<< HEAD
 ```
 Move to Project Floder
 ```bash
+=======
+>>>>>>> nk/docs
 cd scanix
+
+python3 -m venv venv
+source venv/bin/activate
+
+pip install -r requirements.txt
+
 ```
-Run the script
 
-```bash
-python PortScannerwithOSFingerprint.py <ip> <start_port> <end_port>
-```
-</div>
+## Quick Start
+1. Basic scan:
+    ```bash
+    python -m scanix scan -t scanme.nmap.org -p 1-1000
+    ```
+2. Service detection:
 
-## Example
-<div align="left">
 
+<<<<<<< HEAD
 ```bash
 python PortScannerwithOSFingerprint.py example.com 1 1000
 ```
@@ -81,3 +80,14 @@ This will scan ports 1–1000 on the host example.com and attempt to guess the O
 
 This tool is provided for educational purposes only.
 Unauthorized use of port scanning on systems without permission may violate laws or policies.
+=======
+    ```bash
+    python -m scanix scan -t scanme.nmap.org -p 1-1000 --banner
+    ```
+3. SYN scan (requires root):
+    ```bash
+    sudo python -m scanix scan -t scanme.nmap.org -p 1-1000 --syn
+    ```
+## Legal
+Use Scanix only on systems you own or have permission to test.
+>>>>>>> nk/docs
