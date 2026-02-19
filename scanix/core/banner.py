@@ -9,6 +9,7 @@ COMMON_PROBES = {
     "IMAP": b"\r\n",
 }
 
+
 def grab_banner_for_port(target, port, timeout=2):
     """
     Attempt to connect and read a banner, optionally send a tiny probe for some known services.
@@ -47,6 +48,7 @@ def grab_banner_for_port(target, port, timeout=2):
         # connection failed
         return None
 
+
 def parse_service_version(port: int, banner: str):
     """
     Extract product + version hints from banners.
@@ -62,7 +64,7 @@ def parse_service_version(port: int, banner: str):
     if port == 22 or b.startswith("SSH-"):
         m = re.search(
             r"^SSH-\d+\.\d+-(?P<prod>[A-Za-z0-9\-_]+?)[_/](?P<ver>[^\s]+)\s*(?P<extra>.*)$",
-            b
+            b,
         )
         if m:
             prod = m.group("prod").replace("_", "")
@@ -82,7 +84,7 @@ def parse_service_version(port: int, banner: str):
             # nginx/1.22.0, Apache/2.4.57 (Ubuntu), cloudflare, etc.
             m2 = re.match(
                 r"(?P<prod>[A-Za-z0-9\-_]+)(?:/(?P<ver>[0-9][^ \t;]+))?\s*(?P<extra>.*)$",
-                server
+                server,
             )
             if m2:
                 prod = m2.group("prod")
@@ -95,7 +97,11 @@ def parse_service_version(port: int, banner: str):
     if port == 21 or b.startswith("220"):
         m = re.search(r"\((?P<prod>[A-Za-z0-9\-_]+)\s+(?P<ver>[0-9][^)\s]+)\)", b)
         if m:
-            return {"product": m.group("prod"), "version": m.group("ver"), "extra": None}
+            return {
+                "product": m.group("prod"),
+                "version": m.group("ver"),
+                "extra": None,
+            }
 
     # SMTP: 220 ... ESMTP Postfix
     if port in (25, 587) and b.startswith("220"):

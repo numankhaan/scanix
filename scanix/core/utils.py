@@ -3,12 +3,14 @@ from colorama import init as colorama_init, Fore, Style
 
 lock = threading.Lock()
 
+
 def color_init():
     # initialize colorama (no-op on platforms where not needed)
     try:
         colorama_init()
     except Exception:
         pass
+
 
 def safe_print(*args, success=False, info=False, warn=False, error=False, **kwargs):
     with lock:

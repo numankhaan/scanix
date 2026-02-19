@@ -1,6 +1,7 @@
 import csv
 from ..core.utils import safe_print
 
+
 def save_csv(data, filename="scan_results.csv"):
     try:
         if not data:

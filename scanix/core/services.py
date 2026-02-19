@@ -13,5 +13,6 @@ PORT_SERVICES = {
     5900: "VNC",
 }
 
+
 def get_service_name(port):
     return PORT_SERVICES.get(port, "Unknown")

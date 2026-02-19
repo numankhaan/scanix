@@ -1,6 +1,7 @@
 from ..core.utils import safe_print
 import html
 
+
 def save_html(data, filename="scan_results.html", title="Scanix Results"):
     try:
         rows = ""
@@ -9,7 +10,9 @@ def save_html(data, filename="scan_results.html", title="Scanix Results"):
             # header
             header = "".join(f"<th>{html.escape(str(k))}</th>" for k in keys)
             for item in data:
-                row = "".join(f"<td>{html.escape(str(item.get(k, '')))}</td>" for k in keys)
+                row = "".join(
+                    f"<td>{html.escape(str(item.get(k, '')))}</td>" for k in keys
+                )
                 rows += f"<tr>{row}</tr>\n"
             table = f"<table border='1'><thead><tr>{header}</tr></thead><tbody>{rows}</tbody></table>"
         else:

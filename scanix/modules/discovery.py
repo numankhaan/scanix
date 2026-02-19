@@ -3,6 +3,7 @@ import platform
 import ipaddress
 from ..core.utils import safe_print
 
+
 def ping_host(host, timeout=1000):
     """
     Use system 'ping' to check host reachability.
@@ -22,6 +23,7 @@ def ping_host(host, timeout=1000):
     except Exception as e:
         safe_print(f"Ping command failed for {host}: {e}", warn=True)
         return False
+
 
 def ping_sweep(network_cidr):
     """
