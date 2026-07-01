@@ -1,23 +1,31 @@
 <div align="center">
-# Scanix
- 
-Fast, modular port scanner and network reconnaissance tool written in Python.
- 
+
+  `Scanix`
+  
+  Fast, modular port scanner and network reconnaissance tool written in Python.
+
 </div>
+
+> [!CAUTION]
+>
+> ### For Learning Purposes Only
+>
+> This project is built for **educational purposes** and is not intended for **unauthorized scanning**.
+>
+> Use only on hosts and networks where you have explicit permission.
+
 <details open="open">
 <summary>Table of Contents</summary>
+
 - [About](#about)
-- [What Scanix Can Do](#what-scanix-can-do)
-- [Install](#install)
-- [Quick Start](#quick-start)
-- [Commands](#commands)
-- [Output Files](#output-files)
-- [Examples](#examples)
-- [Notes and Limitations](#notes-and-limitations)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Usage](#usage)
+- [Example](#example)
 - [Disclaimer](#disclaimer)
 </details>
+
 ---
- 
 ## About
  
 Scanix is a fast, modular network scanner written in Python. It discovers open ports, identifies running services and versions, performs OS fingerprinting, and supports multiple scanning techniques including TCP connect, SYN scan, and UDP probing.
