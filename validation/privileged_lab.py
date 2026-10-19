@@ -134,9 +134,9 @@ def peer(args):
 
 def capture_evidence(packets, cases):
     """Require real wire correlation in addition to the scan result's state."""
-    from scapy.all import TCP, UDP, ARP, ICMPv6ND_NS
+    from scapy.all import TCP, UDP, ARP, ICMP, ICMPv6EchoRequest, ICMPv6ND_NS
     from scanix.modules.packets import network, classify_syn, classify_udp
-    from scanix.modules.discovery import classify_link
+    from scanix.modules.discovery import classify_echo, classify_link
     checks = []
     for case in cases:
         method, target = case['method'], case['target']
@@ -172,6 +172,15 @@ def capture_evidence(packets, cases):
                 ok = ok and reset_count > 0
             checks.append({'case': case['name'], 'passed': bool(ok), 'probe_packets': len(probes),
                            'matched_states': matched, 'validated_reset_packets': reset_count})
+        elif method == 'icmp':
+            probes = [network(p) for p in packets if network(p) is not None
+                      and network(p).src in (V4[0], V6[0]) and network(p).dst == target
+                      and ((isinstance(network(p).payload, ICMP) and network(p).payload.type == 8)
+                           or isinstance(network(p).payload, ICMPv6EchoRequest))]
+            matches = any(classify_echo(probe, packet) is not None
+                          and classify_echo(probe, packet).state == 'up' for probe in probes for packet in packets)
+            checks.append({'case': case['name'], 'passed': len(probes) == 1 and matches,
+                           'probe_packets': len(probes), 'matching_echo_reply': matches})
         elif method in ('arp', 'nd'):
             if method == 'arp':
                 probes = [p for p in packets if p.haslayer(ARP) and p[ARP].op == 1 and p[ARP].pdst == target]
@@ -239,6 +248,10 @@ def inside(args):
                                 'port': port, 'expected': expected, 'observed': row.state if row else None,
                                 'passed': result.completion_status == 'complete' and row is not None and row.state == expected,
                                 'probe_type': row.probe_type if row else None, 'attempts': row.attempts if row else 0})
+                    echo = discover_host(Target(target, (target,)), ('icmp',), (19000,), cfg, threading.Event())
+                    record(args.output / f'{family}-icmp.json', echo)
+                    report['cases'].append({'name': f'{family}-icmp-up', 'method': 'icmp', 'target': target,
+                        'expected': 'up', 'observed': echo['state'], 'passed': echo['state'] == 'up'})
                     for method, address, expected in (('arp' if family == 'IPv4' else 'nd', target, 'up'),
                             ('arp' if family == 'IPv4' else 'nd', '10.203.0.3' if family == 'IPv4' else 'fd53:ca:1::3', 'no_response'),
                             ('arp' if family == 'IPv4' else 'nd', ROUTED[0] if family == 'IPv4' else ROUTED[1], 'error')):

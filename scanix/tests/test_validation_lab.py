@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from scapy.all import IP, TCP, UDP, Raw, Ether, ARP
+from scapy.all import IP, TCP, UDP, Raw, Ether, ARP, ICMP
 from scanix.modules.packets import syn_probe, udp_probe
 
 spec = importlib.util.spec_from_file_location('scanix_lab', Path(__file__).resolve().parents[2] / 'validation' / 'privileged_lab.py')
@@ -64,3 +64,12 @@ class LabValidationTests(unittest.TestCase):
         self.assertTrue(lab.capture_evidence([], [case])[0]['passed'])
         packet = Ether(src='02:00:00:00:00:01', dst='ff:ff:ff:ff:ff:ff')/ARP(op=1, psrc=lab.V4[0], pdst=lab.ROUTED[0])
         self.assertFalse(lab.capture_evidence([packet], [case])[0]['passed'])
+
+    def test_echo_capture_requires_the_actual_nonce(self):
+        from scanix.modules.discovery import echo_probe
+        probe = echo_probe(lab.V4[0], lab.V4[1])
+        reply = IP(src=probe.dst, dst=probe.src)/ICMP(type=0, id=probe.payload.id, seq=probe.payload.seq)/Raw(bytes(probe.payload.payload))
+        case = {'name': 'echo', 'method': 'icmp', 'target': lab.V4[1], 'expected': 'up'}
+        self.assertTrue(lab.capture_evidence([probe, reply], [case])[0]['passed'])
+        reply.payload.seq ^= 1
+        self.assertFalse(lab.capture_evidence([probe, reply], [case])[0]['passed'])
