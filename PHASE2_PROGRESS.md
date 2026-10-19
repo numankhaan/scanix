@@ -1,11 +1,17 @@
 # Phase 2 delivery and validation
 
-Implementation is on `phase2/scanning-accuracy` in the isolated worktree
-`/Users/nouman/Downloads/scanix-phase2`. It depends on unmerged Phase 1
-(`phase1/tcp-connect-reliability`, PR #4), so its PR targets that branch.
+The completed implementation is on `phase2/scanning-accuracy` at `3dbad9c`.
+PR #4 merged Phase 1 into main; PR #5 merged Phase 2 into the Phase 1 branch.
+Ancestry and tree comparison confirmed that main at `ece9bd0` still lacked Phase 2.
+The `integration/phase2-to-main` branch restores it through a normal merge with
+existing history intact. Before documentation updates, the integration tree was
+identical to the completed Phase 2 tree. See [integration record](INTEGRATION_PROGRESS.md)
+and the integration PR for review, merge and current CI outcomes.
+
 The original worktree's unrelated `scanix/modules/udp_scan.py` edit is preserved
-and was excluded from Phase 1 commits. Phase 2 replaces the committed placeholder
-independently in its isolated worktree. Neither PR is to be merged automatically.
+and excluded. Its prototype is separate from the committed Phase 2 implementation.
+The user's integration authorization now permits merging reviewed, passing PRs;
+the earlier instruction to leave both delivery PRs unmerged is historical.
 
 ## Implemented
 
@@ -57,4 +63,3 @@ validation report for exact coverage and reproduction instructions.
 
 New documentation-only pushes can start additional matrix runs; PR descriptions
 carry the latest observed check state. Never interpret queued checks as passes.
-Neither PR is to be merged automatically.
