@@ -36,6 +36,8 @@ class ScanConfig:
     sni: str | None = None
     starttls: bool = False
     allow_excluded_probes: bool = False
+    engine: str = 'python'
+    engine_timeout: float = 3600.0
 
     def __post_init__(self):
         if not isinstance(self.target, str) or not self.target.strip() or '\x00' in self.target:
@@ -70,6 +72,14 @@ class ScanConfig:
             raise ValueError('--tls-insecure and --tls-ca-file are mutually exclusive')
         if self.service_detect and self.banner:
             raise ValueError('use --service-detect or legacy --banner, not both')
+        if self.engine not in ('python','native'):
+            raise ValueError('unknown scan engine')
+        if not math.isfinite(self.engine_timeout) or not .1 <= self.engine_timeout <= 86400:
+            raise ValueError('engine timeout must be within 0.1–86400 seconds')
+        if self.engine=='native' and (self.method!='connect' or self.banner):
+            raise ValueError('native foundation supports connect only; use --service-detect instead of --banner')
+        if self.engine=='native' and self.rate is not None and self.rate<.000001:
+            raise ValueError('native rate must be at least 0.000001 attempts/second')
         if self.method not in ("connect", "syn", "udp"):
             raise ValueError("unknown scan method")
         if self.method != "connect" and self.banner:
@@ -111,7 +121,8 @@ class ScanResult:
 class ScanReport:
     configuration: ScanConfig
     results: list[ScanResult] = field(default_factory=list)
-    schema_version: int = 3
+    schema_version: int = 4
+    implementation: dict = field(default_factory=lambda: {'engine':'python','engine_version':'phase4a','wire_protocol':None})
     probe_database_version: str | None = None
     started_at: str = field(default_factory=utc_now)
     finished_at: str | None = None

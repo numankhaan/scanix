@@ -8,3 +8,5 @@ scan_results.csv
 scan_results.html
 .env
 .env.*
+# Native build output; Cargo.lock is committed for reproducibility.
+native/target/

@@ -31,11 +31,22 @@ See [PHASE2_PROGRESS.md](PHASE2_PROGRESS.md) and README for the
 implemented platform/privilege requirements and limitations. This is not a claim
 of feature or performance parity with other scanners.
 
+## In progress
+
+- **Phase 4A:** opt-in Rust asynchronous TCP connect engine, versioned bounded
+  NDJSON subprocess contract, Python adapter, schema-4 implementation metadata,
+  deterministic protocol tests and loopback baseline. Python remains the default;
+  native raw SYN is not implemented in this foundation.
+
 ## Planned
 
-- **Phase 4:** separately designed native asynchronous discovery engine, with
-  measured throughput, resource bounds and correctness checks.
-- **Phase 5:** enumeration plugins, remote OS fingerprints and scan history.
+- **Phase 4B:** Linux-first asynchronous native SYN discovery and controlled lab evidence.
+- **Phase 4C:** durable resume, streaming, deterministic sharding and measured performance.
+- **Phase 5A:** bounded informational enumeration plugins.
+- **Phase 5B:** original remote packet OS evidence and conservative fingerprints.
+- **Phase 5C:** optional versioned SQLite history and partial-scan comparisons.
+- **Phase 6:** cross-platform release validation, fuzzing, packaging/license review
+  and release-candidate report; no public publishing without separate authorization.
 
 Service follow-ups: more original signatures, broader server interoperability,
 HTTP/2 and richer insecure-certificate metadata, virtual-host enumeration within
