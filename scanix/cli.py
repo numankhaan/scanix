@@ -53,7 +53,7 @@ def selected_discovery(value):
 
 def build_parser():
     parser = argparse.ArgumentParser(prog='scanix', description='Scanix bounded IPv4/IPv6 network reconnaissance')
-    parser.add_argument('--version', action='version', version='Scanix Phase 2')
+    parser.add_argument('--version', action='version', version='Scanix Phase 3')
     sub = parser.add_subparsers(dest='command', required=True)
     scan = sub.add_parser('scan', help='TCP connect, raw SYN or protocol-aware UDP scan')
     scan.add_argument('-t', '--target', action='append', default=[], help='IP, hostname or CIDR; repeatable')
@@ -65,6 +65,16 @@ def build_parser():
                          help='validated raw SYN; requires capture privileges')
     scan.set_defaults(method='connect')
     methods.add_argument('--udp', dest='method', action='store_const', const='udp', help='protocol-aware UDP; requires raw capture privileges')
+    scan.add_argument('--service-detect', action='store_true', help='bounded protocol/TLS identification of confirmed open ports')
+    scan.add_argument('--service-profile', choices=['quick', 'deep'], default='quick', help='quick: 3 connections/3s; deep: 5 connections/8s per open endpoint')
+    scan.add_argument('--service-timeout', type=float, help='total seconds per open endpoint, 0.1–30')
+    scan.add_argument('--service-workers', type=int, default=4, help='enrichment workers, bounded by scan concurrency and per-host limit')
+    verify = scan.add_mutually_exclusive_group()
+    verify.add_argument('--tls-insecure', action='store_true', help='inspect self-signed lab TLS; certificate verification is disabled and reported')
+    verify.add_argument('--tls-ca-file', help='PEM CA bundle for verified lab TLS')
+    scan.add_argument('--sni', help='TLS SNI/verification name override; connection remains at selected numeric address')
+    scan.add_argument('--starttls', action='store_true', help='try advertised SMTP/POP3/IMAP TLS upgrade during service detection')
+    scan.add_argument('--allow-excluded-probes', action='store_true', help='allow active service probes on excluded printer/spooler ports')
     scan.add_argument('--banner', action='store_true', help='best-effort plaintext banner evidence')
     scan.add_argument('--timeout', type=float, default=1.0, help='connection timeout seconds (0, 300]')
     scan.add_argument('--concurrency', type=int, default=100, help='outstanding tasks/workers (1–1024)')
@@ -108,7 +118,11 @@ def _run_scan(parser, args):
             raise ValueError('select at most 16 TCP discovery ports')
         config = ScanConfig(args.target[0] if args.target else 'target-file', parse_ports(args.ports), args.timeout,
                             args.concurrency, args.method, args.banner, args.retries, args.rate,
-                            args.per_host, args.min_timeout, args.max_timeout, not args.fixed_timeout)
+                            args.per_host, args.min_timeout, args.max_timeout, not args.fixed_timeout,
+                            service_detect=args.service_detect, service_profile=args.service_profile,
+                            service_timeout=args.service_timeout, service_workers=args.service_workers,
+                            tls_insecure=args.tls_insecure, tls_ca_file=args.tls_ca_file, sni=args.sni,
+                            starttls=args.starttls, allow_excluded_probes=args.allow_excluded_probes)
     except ValueError as exc:
         parser.error(str(exc))
     # Validate CLI/config before DNS, sockets or capture. Offline preview requires no Scapy.
@@ -135,6 +149,8 @@ def _run_scan(parser, args):
                           'per_host': min(config.concurrency, config.per_host), 'retries': 0 if config.method == 'connect' else config.retries,
                           'adaptive': config.adaptive, 'timeout': config.timeout,
                           'min_timeout': config.min_timeout, 'max_timeout': config.max_timeout}
+        from .service.engine import policy
+        data['service_detection'] = policy(config)
         json.dump(data, sys.stdout, indent=2)
         print()
         return 0
@@ -177,11 +193,15 @@ def _run_scan(parser, args):
             getattr(module, f'save_{args.out}')(report, filename)
             print(f'Saved {filename}', file=sys.stderr)
         else:
+            from .service.parsers import clean
             for result in report.results:
                 # JSON quoting prevents untrusted target text from emitting terminal controls.
                 print(f'{json.dumps(result.target, ensure_ascii=True)} '
                       f'{result.resolved_ip or "unknown"}:{result.port}/{result.protocol} '
                       f'{result.state} ({result.reason})')
+                if result.service_detection:
+                    for observation in result.service_detection.observations:
+                        print('  ' + clean(f'{observation.service} {observation.product or ""} {observation.version or ""} [{observation.confidence}; {observation.transport}]'))
     except (OSError, ValueError, TypeError) as exc:
         print(f'Output failed: {exc}', file=sys.stderr)
         return 1

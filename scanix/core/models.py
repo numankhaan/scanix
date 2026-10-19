@@ -1,8 +1,9 @@
-"""Phase 2 extends the Phase 1 wire schema. Unknown evidence is represented by None (JSON null)."""
+"""Phase 3 adds structured service evidence to the Phase 2 wire schema. Unknown evidence is represented by None (JSON null)."""
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 import math
 from typing import Literal
+from ..service.models import DetectionReport
 
 State = Literal["open", "closed", "unknown", "error", "filtered", "open|filtered"]
 Method = Literal["connect", "syn", "udp"]
@@ -26,6 +27,15 @@ class ScanConfig:
     min_timeout: float = 0.1
     max_timeout: float = 5.0
     adaptive: bool = True
+    service_detect: bool = False
+    service_profile: str = 'quick'
+    service_timeout: float | None = None
+    service_workers: int = 4
+    tls_insecure: bool = False
+    tls_ca_file: str | None = None
+    sni: str | None = None
+    starttls: bool = False
+    allow_excluded_probes: bool = False
 
     def __post_init__(self):
         if not isinstance(self.target, str) or not self.target.strip() or '\x00' in self.target:
@@ -46,6 +56,20 @@ class ScanConfig:
         if not (math.isfinite(self.min_timeout) and math.isfinite(self.max_timeout)
                 and 0.01 <= self.min_timeout <= self.max_timeout <= 300):
             raise ValueError("timeout bounds must satisfy 0.01 <= min <= max <= 300")
+        if self.service_profile not in ('quick', 'deep'):
+            raise ValueError('service profile must be quick or deep')
+        if self.service_timeout is not None and (not math.isfinite(self.service_timeout) or not .1 <= self.service_timeout <= 30):
+            raise ValueError('service timeout must be within 0.1–30 seconds')
+        if type(self.service_workers) is not int or not 1 <= self.service_workers <= 64:
+            raise ValueError('service workers must be within 1–64')
+        if self.sni is not None:
+            import re
+            if not isinstance(self.sni, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9.-]{0,252}', self.sni):
+                raise ValueError('SNI override must be an ASCII hostname or IPv4 address')
+        if self.tls_insecure and self.tls_ca_file:
+            raise ValueError('--tls-insecure and --tls-ca-file are mutually exclusive')
+        if self.service_detect and self.banner:
+            raise ValueError('use --service-detect or legacy --banner, not both')
         if self.method not in ("connect", "syn", "udp"):
             raise ValueError("unknown scan method")
         if self.method != "connect" and self.banner:
@@ -80,13 +104,15 @@ class ScanResult:
     evidence: dict = field(default_factory=dict)
     attempts: int = 1
     original_targets: tuple[str, ...] = ()
+    service_detection: DetectionReport | None = None
 
 
 @dataclass
 class ScanReport:
     configuration: ScanConfig
     results: list[ScanResult] = field(default_factory=list)
-    schema_version: int = 2
+    schema_version: int = 3
+    probe_database_version: str | None = None
     started_at: str = field(default_factory=utc_now)
     finished_at: str | None = None
     completion_status: Literal["complete", "failed", "interrupted"] = "complete"

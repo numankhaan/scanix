@@ -162,6 +162,52 @@
       "fallbacks": [
         "dns.udp.v1"
       ]
+    },
+    {
+      "id": "smtp.starttls.v1",
+      "protocol": "tls",
+      "transport": "tls",
+      "payload_strategy": "smtp_starttls",
+      "parser_id": "tls_v1",
+      "response_limit": 4096,
+      "ports": [
+        25,
+        587
+      ],
+      "matchers": [
+        "tls.response.v1"
+      ],
+      "fallbacks": []
+    },
+    {
+      "id": "pop3.starttls.v1",
+      "protocol": "tls",
+      "transport": "tls",
+      "payload_strategy": "pop3_stls",
+      "parser_id": "tls_v1",
+      "response_limit": 4096,
+      "ports": [
+        110
+      ],
+      "matchers": [
+        "tls.response.v1"
+      ],
+      "fallbacks": []
+    },
+    {
+      "id": "imap.starttls.v1",
+      "protocol": "tls",
+      "transport": "tls",
+      "payload_strategy": "imap_starttls",
+      "parser_id": "tls_v1",
+      "response_limit": 4096,
+      "ports": [
+        143
+      ],
+      "matchers": [
+        "tls.response.v1"
+      ],
+      "fallbacks": []
     }
   ],
   "signatures": [

@@ -8,8 +8,14 @@ from .timing import RateLimiter, Runtime
 
 def scan_scope(config, plan, stop=None, *, discovery_methods=(), discovery_ports=(80, 443), progress=None):
     stop = stop or threading.Event()
-    report = ScanReport(config, schema_version=2, requested_probes=plan.count() * len(config.ports))
+    report = ScanReport(config, requested_probes=plan.count() * len(config.ports))
+    if config.service_detect:
+        from ..service.engine import policy
+        from ..service.registry import load_registry
+        report.probe_database_version = load_registry().version
     report.scope = plan.preview(config.ports, config.method, discovery_methods, limit=0)
+    if config.service_detect:
+        report.scope['service_detection'] = policy(config)
     rate = config.rate or {'connect': 100, 'syn': 10, 'udp': 1}[config.method]
     report.scope['effective_rate'] = rate
     report.scope['effective_per_host'] = min(config.concurrency, config.per_host)
@@ -33,7 +39,7 @@ def scan_scope(config, plan, stop=None, *, discovery_methods=(), discovery_ports
                     if observations['state'] == 'error':
                         report.completion_status = 'failed'
                     continue
-            part = scan_target(host_config, stop, endpoint=ResolvedTarget(target.ip, target.family), runtime=runtime)
+            part = scan_target(host_config, stop, endpoint=ResolvedTarget(target.ip, target.family), runtime=runtime, originals=target.originals)
             for result in part.results:
                 result.original_targets = target.originals
             report.results.extend(part.results)

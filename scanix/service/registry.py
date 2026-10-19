@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 
 PARSERS = frozenset(('http_v1', 'ssh_v1', 'ftp_v1', 'smtp_v1', 'pop3_v1', 'imap_v1', 'tls_v1', 'dns_v1', 'ntp_v1'))
-STRATEGIES = frozenset(('greeting', 'http_head', 'tls', 'ftp_feat', 'smtp_ehlo', 'pop3_capa', 'imap_capability', 'dns_minimal', 'ntp_client'))
+STRATEGIES = frozenset(('greeting', 'http_head', 'tls', 'ftp_feat', 'smtp_ehlo', 'pop3_capa', 'imap_capability', 'dns_minimal', 'ntp_client', 'smtp_starttls', 'pop3_stls', 'imap_starttls'))
 
 
 def safe_regex(pattern):
@@ -54,10 +54,25 @@ class Registry:
     exclusions: tuple
     compiled: dict
 
-    def hints(self, protocol, field, value):
+    def fallback_chain(self, first, limit):
+        """Cycle-safe bounded traversal of declared fallback IDs."""
+        queue, seen, selected = [first], set(), []
+        while queue and len(selected) < limit:
+            key = queue.pop(0)
+            if key in seen:
+                continue
+            seen.add(key)
+            probe = self.probes[key]
+            selected.append(probe)
+            queue.extend(item for item in probe['fallbacks'] if item not in seen)
+        return selected
+
+    def hints(self, protocol, field, value, matchers=None):
         if len(value) > 256:
             return None
         for key, signature in self.signatures.items():
+            if matchers is not None and key not in matchers:
+                continue
             if signature['protocol'] == protocol and signature['field'] == field and 'pattern' in signature:
                 match = self.compiled[key].fullmatch(value)
                 if match:
@@ -66,15 +81,19 @@ class Registry:
 
 
 def validate(data):
+    if not isinstance(data, dict):
+        raise ValueError('probe database must be an object')
     if set(data) != {'schema_version', 'database_version', 'license', 'probes', 'signatures', 'sensitivity_exclusions'} or data['schema_version'] != 1:
         raise ValueError('unknown probe database schema')
-    if not re.fullmatch(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', data['database_version']) or data['license'] != 'CC0-1.0':
+    if not isinstance(data['database_version'],str) or not re.fullmatch(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', data['database_version']) or data['license'] != 'CC0-1.0':
         raise ValueError('invalid probe database version/license')
     probes, signatures, compiled = {}, {}, {}
     for collection, target in ((data['probes'], probes), (data['signatures'], signatures)):
         if not isinstance(collection, list) or not 1 <= len(collection) <= 64:
             raise ValueError('probe/signature count exceeds bounds')
         for entry in collection:
+            if not isinstance(entry,dict):
+                raise ValueError('registry entries must be objects')
             key = entry.get('id')
             if not isinstance(key, str) or not re.fullmatch(r'[a-z0-9_.-]{1,64}', key) or key in target:
                 raise ValueError('invalid or duplicate stable ID')
@@ -82,23 +101,38 @@ def validate(data):
     for probe in probes.values():
         if set(probe) != {'id', 'protocol', 'transport', 'payload_strategy', 'parser_id', 'response_limit', 'ports', 'matchers', 'fallbacks'}:
             raise ValueError('unknown probe fields')
-        if probe['parser_id'] not in PARSERS or probe['payload_strategy'] not in STRATEGIES:
+        if not isinstance(probe['parser_id'],str) or not isinstance(probe['payload_strategy'],str) or probe['parser_id'] not in PARSERS or probe['payload_strategy'] not in STRATEGIES:
             raise ValueError('unknown parser/payload strategy')
         if probe['transport'] not in ('tcp', 'tls', 'udp') or probe['protocol'] not in {p.removesuffix('_v1') for p in PARSERS}:
             raise ValueError('invalid probe protocol/transport')
+        if not isinstance(probe['protocol'],str) or probe['parser_id'] != probe['protocol']+'_v1':
+            raise ValueError('parser must match declared protocol')
+        allowed = {'http': ('http_head',), 'tls': ('tls','smtp_starttls','pop3_stls','imap_starttls'),
+                   'ssh': ('greeting',), 'ftp': ('ftp_feat',), 'smtp': ('smtp_ehlo',),
+                   'pop3': ('pop3_capa',), 'imap': ('imap_capability',), 'dns': ('dns_minimal',), 'ntp': ('ntp_client',)}
+        if probe['payload_strategy'] not in allowed[probe['protocol']]:
+            raise ValueError('payload strategy does not match protocol')
+        if probe['transport'] != ('tls' if probe['protocol']=='tls' else 'udp' if probe['protocol'] in ('dns','ntp') else 'tcp'):
+            raise ValueError('transport does not match protocol')
         if type(probe['response_limit']) is not int or not 64 <= probe['response_limit'] <= 16384:
             raise ValueError('invalid response limit')
         if not isinstance(probe['ports'], list) or any(type(p) is not int or not 1 <= p <= 65535 for p in probe['ports']):
             raise ValueError('invalid port hints')
         if not isinstance(probe['matchers'], list) or not isinstance(probe['fallbacks'], list):
             raise ValueError('invalid registry references')
+        if any(not isinstance(key,str) for key in probe['matchers']+probe['fallbacks']):
+            raise ValueError('references must be stable IDs')
         if any(key not in signatures for key in probe['matchers']) or any(key not in probes for key in probe['fallbacks']):
             raise ValueError('dangling registry reference')
+        if any(signatures[key]['protocol'] != probe['protocol'] for key in probe['matchers']):
+            raise ValueError('signature must match probe protocol')
     for key, signature in signatures.items():
         if not set(signature) <= {'id', 'protocol', 'field', 'pattern', 'product', 'parser_id'} or not {'id', 'protocol', 'field', 'parser_id'} <= set(signature):
             raise ValueError('invalid signature fields')
-        if signature['parser_id'] not in PARSERS or signature['protocol'] not in {p.removesuffix('_v1') for p in PARSERS}:
+        if not isinstance(signature['parser_id'],str) or signature['parser_id'] not in PARSERS or signature['protocol'] not in {p.removesuffix('_v1') for p in PARSERS}:
             raise ValueError('invalid signature parser/protocol')
+        if 'product' in signature and (not isinstance(signature['product'],str) or not re.fullmatch(r'[A-Za-z0-9 ._/-]{1,64}',signature['product'])):
+            raise ValueError('invalid product label')
         if signature['field'] not in ('server', 'software', 'greeting', 'wire'):
             raise ValueError('unknown signature field')
         if 'pattern' in signature:
@@ -109,7 +143,7 @@ def validate(data):
     if not isinstance(exclusions, list) or len(exclusions) > 32:
         raise ValueError('invalid sensitivity exclusions')
     for item in exclusions:
-        if set(item) != {'ports', 'reason'} or not isinstance(item['ports'], list) or not isinstance(item['reason'], str) or len(item['reason']) > 128:
+        if not isinstance(item,dict) or set(item) != {'ports', 'reason'} or not isinstance(item['ports'], list) or not isinstance(item['reason'], str) or len(item['reason']) > 128:
             raise ValueError('invalid exclusion entry')
         if any(type(port) is not int or not 1 <= port <= 65535 for port in item['ports']):
             raise ValueError('invalid excluded port')

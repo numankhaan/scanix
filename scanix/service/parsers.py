@@ -93,7 +93,7 @@ def identify(protocol,data,probe_id,transport='tcp',*,request=None,command=None,
     product=version=None
     field = 'server' if protocol=='http' else 'software' if protocol=='ssh' else 'greeting'
     value=parsed.get('headers',{}).get('server','').split(' ')[0] if protocol=='http' else parsed.get(field,'')
-    hints=registry.hints(protocol,field,value)
+    hints=registry.hints(protocol,field,value,registry.probes[probe_id]['matchers'] if probe_id in registry.probes else None)
     if hints:
         signature,product,version=hints
     return ServiceEvidence(protocol,product,version,transport,
