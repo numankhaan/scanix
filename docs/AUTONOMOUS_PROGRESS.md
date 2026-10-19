@@ -49,3 +49,28 @@ compiled for tests only; no native SYN capability is advertised yet.
 Next: Linux raw sender + non-promiscuous AF_PACKET capture preflight, independent
 bounded receive task; then protocol-2 SYN scheduler and deterministic timing tests.
 PR #12 remains draft. Main/old branches and unrelated UDP edit are unchanged.
+
+
+## SYN engine implementation milestone (live validation pending)
+
+Packet commit `e0d0842b8ed94b5035e6f232a3a7d37b65b5e34a` is local, not yet pushed.
+Added independent paced raw sender/AF_PACKET capture tasks, bounded deterministic
+round-robin work state, retry/final window/drain/cancel, actual-send/drop metrics,
+source/interface/capture preflight and protocol 2/engine 0.4.1 Python integration.
+Explicit native SYN Linux/IPv4 failures precede traffic; Python remains default.
+No privileged native SYN execution performed yet; do not mark #12 ready.
+
+Actual local validation: `cargo test --locked --manifest-path native/Cargo.toml`
+17 passed; release build passed. Mac Clippy passed; Linux aarch64 cross-compile and
+strict Clippy passed using installed rustup stable compiler (not Linux execution).
+`python -B validation/native_ci.py`: 143 run, 140 passed/three skips (two privileged,
+one Linux-only preflight case). `python -m unittest discover -s security/tests -v`:
+19 passed. Bandit passed. Earlier strict lint caught Tokio AsyncFd::new deprecation;
+used documented unsafe register API with OwnedFd lifetime guarantees, no suppression.
+
+Current uncommitted files are intended native I/O/state/driver, protocol/model/CLI,
+adapter/fixtures and support docs. No generated captures/reports or unrelated edits.
+Next: commit reviewed implementation, push to existing draft #12 after verifying
+remote head, inspect CI; implement and dispatch controlled native SYN namespace lab
+with independent capture validation, measurements and cancellation/exclusion cases.
+Fix actual failures before ready/review/merge. Then post-merge CI and Phase 4C.

@@ -18,7 +18,7 @@ from scanix.core.models import ScanConfig
 from scanix.core.targets import ScopePlan
 from scanix.native.adapter import scan_native,_decode
 
-HELLO={'type':'hello','protocol':1,'engine':'scanix-rust','engine_version':'0.4.0','capabilities':['connect']}
+HELLO={'type':'hello','protocol':2,'engine':'scanix-rust','engine_version':'0.4.1','capabilities':['connect']}
 ROW={'type':'result','id':0,'target_index':0,'ip':'127.0.0.1','port':443,
      'state':'open','reason':'connection_succeeded','error_code':None,'elapsed_seconds':.001}
 DONE={'type':'done','status':'complete','requested':1,'completed':1,'attempted':1,'peak_outstanding':1,'elapsed_seconds':.01,'reason':None}
@@ -60,7 +60,7 @@ class NativeWireTests(unittest.TestCase):
         with fake_engine([HELLO,{'type':'ready','requested':1},ROW,DONE]):report=self.scan()
         self.assertEqual(report.completion_status,'complete');self.assertEqual(report.results[0].state,'open')
         self.assertEqual(report.implementation['engine'],'native')
-        self.assertEqual(report.implementation['engine_version'],'0.4.0')
+        self.assertEqual(report.implementation['engine_version'],'0.4.1')
         self.assertEqual(report.to_dict()['schema_version'],4)
         self.assertEqual(report.results[0].original_targets,('127.0.0.1',))
         self.assertFalse(report.to_dict()['incomplete'])
@@ -90,7 +90,7 @@ class NativeWireTests(unittest.TestCase):
             report=self.scan();self.assertEqual(report.completion_status,'failed')
 
     def test_handshake_rejection_precedes_scope_transmission(self):
-        for hello in ({**HELLO,'protocol':True},{**HELLO,'protocol':2},
+        for hello in ({**HELLO,'protocol':True},{**HELLO,'protocol':999},
                       {**HELLO,'capabilities':['syn']}):
             with self.subTest(hello=hello),fake_engine([hello]) as sent:
                 report=self.scan()
@@ -159,14 +159,72 @@ class NativeWireTests(unittest.TestCase):
             self.assertEqual(run_cli(['scan','-t','127.0.0.1','-p','443','--engine','native','--preview']),0)
         policy=json.loads(output.getvalue())['implementation']
         self.assertEqual(policy['engine'],'native');self.assertFalse(policy['fallback'])
-        for kw in ({'method':'syn'},{'method':'udp'},{'banner':True},{'engine_timeout':float('nan')}):
+        for kw in ({'method':'udp'},{'banner':True},{'engine_timeout':float('nan')}):
             with self.subTest(kw=kw),self.assertRaises(ValueError):self.config(**kw)
         with self.assertRaises(ValueError):scan_target(self.config())
         with self.assertRaises(ValueError):ScanConfig('127.0.0.1',tuple(range(1,4098)),engine='native')
 
 
+class NativeSynWireTests(unittest.TestCase):
+    def scan(self,row,done=None,**options):
+        hello={**HELLO,'capabilities':['connect','syn_ipv4']}
+        metrics={**DONE,'syn_sent':1,'retries_sent':0,'resets_sent':int(row['state']=='open'),
+                 'send_errors':0,'capture_drops':0,'queue_drops':0,**(done or {})}
+        config=ScanConfig('127.0.0.1',(443,),engine='native',method='syn')
+        with patch('scanix.native.adapter.sys.platform','linux'),fake_engine([hello,{'type':'ready','requested':1},row,metrics],**options):
+            return scan_native(config,ScopePlan(['127.0.0.1']),binary='fixture')
+    def row(self,state='open',reason='syn_ack',**kw):
+        return {**ROW,'state':state,'reason':reason,'attempts':1,
+                'evidence':{'matched_response':True,'icmp_code':None,'reset_sent':state=='open','reset_error_code':None},**kw}
+    def test_positive_states_and_no_response_retry_evidence(self):
+        rows=[self.row(),self.row('closed','syn_rst_ack'),
+              self.row('filtered','icmp_administratively_prohibited',evidence={'matched_response':True,'icmp_code':13,'reset_sent':False}),
+              self.row('unknown','icmp_unreachable_or_path_error',evidence={'matched_response':True,'icmp_code':1,'reset_sent':False})]
+        for row in rows:
+            with self.subTest(state=row['state']):
+                report=self.scan(row);self.assertEqual(report.completion_status,'complete',report.issues)
+                self.assertEqual(report.results[0].state,row['state']);self.assertEqual(report.results[0].probe_type,'syn')
+        row=self.row('unknown','no_response',attempts=2,evidence={'matched_response':False,'icmp_code':None,'reset_sent':False})
+        report=self.scan(row,{'syn_sent':2,'retries_sent':1})
+        self.assertEqual(report.completion_status,'complete',report.issues);self.assertEqual(report.results[0].attempts,2)
+    def test_false_evidence_and_raw_metrics_fail_closed(self):
+        cases=[(self.row(attempts=0),{}),(self.row(evidence={'matched_response':False,'reset_sent':True}),{}),
+               (self.row(),{'capture_drops':'synthetic-private-marker'}),(self.row(),{'capture_drops':1}),
+               (self.row(),{'syn_sent':True}),(self.row('open','no_response'),{}),
+               (self.row('filtered','icmp_administratively_prohibited',evidence={'matched_response':True,'icmp_code':1,'reset_sent':False}),{})]
+        for row,metrics in cases:
+            with self.subTest(kind='invalid evidence'):
+                report=self.scan(row,metrics);self.assertEqual(report.completion_status,'failed')
+                self.assertNotIn('synthetic-private-marker',json.dumps(report.to_dict()))
+    def test_capture_loss_retains_positive_port(self):
+        report=self.scan(self.row(),{'status':'failed','reason':'capture_loss','capture_drops':1},code=3)
+        self.assertEqual(report.completion_status,'failed');self.assertEqual(report.results[0].state,'open')
+        self.assertEqual(report.implementation['metrics']['capture_drops'],1)
+    def test_unsupported_platform_and_ipv6_fail_before_process(self):
+        with patch('subprocess.Popen',side_effect=AssertionError('started')):
+            for platform,address,family in [('darwin','127.0.0.1','4'),('win32','127.0.0.1','4'),('linux','::1','6')]:
+                with self.subTest(platform=platform),patch('scanix.native.adapter.sys.platform',platform):
+                    config=ScanConfig(address,(443,),engine='native',method='syn')
+                    report=scan_native(config,ScopePlan([address],family=family))
+                    self.assertEqual(report.completion_status,'failed');self.assertFalse(report.results)
+                    self.assertIn({'reason':'native_syn_requires_linux_ipv4'},report.issues)
+
+
 @unittest.skipUnless(os.environ.get('SCANIX_NATIVE_ENGINE'),'native integration: set SCANIX_NATIVE_ENGINE to built executable')
 class NativeLoopbackTests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform=='linux','native SYN backend is Linux-only')
+    def test_syn_empty_scope_and_unprivileged_preflight(self):
+        config=ScanConfig('127.0.0.1',(443,),engine='native',method='syn')
+        empty=scan_native(config,ScopePlan(['127.0.0.1'],['127.0.0.1']))
+        self.assertEqual(empty.completion_status,'complete',empty.issues)
+        self.assertEqual(empty.implementation['metrics']['syn_sent'],0)
+        caps=int(next(line.split()[1] for line in Path('/proc/self/status').read_text().splitlines() if line.startswith('CapEff:')),16)
+        if caps & (1<<13):self.skipTest('privileged SYN traffic belongs to isolated opt-in lab')
+        report=scan_native(config,ScopePlan(['127.0.0.1']))
+        self.assertEqual(report.completion_status,'failed')
+        self.assertEqual(report.implementation['metrics']['syn_sent'],0)
+        self.assertIn({'reason':'native_raw_privilege_required'},report.issues)
+
     def test_open_refused_and_python_agreement(self):
         from scanix.tests.test_service_engine import lab,http
         from scanix.core.scanner import scan_target

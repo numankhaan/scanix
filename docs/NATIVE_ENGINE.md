@@ -1,11 +1,11 @@
-# Native engine boundary (Phase 4A)
+# Native engine boundary (Phase 4A and draft 4B)
 
 Python remains the default. The original Python TCP/SYN/UDP paths remain available.
 The opt-in Rust engine **implements asynchronous TCP connect scanning** for numeric
-IPv4/IPv6 targets on Linux, macOS and Windows. It does not implement native raw SYN,
-UDP or discovery yet. Unsupported requests fail explicitly; no engine fallback or
+IPv4/IPv6 targets on Linux, macOS and Windows. The draft Phase 4B path adds Linux IPv4 SYN; live validation remains pending
+([support and evidence](NATIVE_SYN.md)). Native UDP/discovery are not implemented. Unsupported requests fail explicitly; no engine fallback or
 automatic build/download happens. This is a foundation and connect baseline, not
-an implemented high-speed SYN backend or a parity claim.
+a high-speed or parity claim.
 
 ## Build and use
 
@@ -37,7 +37,7 @@ remain in Python reports and supply SNI to existing bounded service detection.
 
 ## Versioned wire contract
 
-Protocol **1**, UTF-8 JSON objects, exactly one newline-terminated object per frame,
+Protocol **2**, UTF-8 JSON objects, exactly one newline-terminated object per frame,
 maximum **65,536 bytes including newline**. Adapter response JSON is limited to
 16 container levels, independently of interpreter recursion behavior. Unknown commands/fields, duplicates,
 malformed input, nonnumeric target addresses and out-of-limit settings are rejected
@@ -48,11 +48,11 @@ selected by wire messages.
 
 Sequence:
 
-1. Child `hello`: protocol=1, engine=scanix-rust, engine_version=0.4.0,
-   capabilities=[connect], limits. A client must validate protocol and capability before transmitting scope/start.
+1. Child `hello`: protocol=2, engine=scanix-rust, engine_version=0.4.1,
+   capabilities=[connect] (plus syn_ipv4 on Linux), limits. A client must validate protocol and capability before transmitting scope/start.
 2. Parent `start`: protocol, method, sorted unique ports; timeout_ms,
    min_timeout_ms/max_timeout_ms/adaptive; concurrency/per_host/rate;
-   max_targets/max_results/session_timeout_ms. All fields are required.
+   max_targets/max_results/session_timeout_ms, retries and cooldown_ms. All fields are required.
 3. Zero or more parent `target` frames with a numeric `ip`, followed by `run`.
    Targets must be unique. No traffic starts before complete scope preflight.
 4. Child `ready` records exact requested address/port pairs. Child streams `result`
@@ -79,6 +79,9 @@ execution diagnostics separately from port classification. Complete coverage wit
 local resource/permission failures still marks the Python report failed.
 
 ## Bounds, timing and evidence
+
+The table below describes connect. Draft SYN concurrency, retry, capture and packet
+rate bounds are documented separately in [NATIVE_SYN.md](NATIVE_SYN.md).
 
 | Resource | Enforced bound |
 | --- | --- |

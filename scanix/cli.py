@@ -53,7 +53,7 @@ def selected_discovery(value):
 
 def build_parser():
     parser = argparse.ArgumentParser(prog='scanix', description='Scanix bounded IPv4/IPv6 network reconnaissance')
-    parser.add_argument('--version', action='version', version='Scanix Phase 4A')
+    parser.add_argument('--version', action='version', version='Scanix Phase 4B (development)')
     sub = parser.add_subparsers(dest='command', required=True)
     scan = sub.add_parser('scan', help='TCP connect, raw SYN or protocol-aware UDP scan')
     scan.add_argument('-t', '--target', action='append', default=[], help='IP, hostname or CIDR; repeatable')
@@ -77,6 +77,7 @@ def build_parser():
     scan.add_argument('--allow-excluded-probes', action='store_true', help='allow active service probes on excluded printer/spooler ports')
     scan.add_argument('--engine', choices=['python','native'], default='python', help='explicit engine; Python remains the default')
     scan.add_argument('--native-binary', help='trusted native executable path; otherwise SCANIX_NATIVE_ENGINE or PATH')
+    scan.add_argument('--syn-cooldown', type=float, default=.2, help='native SYN final receive cooldown seconds (0–1)')
     scan.add_argument('--engine-timeout', type=float, default=3600, help='native session budget seconds, 0.1–86400')
     scan.add_argument('--banner', action='store_true', help='best-effort plaintext banner evidence')
     scan.add_argument('--timeout', type=float, default=1.0, help='connection timeout seconds (0, 300]')
@@ -130,7 +131,7 @@ def _run_scan(parser, args):
                             service_timeout=args.service_timeout, service_workers=args.service_workers,
                             tls_insecure=args.tls_insecure, tls_ca_file=args.tls_ca_file, sni=args.sni,
                             starttls=args.starttls, allow_excluded_probes=args.allow_excluded_probes,
-                            engine=args.engine,engine_timeout=args.engine_timeout)
+                            engine=args.engine,engine_timeout=args.engine_timeout,syn_cooldown=args.syn_cooldown)
     except ValueError as exc:
         parser.error(str(exc))
     # Validate CLI/config before DNS, sockets or capture. Offline preview requires no Scapy.

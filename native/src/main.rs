@@ -1,7 +1,13 @@
 mod connect;
-#[cfg(test)]
+#[cfg(target_os = "linux")]
+mod linux_wire;
+#[cfg(any(target_os = "linux", test))]
 mod packet;
 mod protocol;
+#[cfg(target_os = "linux")]
+mod syn;
+#[cfg(any(target_os = "linux", test))]
+mod syn_state;
 use protocol::{Command, Config};
 use serde_json::{json, Value};
 use std::io::{self, Write};
@@ -152,7 +158,7 @@ async fn engine(
     writer: &Writer,
 ) -> Result<i32, ()> {
     emit(writer,json!({"type":"hello","protocol":protocol::VERSION,"engine":"scanix-rust",
-        "engine_version":env!("CARGO_PKG_VERSION"),"capabilities":["connect"],"limits":{
+        "engine_version":env!("CARGO_PKG_VERSION"),"capabilities":if cfg!(target_os="linux") {vec!["connect","syn_ipv4"]}else{vec!["connect"]},"limits":{
             "frame_bytes":protocol::MAX_FRAME,"targets":protocol::MAX_TARGETS,"ports":protocol::MAX_PORTS,
             "results":protocol::MAX_RESULTS,"channel_capacity":CHANNEL}})).await?;
     let mut startup_stop = cancel.subscribe();
@@ -200,7 +206,18 @@ async fn engine(
                 targets.push(ip);
             }
             Some(Input::Frame(Command::Run)) => {
-                return scan(Arc::new(cfg), &targets, input, cancel, writer).await
+                if cfg.method == "syn" {
+                    #[cfg(target_os = "linux")]
+                    {
+                        return syn::scan(Arc::new(cfg), &targets, input, cancel, writer).await;
+                    }
+                    #[cfg(not(target_os = "linux"))]
+                    {
+                        diagnostic(writer, "unsupported_platform").await?;
+                        return Ok(4);
+                    }
+                }
+                return scan(Arc::new(cfg), &targets, input, cancel, writer).await;
             }
             _ => {
                 diagnostic(writer, "expected_target_or_run").await?;
@@ -303,7 +320,7 @@ mod tests {
             let (cancel, _) = watch::channel(false);
             let mut cfg = protocol::tests::config();
             if unsupported {
-                cfg.method = "syn".into();
+                cfg.method = "udp".into();
             }
             commands
                 .send(Input::Frame(Command::Start(cfg)))

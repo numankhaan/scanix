@@ -1,7 +1,7 @@
 # Phase 4B: native asynchronous SYN discovery
 
-Status: design and acceptance checklist only. No native SYN implementation is delivered
-by this document. Python remains the default; the native connect engine remains available.
+Status: implementation in draft PR #12. Packet, work-state, Linux I/O and Python
+protocol-2 integration are in progress; live acceptance is not established yet. Python remains the default; the native connect engine remains available.
 
 ## Starting point
 

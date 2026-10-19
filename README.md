@@ -86,11 +86,15 @@ python -m scanix scan -t ::1 --family 6 -p 8080 --engine native --preview
 ```
 
 Use the `.exe` binary on Windows. Python remains the default and no fallback occurs.
-Rust currently implements bounded asynchronous **connect** scanning, not native SYN,
-UDP or discovery. `--service-detect` reuses the separate bounded Python enrichment
+Rust implements bounded asynchronous **connect** scanning; this draft adds Linux
+IPv4 SYN pending live validation. Native UDP/discovery remain unsupported. `--service-detect` reuses the separate bounded Python enrichment
 stage. Native `--banner` and discovery gates are explicit unsupported combinations.
-The protocol is version 1; reports are schema 4. See [contract, bounds, build and
+The protocol is version 2; reports are schema 4. See [contract, bounds, build and
 benchmark instructions](docs/NATIVE_ENGINE.md) and [autonomous checkpoint](docs/AUTONOMOUS_PROGRESS.md).
+
+The Phase 4B draft adds a Linux-only native IPv4 SYN path using wire protocol 2;
+its live validation remains pending. Existing Python scanning remains default.
+See [native SYN bounds, states and validation status](docs/NATIVE_SYN.md).
 
 ## Service identification
 
