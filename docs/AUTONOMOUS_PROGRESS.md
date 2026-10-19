@@ -31,8 +31,12 @@ review of main and all locally fetched history. Do not merge the security PR.
 - CI on `3f0aa86`: push/PR Security and all seven Tests jobs passed.
   CodeQL `39303305044`/`39303359667` failed on two missing explicit TLS minimums.
   Fix prepared: enforce TLS 1.2 at transport/lab boundaries, no query suppression.
-- Uncommitted: TLS transport/lab/test changes plus audit/checkpoint/TLS policy
-  documentation, awaiting local regression and a focused fix commit.
+- TLS fix pushed as `4e3a00a`; new regression fixture omitted operation_timeout.
+  Local 121-test run: one fixture error/two skips, not passing. Follow-up supplies
+  the missing budget; no assertion removed. Uncommitted: fixture/audit/checkpoint,
+  rerun passed: 121 regressions (119 pass/two privileged skips), 14 gate tests.
+  Fixture correction ready to commit. Additional report-shape prevention is
+  separately uncommitted, with tests being validated.
 - Next: validate/commit/push the TLS floor fix; inspect fresh CodeQL and all checks,
   then update audit/checkpoint/PR with actual final results.
   Do not merge #8, do not resume feature work.

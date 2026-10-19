@@ -54,7 +54,7 @@ class SecurityRegressionTests(unittest.TestCase):
         report = Mock(transmissions=0)
         context = Mock(minimum_version=None)
         session = Session('127.0.0.1', 443, threading.Event(), Mock(), report,
-                          {'transmissions': 2}, time.monotonic()+1)
+                          {'transmissions': 2, 'operation_timeout': .5}, time.monotonic()+1)
         session.sock = Mock()
         wrapped = session.tls(context, 'localhost')
         self.assertEqual(context.minimum_version, ssl.TLSVersion.TLSv1_2)

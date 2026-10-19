@@ -88,7 +88,9 @@ network tests were run for this audit.
   `validation/service_lab.py:39`. These relied on context defaults; an explicit
   TLS 1.2 floor is now enforced at handshake boundaries without rule suppression.
   Verification opt-out does not enable obsolete protocols. A transport regression
-  was added. Follow-up CI is pending until the fix is pushed.
+  was added. TLS fix pushed as `4e3a00a`. Its local 121-test run had one new fixture
+  error (missing operation_timeout); it was pushed before that result was checked.
+  The fixture is corrected in the follow-up; this failed run is not a pass.
 - GitHub's API confirmed uploaded alert messages use the fixed redacted message,
   not the original finding text. No raw SARIF/database was uploaded.
 
@@ -111,3 +113,7 @@ No production credential was detected, so no specific rotation is prescribed;
 any subsequently confirmed credential must be rotated by its owner. Historical
 cleanup and private reporting setup are owner decisions. See SECURITY.md and the
 separate history plan. Privileged macOS/BPF validation remains explicitly incomplete.
+
+TLS fixture follow-up: full local rerun **121 tests, 119 passed/two privileged
+skips**, and all 14 then-current gate tests passed. Missing test budget fixed;
+no assertions weakened. The earlier failed run remains recorded above.
