@@ -21,6 +21,10 @@ def scan_scope(config, plan, stop=None, *, discovery_methods=(), discovery_ports
                 break
             host_config = replace(config, target=target.originals[0])
             runtime = Runtime(host_config, limiter)
+            if config.method in ('syn', 'udp'):
+                from ..modules.transport import PacketTransport
+                with PacketTransport(target.ip):
+                    pass  # raw setup must precede even optional TCP discovery
             if discovery_methods:
                 from ..modules.discovery import discover_host
                 observations = discover_host(target, discovery_methods, discovery_ports, host_config, stop, runtime)

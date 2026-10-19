@@ -88,8 +88,6 @@ def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None,
     def record(future, port):
         try:
             report.results.append(future.result())
-            if progress:
-                progress(len(report.results), len(config.ports))
         except CancelledError:
             pass
         except Exception as exc:
@@ -99,6 +97,11 @@ def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None,
             report.issues.append({'reason': 'worker_exception', 'port': port,
                                   'exception_type': type(exc).__name__})
             report.completion_status = 'failed'
+        if progress:
+            try:
+                progress(len(report.results), len(config.ports))
+            except OSError:
+                report.issues.append({'reason': 'progress_output_failed'})
 
     try:
         probe = scan_single_port

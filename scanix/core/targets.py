@@ -69,6 +69,8 @@ class ScopePlan:
 
     def _parse(self, tokens, expand):
         result = []
+        budget = 0
+        dns_addresses = 0
         for token in dict.fromkeys(tokens):
             if not isinstance(token, str) or not token or len(token) > 253 or any(ord(c) < 33 or ord(c) == 127 for c in token):
                 raise ValueError('invalid target: empty, oversized or contains whitespace/control characters')
@@ -100,6 +102,8 @@ class ScopePlan:
                             continue
                         if str(ip) not in addresses:
                             addresses.append(str(ip))
+                            if len(addresses) > self.max_targets:
+                                raise ValueError('DNS answers exceed max-targets')
                     if not addresses:
                         raise ValueError('hostname has no addresses for selected family')
                     self._dns[name] = addresses
@@ -107,11 +111,20 @@ class ScopePlan:
                 # Excluded hostnames exclude every DNS answer, independently of
                 # the selected scan-answer policy.
                 chosen = addresses[:1] if expand and self.dns_policy == 'first' else addresses
+                dns_addresses += len(chosen)
+                if dns_addresses > self.max_targets:
+                    raise ValueError('DNS scope expansion exceeds max-targets')
                 result.extend((token, ipaddress.ip_network(address)) for address in chosen)
+                if expand:
+                    budget += len(chosen)
             else:
                 if self.family != 'any' and str(net.version) != self.family:
                     raise ValueError('target address family conflicts with --family')
                 result.append((token, net))
+                if expand:
+                    budget += self._size(net)
+            if expand and budget > self.max_targets:
+                raise ValueError('target input exceeds max-targets; narrow CIDRs/input explicitly')
         return tuple(result)
 
     def __iter__(self):

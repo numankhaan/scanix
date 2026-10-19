@@ -172,7 +172,7 @@ class BackendSelectionTests(unittest.TestCase):
         for destination, source, name in [('127.0.0.1', '127.0.0.1', 'L3RawSocket'), ('::1', '::1', 'L3RawSocket6')]:
             with patch('scanix.modules.transport.sys.platform', 'linux'), \
                  patch('scanix.modules.transport.route', return_value=('lo', source, '::' if ':' in source else '0.0.0.0')), \
-                 patch('scapy.supersocket.' + name) as factory:
+                 patch('scapy.supersocket.' + name, create=True) as factory:
                 with PacketTransport(destination):
                     pass
                 factory.assert_called_once_with(iface='lo', promisc=False)

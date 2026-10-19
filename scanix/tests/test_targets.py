@@ -112,3 +112,67 @@ class TargetTests(unittest.TestCase):
             result = scan_single_port(ScanConfig('::1', (80,)), ResolvedTarget('::1', 'IPv6'), 80)
         factory.assert_called_once_with(socket.AF_INET6, socket.SOCK_STREAM)
         self.assertEqual(result.state, 'open')
+
+class ScopeCLIIntegrationTests(unittest.TestCase):
+    def test_files_exclude_before_probe_and_exports_keep_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            targets = Path(tmp)/'targets.txt'
+            excludes = Path(tmp)/'excludes.txt'
+            targets.write_text('127.0.0.1\n127.0.0.2\n127.0.0.1\n')
+            excludes.write_text('127.0.0.2\n')
+            stdout = io.StringIO()
+            def probe(config, endpoint, port, stop):
+                result = new_result(config, endpoint, port)
+                result.state, result.reason = 'open', 'connection_succeeded'
+                result.evidence = {'fixture': '<untrusted>'}
+                return result
+            with patch('scanix.core.scanner.scan_single_port', side_effect=probe) as scan, \
+                 redirect_stdout(stdout), redirect_stderr(io.StringIO()):
+                code = run_cli(['scan', '--target-file', str(targets), '--exclude-file', str(excludes),
+                                '-p', '22', '--out', 'json', '--out-file', '-'])
+            self.assertEqual(code, 0)
+            self.assertEqual(scan.call_count, 1)
+            report = json.loads(stdout.getvalue())
+            self.assertEqual(report['requested_ports'], 1)
+            self.assertEqual(report['results'][0]['resolved_ip'], '127.0.0.1')
+            self.assertEqual(report['results'][0]['evidence'], {'fixture': '<untrusted>'})
+
+    def test_ipv6_loopback_listener(self):
+        try:
+            listener = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+            listener.bind(('::1', 0))
+            listener.listen()
+        except OSError as exc:
+            if 'listener' in locals():
+                listener.close()
+            self.skipTest('IPv6 loopback unavailable: ' + str(exc))
+        with listener:
+            stdout = io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(io.StringIO()):
+                code = run_cli(['scan', '-t', '::1', '--family', '6', '-p', str(listener.getsockname()[1]),
+                                '--out', 'json', '--out-file', '-'])
+            self.assertEqual(code, 0)
+            row = json.loads(stdout.getvalue())['results'][0]
+            self.assertEqual((row['state'], row['address_family']), ('open', 'IPv6'))
+
+    def test_dns_normalization_resolves_alias_once(self):
+        resolver = MagicMock(return_value=[(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('127.0.0.1', 0))])
+        plan = ScopePlan(['LAB.test', 'lab.test.'], resolver=resolver)
+        resolver.assert_called_once_with('lab.test', None, socket.AF_INET, socket.SOCK_STREAM)
+        self.assertEqual(list(plan)[0].originals, ('LAB.test', 'lab.test.'))
+
+    def test_raw_preflight_precedes_discovery_traffic(self):
+        from scanix.modules.transport import BackendUnavailable
+        plan = ScopePlan(['127.0.0.1'])
+        with patch('scanix.modules.transport.PacketTransport', side_effect=BackendUnavailable('capture denied')), \
+             patch('scanix.modules.discovery.discover_host') as discovery:
+            report = scan_scope(ScanConfig('lab', (80,), method='syn'), plan, discovery_methods=('tcp',))
+        discovery.assert_not_called()
+        self.assertEqual(report.completion_status, 'failed')
+        self.assertEqual(report.results, [])
+
+    def test_oversized_input_rejected_before_later_hostname_resolution(self):
+        dns = MagicMock()
+        with self.assertRaises(ValueError):
+            ScopePlan(['::/64', 'lab.test'], family='6', resolver=dns)
+        dns.assert_not_called()
