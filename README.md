@@ -252,6 +252,9 @@ retry orchestration. `core/targets.py` handles untrusted scope input, and
 `core/timing.py`, `scanner.py`, `scope_scan.py` bound execution. Existing typed scan
 reports feed the same JSON/CSV/HTML exporters. Discovery uses its own host-evidence
 JSON envelope and is embedded in typed scan reports when used as a gate.
+The capture boundary uses [Scapy socket APIs](https://scapy.readthedocs.io/en/stable/api/scapy.supersocket.html);
+minimum IPv4 ICMP quotation handling follows the header layout in
+[RFC 792](https://www.rfc-editor.org/rfc/rfc792.html).
 
 ```sh
 python -B -m unittest discover -s scanix/tests -v
