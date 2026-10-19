@@ -81,3 +81,11 @@ on resume before repeating any operation. Review final diff and leave PR open fo
 Privileged macOS/BPF remains incomplete. Local measurements are loopback-only, no
 packet-loss/SYN speed or parity claim; minimum Rust 1.85 is declared, not tested.
 No account-wide setting changes or public scans performed. Later roadmap stages wait.
+
+
+Final documentation review corrected inherited pre-merge security wording in README,
+SECURITY and SECURITY_AUDIT. Native source remains `50322ab`; current HEAD resolves
+with Git. At initial head `05204cc`, push native workflow `39336470495` passed all
+four Linux/macOS/Windows jobs. Newer head checks remain pending until confirmed in
+PR #11; final latest-head reconciliation is retained privately and linked through
+this checkpoint's evidence pointer. Do not create more CI-status-only commits.

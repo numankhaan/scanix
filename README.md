@@ -339,4 +339,5 @@ Install the [local gates](CONTRIBUTING.md), use a verified GitHub noreply identi
 and keep real reports/captures and private detection patterns outside Git.
 CSV now prefixes formula-like text cells with an apostrophe for spreadsheet safety;
 JSON preserves the original evidence. Security checks reduce risk; passing checks
-cannot guarantee security or privacy. The feature roadmap is paused for this audit.
+cannot guarantee security or privacy. Security #8 is merged; Phase 4A continues in
+a separate review PR. Historical privacy cleanup remains pending the owner.

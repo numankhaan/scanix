@@ -119,7 +119,8 @@ Owner setup and continuing verification:
    actions, exceptions and dependency changes; disallow force-push/bypass as policy.
 2. Enable Dependabot security updates/alerts and review available secret-scanning
    non-provider options in repository settings. Version-update PRs are configured
-   here, but activation and vulnerability alerts must be verified after merge.
+   here and operating after #8 merged; vulnerability alert/security-update activation
+   must still be verified independently.
 3. Keep account email privacy and "block pushes exposing my email" enabled if
    desired. The email API was inaccessible. A GitHub-signed, account-associated
    commit verified the noreply address used for repository-local future commits;
