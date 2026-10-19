@@ -442,3 +442,17 @@ class ResourceAndReportTests(unittest.TestCase):
             report=Detector(result,config,threading.Event(),Runtime(config,limiter)).run()
         self.assertEqual([o.service for o in report.observations],['tls'])
         self.assertEqual(limiter.count,report.attempts+report.transmissions)
+
+    def test_failed_followup_never_opens_plaintext_fallback_after_evidence(self):
+        def smtp(sock):
+            sock.sendall(b'220 lab.invalid ESMTP Postfix\r\n');sock.recv(1024)
+        with lab(smtp) as port,patch.object(Detector,'capabilities',side_effect=ConnectionResetError('peer reset')):
+            report=detect(port,service_profile='deep',starttls=True)
+        self.assertEqual(report.attempts,1)
+        self.assertEqual([o.service for o in report.observations],['smtp'])
+        self.assertFalse(report.tls)
+        self.assertIn('ConnectionResetError',report.issues[0])
+        with lab(http,'trusted') as port,patch.object(Detector,'http',side_effect=ConnectionResetError('peer reset')):
+            report=detect(port,tls_ca_file=str(TLS/'ca.pem'))
+        self.assertEqual(report.attempts,2)  # passive, then TLS; no plaintext fallback
+        self.assertEqual([o.service for o in report.observations],['tls'])

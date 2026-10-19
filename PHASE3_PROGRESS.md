@@ -28,13 +28,16 @@
   profiles, exclusions, cancellation and reproducible public test certificates.
 - 6770228: parser-controlled fragmented response framing, multiline SMTP, IPv6
   verified TLS, DNS/NTP fallback budgets and stricter registry validation.
-- Documentation/lab increment: README, ROADMAP, exact service semantics, this
+- Final follow-up: stop all fallback connections after observed protocol/TLS evidence
+  when a capability/application follow-up fails; preserve the evidence and error.
+- f9eb60f documentation/lab increment: README, ROADMAP, exact service semantics, this
   progress record, actual validation results and an unprivileged CLI lab driver.
 
 ## Validation
 
-112 local tests run with Python 3.14.3 and each of Scapy 2.8.0 / 2.6.1: 110 passed,
-2 privileged skips. Four real CLI loopback cases passed. Certificate regeneration
+Final local suite with Python 3.14.3 / Scapy 2.8.0: 113 run, 111 passed,
+2 privileged skips. The preceding 112-test suite independently passed with both
+Scapy 2.8.0 and minimum 2.6.1 (110 passed, 2 skips each). Four real CLI loopback cases passed. Certificate regeneration
 reproduced all four PEMs byte-for-byte. No public targets were scanned.
 
 CI at 6770228 passed all seven Linux/macOS/Windows jobs. Each ran 112 tests;

@@ -154,7 +154,8 @@ TCP tries a passive greeting, TLS, then HTTP, prioritizing TLS on registry TLS h
 ports. Identity always requires a response, not the hint. TLS and HTTP fallback
 relationships come from the registry; no endless retry cycle is possible. Profiles
 are ceilings: valid evidence stops further fallbacks, and deep need not consume all
-five connections. Deep adds capability commands and NTP fallback. TLS protocols
+five connections. A failed follow-up after observed protocol/TLS evidence retains
+that evidence and stops fallback connections. Deep adds capability commands and NTP fallback. TLS protocols
 with unsolicited greetings are parsed before attempting HTTP over the secured stream.
 
 `--service-timeout` changes the per-endpoint total budget (0.1–30 seconds). Low global

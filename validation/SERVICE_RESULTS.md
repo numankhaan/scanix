@@ -28,6 +28,12 @@ plaintext retry. The TEST ONLY keys are intentionally public fixtures, not produ
 credentials. Rebuilding four PEMs with the fixture generator was byte-identical;
 regular tests do not require the generator's cryptography dependency.
 
+The final failure-path follow-up ran **113 tests, 111 passed, 2 privileged skips**
+with Python 3.14.3 / Scapy 2.8.0 (9.074 s). The additional regression proves that
+a reset during a capability or post-TLS application probe preserves existing service
+evidence and cannot trigger a new plaintext fallback connection. The 112-test
+results above remain the recorded minimum-Scapy and earlier CI revision outcomes.
+
 ## Actual CLI loopback lab
 
 ```sh

@@ -207,7 +207,9 @@ class Detector:
                 return
             except (OSError, TimeoutError) as exc:
                 self.report.issues.append(stage+': '+clean(type(exc).__name__+': '+str(exc),256))
-                if isinstance(exc, BudgetExceeded):
+                if isinstance(exc, BudgetExceeded) or self.report.observations:
+                    # Once a protocol/TLS is observed, a failed follow-up is not
+                    # a reason to open a new plaintext fallback connection.
                     return
 
     def udp(self):
