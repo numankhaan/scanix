@@ -456,3 +456,16 @@ class ResourceAndReportTests(unittest.TestCase):
             report=detect(port,tls_ca_file=str(TLS/'ca.pem'))
         self.assertEqual(report.attempts,2)  # passive, then TLS; no plaintext fallback
         self.assertEqual([o.service for o in report.observations],['tls'])
+
+    def test_pacing_samples_time_after_acquiring_scheduling_lock(self):
+        class Clock:
+            now=0.
+            def clock(self):return self.now
+        clock=Clock()
+        class DelayedLock:
+            def __enter__(self):clock.now=2.
+            def __exit__(self,*args):pass
+        limiter=RateLimiter(2,clock.clock)
+        limiter.lock=DelayedLock()  # Deterministically emulate pre-lock descheduling.
+        limiter.acquire(threading.Event())
+        self.assertEqual(limiter.next_time,2.5)

@@ -17,10 +17,12 @@ class RateLimiter:
         while True:
             if stop.is_set():
                 raise CancelledError()
-            now = self.clock()
-            if deadline is not None and now >= deadline:
-                raise TimeoutError('rate wait exceeded service deadline')
             with self.lock:
+                # Sample after taking the lock: a descheduled caller must not
+                # publish an already expired transmission deadline.
+                now = self.clock()
+                if deadline is not None and now >= deadline:
+                    raise TimeoutError('rate wait exceeded service deadline')
                 delay = self.next_time - now
                 if delay <= 0:
                     self.next_time = now + self.interval

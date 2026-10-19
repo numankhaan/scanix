@@ -38,6 +38,10 @@ The registry-read follow-up ran **114 tests, 112 passed, 2 privileged skips**
 with each of Scapy 2.8.0 and 2.6.1 (9.058 / 9.101 s). Its additional regression
 checks that oversized registry input is bounded during the read, before JSON parsing.
 
+The scheduling-clock follow-up ran **115 tests, 113 passed, 2 privileged skips**
+locally. Its deterministic clock/lock test emulates a descheduled caller before
+lock acquisition, ensuring the next transmission deadline cannot be stale.
+
 ## Actual CLI loopback lab
 
 ```sh
@@ -84,6 +88,10 @@ The subsequent 113-test revision cb594e1 also passed all seven jobs in both
 [push run 39294803011](https://github.com/numankhaan/scanix/actions/runs/39294803011)
 and [PR run 39294812664](https://github.com/numankhaan/scanix/actions/runs/39294812664):
 each Linux/macOS job passed 111 with two skips; Windows passed 110 with three skips.
+The 114-test revision 4196bde also passed all seven jobs in both
+[push run 39295097714](https://github.com/numankhaan/scanix/actions/runs/39295097714)
+and [PR run 39295104620](https://github.com/numankhaan/scanix/actions/runs/39295104620):
+each Linux/macOS job passed 112 with two skips; Windows passed 111 with three skips.
 These are actual completed CI outcomes, separate from local runs. Checks on later
 documentation commits and PR merge refs are tracked live on
 [PR #6](https://github.com/numankhaan/scanix/pull/6); an earlier pass does not imply

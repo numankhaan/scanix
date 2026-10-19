@@ -30,18 +30,20 @@
   verified TLS, DNS/NTP fallback budgets and stricter registry validation.
 - cb594e1 follow-up: stop all fallback connections after observed protocol/TLS evidence
   when a capability/application follow-up fails; preserve the evidence and error.
-- Final registry follow-up: hard-limit file reads before JSON parsing and test the
+- 4196bde registry follow-up: hard-limit file reads before JSON parsing and test the
   actual read bound.
+- Final pacing follow-up: sample the monotonic clock while holding the scheduling
+  lock, with a deterministic pre-lock-descheduling regression.
 - f9eb60f documentation/lab increment: README, ROADMAP, exact service semantics, this
   progress record, actual validation results and an unprivileged CLI lab driver.
 
 ## Validation
 
 Final local suite with Python 3.14.3 and each of Scapy 2.8.0 / 2.6.1:
-114 run, 112 passed, 2 privileged skips (9.058 / 9.101 seconds). Four real CLI loopback cases passed. Certificate regeneration
+115 run, 113 passed, 2 privileged skips. Four real CLI loopback cases passed. Certificate regeneration
 reproduced all four PEMs byte-for-byte. No public targets were scanned.
 
-CI at cb594e1 passed all seven Linux/macOS/Windows PR and push jobs. Each ran 113 tests;
+CI at 4196bde passed all seven Linux/macOS/Windows PR and push jobs. Each ran 114 tests;
 Linux/macOS skipped two privileged cases, Windows also skipped the existing
 POSIX subprocess SIGINT case. Earlier 107-test CI also passed. See
 [precise evidence](validation/SERVICE_RESULTS.md). Later-head/PR checks must be
@@ -59,4 +61,4 @@ budgets may prevent later fallback probes; issues/attempt counts disclose this.
 
 The Phase 2-to-main dependency is unresolved. Optional privileged Phase 2 validation
 is retained, with its previous Linux evidence; no new privileged run was made in
-Phase 3. Privileged macOS/BPF remains explicitly incomplete. No PR has been merged.
+Phase 3. Privileged macOS/BPF remains explicitly incomplete. No PR has been merged by this Phase 3 work.
