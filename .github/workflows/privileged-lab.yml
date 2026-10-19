@@ -1,0 +1,36 @@
+name: Privileged lab (opt-in)
+on:
+  workflow_dispatch:
+  push:
+    branches: [phase2/scanning-accuracy]
+    paths:
+      - 'validation/**'
+      - '.github/workflows/privileged-lab.yml'
+permissions:
+  contents: read
+jobs:
+  isolated-lab:
+    # Explicit commit opt-in permits pre-merge execution; workflow_dispatch can
+    # also be used once the workflow exists on the repository default branch.
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[privileged-lab]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - run: python -m pip install -r requirements.txt
+      - name: Install isolated lab tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends iproute2 iptables tcpdump
+      - name: Validate states and packet-capture evidence in private namespaces
+        run: sudo -- "$(command -v python)" -B validation/privileged_lab.py --output "$RUNNER_TEMP/scanix-lab"
+      - name: Preserve results, topology and packet-capture evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scanix-isolated-lab-${{ github.sha }}
+          path: ${{ runner.temp }}/scanix-lab/
+          if-no-files-found: warn
