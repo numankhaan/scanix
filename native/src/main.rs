@@ -1,4 +1,6 @@
 mod connect;
+#[cfg(test)]
+mod packet;
 mod protocol;
 use protocol::{Command, Config};
 use serde_json::{json, Value};
