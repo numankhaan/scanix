@@ -1,86 +1,83 @@
 # Autonomous checkpoint — Phase 4A
 
-Current stage: finish/review native foundation; **do not merge its PR** or start 4B.
-Acceptance: opt-in real Rust connect scanning; Python default; versioned, bounded
-subprocess requests/results; explicit diagnostics/compatibility and no fallback;
-cancellation/partial exports; scope/resource validation; tests and measured baseline;
-security gates and passing latest-head CI; open PR with known limitations.
+Phase 4A is implemented and locally validated; PR #11 is open for review.
+**Do not merge this PR or start Phase 4B.**
 
-## Reconciled state
+## Acceptance and implementation
 
-- Main/security #8 merge: `ef1c3dc0ecabf4ee101bb018922006668c47fe86`.
+Real opt-in Rust IPv4/IPv6 TCP connect scanning; Python remains the default.
+Protocol 1 bounded NDJSON requests/results/diagnostics; strict compatibility, scope,
+work-ID/state/coverage/exit validation; cancellation retains completed results;
+paced bounded workers/timeouts; schema-4 typed exports and separate service stage.
+Native raw SYN/UDP/discovery and durable resume are not implemented here.
+Rust streams; Python compatibility exports still aggregate up to the pair ceiling.
+
+## Repository and preservation
+
+- Base: main `ef1c3dc0ecabf4ee101bb018922006668c47fe86` (#8 merged).
   Main Security `39335020364`, Tests `39335020577`, CodeQL `39335020611`: passed.
-  Nine required GitHub Actions checks now enforced by active main ruleset
-  `25438618`, strict/up-to-date base, no bypass actors. Verified through readback.
-- Historical privacy inventory remains failing: 112 email candidates, 24 home-path
-  occurrences, 13 bytecode flags. No raw values published, allowlist or rewrite.
-  Locations and owner decision documented in SECURITY_AUDIT.md.
-- Old native work is preserved at `phase4a/native-foundation` / `d08659e`.
-  Its historical checkpoint includes a personal path. Reuse its implementation on
-  clean `phase4a/native-foundation-reviewed` from main; do not inherit/allowlist that
-  historical commit in this PR. This creates new commits, not a history rewrite.
-- Worktree: sibling `scanix-phase4a-reviewed`; HEAD: `git rev-parse HEAD`.
-  No Phase 4A PR yet. Original worktree's unrelated UDP edit remains untouched.
+- Branch/worktree: `phase4a/native-foundation-reviewed`, sibling
+  `scanix-phase4a-reviewed`; current HEAD: `git rev-parse HEAD`.
+  PR: https://github.com/numankhaan/scanix/pull/11 (base main; leave open).
+- Commits: `322516d` enforced checks/privacy review; `40f5e3` Rust engine;
+  `50322ab` Python/CLI/export/tests/workflow integration; `05204cc` measured baseline.
+  This final documentation commit adds PR/CI reconciliation; inspect its SHA on resume.
+- Existing native branch/head `phase4a/native-foundation` / `d08659e` preserved.
+  Its old checkpoint has a personal path; implementation was reused in fresh commits
+  without inheriting or allowlisting that history. No rewrite or force-push.
+- Original worktree retains only its unrelated UDP edit, checksum verified unchanged.
+  Reviewed worktree was clean before this checkpoint-only update; only this intended
+  doc awaits commit. Build/cache/generated raw records are ignored or outside Git.
 
-## Current milestone / exact next action
+## Security review and policy
 
-Reused native source/adapter/tests/docs; preserved merged security changes and
-resolved .gitignore/roadmap overlap. Native workflow now SHA-pinned with no persisted
-checkout credentials. Currently uncommitted intended Phase 4A files only; no raw
-reports/captures/build products should be staged.
+Verified active main ruleset `25438618`: nine GitHub Actions security/CodeQL/regression
+contexts, strict up-to-date base, no bypass actors. Follow-up historical privacy
+inventory exited 1: 112 email candidates, 24 home-path occurrences, 13 bytecode flags.
+Locations/references in SECURITY_AUDIT.md; no values published, silent allowlist or
+cleanup. Owner decision on historical cleanup remains pending. Passing scanners do
+not guarantee privacy/security. Private evidence pointer: `/tmp/scanix-security-session`.
 
-Next: strengthen malformed-wire/handshake and bounded-registration tests, run Rust
-fmt/Clippy/tests and all Python/security regressions, review diff, focused commits;
-run release loopback baseline at known clean SHA, document measured data, push/open
-PR, inspect all latest-head CI. Keep this checkpoint current at each milestone.
+## Commands and actual local outcomes
 
-Private audit/evidence pointer: `/tmp/scanix-security-session`. Never commit raw
-findings. Privileged macOS/BPF remains incomplete. No public network scan allowed.
-Do not merge this PR. Preserve old branches and all unrelated edits.
+- `cargo test --locked --manifest-path native/Cargo.toml`: 8 passed.
+- `cargo fmt --manifest-path native/Cargo.toml --check`, release build and
+  `cargo clippy --locked --manifest-path native/Cargo.toml --all-targets -- -D warnings`: passed.
+- `python -B validation/native_ci.py`: 138 run, 136 passed/two privileged skips.
+- `python -B -m unittest discover -s scanix/tests -q` without native env:
+  138 run, 131 passed/seven skips (five native, two privileged).
+- `python -B -m unittest discover -s security/tests -v`: 19 passed.
+- `python security/check.py tree`, staged, range --base origin/main --head HEAD,
+  and history --secrets-only passed. Existing exact synthetic TLS key exceptions only.
+- `python security/run.py` bandit/workflows/dependencies/rust: passed; zero
+  findings/advisories/warnings. CLI help verified native flags.
+- At clean `50322ab61e8031525d4be16918fd6de00177ab8a`, benchmark driver ran
+  --ports 32/128 --samples 5 with release binary. All expected open counts matched.
+  Median completions/s Python 409.4/417.2; native 300.6/307.1. Native was slower.
+  Apple M4, 16 GiB, 10 logical CPUs, macOS arm64/Python 3.14.3/Rust 1.91.1.
+  Exact reproduction, timing/resource boundaries: validation/NATIVE_BASELINE.md.
 
-## Native engine milestone
+## CI at initial PR head 05204cc
 
-Reused and reviewed engine: `cargo fmt --manifest-path native/Cargo.toml`,
-`cargo test --locked --manifest-path native/Cargo.toml` (8 passed),
-`cargo clippy --locked --manifest-path native/Cargo.toml --all-targets -- -D warnings`
-and release build passed. Twelve adapter wire tests also passed, including explicit
-16-level JSON nesting rejection; an earlier development test exposed differing
-Python parser depth behavior and was fixed with an explicit bound, not an assertion
-change. Native source is ready for its focused commit. Adapter/CLI/tests/docs/workflow
-remain intended uncommitted work awaiting full regressions and release baseline.
+The following are observations at checkpoint preparation, not transferred passes
+for this documentation commit. PR #11 holds final latest-head outcomes.
+- pull_request CodeQL: `39336558595`, in_progress, pending.
+- pull_request Native foundation: `39336558574`, in_progress, pending.
+- pull_request Security: `39336558347`, in_progress, pending.
+- pull_request Tests: `39336558509`, in_progress, pending.
+- push CodeQL: `39336470421`, completed, success.
+- push Native foundation: `39336470495`, in_progress, pending.
+- push Security: `39336470449`, in_progress, pending.
+- push Tests: `39336470533`, completed, success.
 
-## Python integration milestone
+## Precise next action
 
-Engine commit `40f5e377a493e5288dea37583c96eb81e3a9370d` follows security/rules
-review `322516d`. Full real-release-subprocess command
-`python -B validation/native_ci.py`: 138 run/136 passed/two privileged skips.
-`python -B -m unittest discover -s scanix/tests -q` without native configuration:
-138 run/131 passed/seven skips (five native, two privileged).
-`python -B -m unittest discover -s security/tests -v`: 19 passed.
-`python security/check.py tree` and `python security/run.py` with bandit, workflows,
-dependencies and rust: all passed (zero reported findings/advisories/warnings).
-`python -m scanix scan --help` verified engine, native-binary, engine-timeout,
-preview and service-detect flags. Two-port/one-sample benchmark smoke passed; this
-is a driver check, not published performance evidence. Rust dependency licenses
-were inspected using `cargo metadata --locked --manifest-path native/Cargo.toml`.
+Commit/push only this checkpoint, inspect all eight latest-head push/PR workflow runs
+(Security, CodeQL, Tests, Native foundation), investigate actual failures and update
+PR #11 with exact SHA/run outcomes. Retain private final reconciliation beside audit
+evidence to avoid endless CI-status-only commits. Reconcile remote/local HEAD and main
+on resume before repeating any operation. Review final diff and leave PR open for owner.
 
-Next: commit reviewed adapter/CLI/exports/tests/workflow/docs and benchmark driver;
-run release benchmarks at that clean known SHA (32/128 ports, five samples each),
-record measured data/hardware and limitations, then push/open PR and inspect CI.
-Native stage remains unmerged. No public scans or privileged operations performed.
-
-## Measured baseline / ready to push
-
-Integration commit `50322ab61e8031525d4be16918fd6de00177ab8a` validated locally.
-At that clean SHA, release benchmark commands above ran 32 and 128 ports, five
-samples/engine/size. All expected open counts matched. Median completions/s:
-32 ports Python 409.4/native 300.6; 128 ports Python 417.2/native 307.1.
-Apple M4/16 GiB/10 logical CPUs/macOS arm64; exact measurements and boundaries in
-validation/NATIVE_BASELINE.md. Native was slower; no speed/parity claim or inferred
-bottleneck. Raw generated timing records remain outside Git.
-
-Next: commit only the aggregate baseline and these documentation updates, run
-outgoing range/full-history secret gates, push reviewed branch once, open PR against
-main (do not merge), inspect latest-head Security/CodeQL/Tests/Native workflows.
-No PR/CI yet for this new branch; main ef1c3dc core checks are passing. After push,
-record PR/run IDs and pending/final outcomes. Original UDP edit remains unchanged.
+Privileged macOS/BPF remains incomplete. Local measurements are loopback-only, no
+packet-loss/SYN speed or parity claim; minimum Rust 1.85 is declared, not tested.
+No account-wide setting changes or public scans performed. Later roadmap stages wait.
