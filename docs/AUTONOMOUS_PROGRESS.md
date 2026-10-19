@@ -1,7 +1,9 @@
 # Autonomous checkpoint — Phase 4A
 
 Phase 4A is implemented and locally validated; PR #11 is open for review.
-**Do not merge this PR or start Phase 4B.**
+The owner subsequently authorized review, merge after passing checks, and preparation of Phase 4B.
+A dedicated Rust 1.85.0 locked build/test CI job was added during review.
+Check the latest PR head and required checks before merging; earlier CI results do not apply to new commits.
 
 ## Acceptance and implementation
 
@@ -76,10 +78,10 @@ Commit/push only this checkpoint, inspect all eight latest-head push/PR workflow
 (Security, CodeQL, Tests, Native foundation), investigate actual failures and update
 PR #11 with exact SHA/run outcomes. Retain private final reconciliation beside audit
 evidence to avoid endless CI-status-only commits. Reconcile remote/local HEAD and main
-on resume before repeating any operation. Review final diff and leave PR open for owner.
+on resume before repeating any operation. Review final diff and merge only after latest required checks pass under the owner's authorization.
 
 Privileged macOS/BPF remains incomplete. Local measurements are loopback-only, no
-packet-loss/SYN speed or parity claim; minimum Rust 1.85 is declared, not tested.
+packet-loss/SYN speed or parity claim; minimum Rust 1.85 now has a dedicated CI build/test job; verify its latest result.
 No account-wide setting changes or public scans performed. Later roadmap stages wait.
 
 
