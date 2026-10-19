@@ -198,6 +198,7 @@ class ScannerTests(unittest.TestCase):
         self.assertEqual(report.results[1].reason, 'worker_exception')
         self.assertEqual(report.completion_status, 'failed')
         self.assertEqual(report.issues[0]['exception_type'], 'RuntimeError')
+        self.assertEqual(report.issues[0]['message'], 'worker broke')
 
     def test_cancellation_stops_submission_and_keeps_running_results(self):
         stop = threading.Event()

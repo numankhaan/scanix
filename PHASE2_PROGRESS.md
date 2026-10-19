@@ -21,9 +21,9 @@ README and ROADMAP describe result semantics, compatibility and limitations.
 
 ## Validation record
 
-- Phase 1 before committing: Python 3.14.3, **35 tests passed**.
-- Phase 2: Python 3.14.3, Scapy 2.8.0, `python -B -m unittest discover -s scanix/tests -v`:
-  **73 tests run; 71 passed, 2 optional privileged tests skipped; no failures**.
+- Phase 1 before committing: Python 3.14.3, **35 tests passed**; **36 passed** after synchronizing current `main` and retaining its banner parser.
+- Phase 2: Python 3.14.3, both Scapy 2.8.0 and 2.6.1, `python -B -m unittest discover -s scanix/tests -v`:
+  **74 tests run; 72 passed, 2 optional privileged tests skipped; no failures**.
 - Retained/adapted Phase 1 tests run as part of the Phase 2 suite. Unsupported UDP
   tests were deliberately replaced by working-UDP routing/invalid-method tests.
 - Unprivileged TCP connect and TCP discovery exercised on loopback without Scapy.

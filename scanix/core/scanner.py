@@ -95,7 +95,7 @@ def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None,
             result.state, result.reason = 'error', 'worker_exception'
             report.results.append(result)
             report.issues.append({'reason': 'worker_exception', 'port': port,
-                                  'exception_type': type(exc).__name__})
+                                  'exception_type': type(exc).__name__, 'message': str(exc)[:500]})
             report.completion_status = 'failed'
         if progress:
             try:

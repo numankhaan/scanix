@@ -19,7 +19,7 @@ python -m scanix discover --help
 ```
 
 TCP connect, TCP discovery, exports and offline preview use the standard library.
-Scapy (`>=2.6,<3`, tested locally with 2.8.0) is required for raw scans, raw discovery
+Scapy (`>=2.6,<3`, tested locally with 2.6.1 and 2.8.0) is required for raw scans, raw discovery
 and synthetic packet tests. Raw I/O supports Linux and macOS with a working Scapy
 capture backend and appropriate raw-socket/BPF privileges (usually root). Windows
 supports connect/TCP discovery; raw methods fail explicitly. Capture is opened
@@ -220,7 +220,8 @@ Schema version **2** retains Phase 1 fields and adds `probe_type`, `evidence`,
 `attempts`, `original_targets`, scope/effective scheduling metadata and discovery
 observations. Unknown evidence is `null`; service names remain unconfirmed port-table
 guesses, and UDP does not inherit TCP service guesses. OS/version detection remains
-unimplemented. `connection_elapsed_seconds` is monotonic; for raw probes it includes
+unimplemented in scan results; the existing `parse_service_version` helper remains
+available for compatibility. `connection_elapsed_seconds` is monotonic; for raw probes it includes
 pacing, retries and cleanup. Wall timestamps are UTC ISO 8601.
 
 `requested_ports` counts selected address/port pairs; `completed_ports` counts result
