@@ -1,8 +1,8 @@
 # Scanix
 
-Scanix is a bounded Python network reconnaissance tool. Phase 2 adds correlated
-SYN and protocol-aware UDP probes, IPv6 scopes, exclusions, host discovery and
-shared timing controls to Phase 1's TCP connect scanner and atomic exports.
+Scanix is a bounded Python network reconnaissance tool. Phase 3 adds opt-in
+protocol evidence and TLS-aware service identification to Phase 2's correlated
+SYN/UDP scans, IPv6 scopes, discovery, timing controls and atomic exports.
 It does not claim Nmap accuracy or Masscan throughput. Scan only authorized systems.
 
 ## Installation
@@ -75,6 +75,30 @@ and sorted. `--connect` (default), `--syn` and `--udp` are mutually exclusive.
 `--banner` is available only with connect, gathering at most 2,048 bytes of raw
 plaintext evidence on a separately paced connection. It does not confirm a service
 or version and does not implement TLS.
+
+## Service identification
+
+```sh
+python -m scanix scan -t 127.0.0.1 -p 8080 --service-detect --out json --out-file -
+python -m scanix scan -t 127.0.0.1 -p 8443 --service-detect --tls-insecure
+python -m scanix scan -t 127.0.0.1 -p 2525 --service-detect --service-profile deep --starttls
+python -m scanix scan -t ::1 --family 6 -p 8443 --service-detect --preview
+```
+
+Detection enriches confirmed open rows without changing port states. It parses
+HTTP, TLS/HTTPS, SSH and FTP/SMTP/POP3/IMAP greetings/capabilities, with optional
+SMTP/POP3/IMAP TLS upgrades, and reuses minimal DNS/NTP probes. It can find services
+on unusual ports. Port guesses, greeting evidence and protocol confirmation are
+separate; product/version claims are unauthenticated and are not vulnerabilities.
+TLS verifies certificates by default; `--tls-insecure` explicitly disables verification.
+SNI uses the original hostname or `--sni`, while connections remain within scope.
+
+Quick/deep profiles bound attempts, writes, bytes, time and workers; all operations
+share existing pacing. Printer/spooler ports 515 and 9100–9107 are excluded unless
+`--allow-excluded-probes` is set. Offline preview shows this policy without traffic.
+The original CC0 registry is schema 1/database 1.0.0; reports are schema 3.
+See [exact coverage, confidence rules, TLS policy and limits](docs/SERVICE_DETECTION.md)
+and [actual loopback validation](validation/SERVICE_RESULTS.md).
 
 ## SYN and UDP evidence
 
@@ -223,13 +247,16 @@ python -m scanix scan -t 127.0.0.1 -p 22,80 --out html --out-file results.html
 python -m scanix scan -t 127.0.0.1 -p 22 --out json --out-file - --progress
 ```
 
-Schema version **2** retains Phase 1 fields and adds `probe_type`, `evidence`,
-`attempts`, `original_targets`, scope/effective scheduling metadata and discovery
-observations. Unknown evidence is `null`; service names remain unconfirmed port-table
-guesses, and UDP does not inherit TCP service guesses. OS/version detection remains
-unimplemented in scan results; the existing `parse_service_version` helper remains
-available for compatibility. `connection_elapsed_seconds` is monotonic; for raw probes it includes
-pacing, retries and cleanup. Wall timestamps are UTC ISO 8601.
+Schema version **3** retains Phase 2 fields and adds `probe_database_version` and
+per-result `service_detection`, with observations, TLS metadata, budgets consumed
+and issues. Unknown evidence is `null`. Existing `service_name`/`port_table` values
+remain port guesses; protocol observations are separate, and UDP does not inherit
+TCP service guesses. Legacy `banner`, `version_evidence` and the existing
+`parse_service_version` helper remain for compatibility. OS detection is still
+unimplemented. CSV adds the database-version metadata column and nested detection
+JSON cell; schema-2 consumers must accept the new version/columns.
+`connection_elapsed_seconds` is monotonic; for raw probes it includes pacing,
+retries and cleanup. Wall timestamps are UTC ISO 8601.
 
 `requested_ports` counts selected address/port pairs; `completed_ports` counts result
 rows, including errors. `completion_status` is `complete`, `failed` or `interrupted`.
@@ -241,7 +268,7 @@ retain Phase 1's per-probe semantics. Results are sorted deterministically.
 
 JSON retains structured evidence. CSV includes a metadata row even for empty scans,
 then result rows; nested evidence and null values use JSON cells. HTML escapes all
-untrusted values. Raw banners are not printed to terminals. Export files use a
+untrusted values. Raw banners are not printed to terminals; service summaries sanitize control characters. Export files use a
 temporary file, fsync and atomic replacement; failure preserves existing output.
 Only JSON supports `--out-file -`, and stdout contains only JSON. Export failures
 exit 1, even during interruption. Without `--out-file`, the default is
@@ -259,7 +286,8 @@ retry orchestration. `core/targets.py` handles untrusted scope input, and
 `core/timing.py`, `scanner.py`, `scope_scan.py` bound execution. Existing typed scan
 reports feed the same JSON/CSV/HTML exporters. Discovery uses its own host-evidence
 JSON envelope and is embedded in typed scan reports when used as a gate.
-The capture boundary uses [Scapy socket APIs](https://scapy.readthedocs.io/en/stable/api/scapy.supersocket.html);
+The service layer separates validated registry data, pure parsers, numeric-endpoint
+transport and bounded orchestration. The capture boundary uses [Scapy socket APIs](https://scapy.readthedocs.io/en/stable/api/scapy.supersocket.html);
 minimum IPv4 ICMP quotation handling follows the header layout in
 [RFC 792](https://www.rfc-editor.org/rfc/rfc792.html).
 
@@ -280,8 +308,7 @@ privileged macOS/BPF verification remains unavailable. The current validation re
 is in [PHASE2_PROGRESS.md](PHASE2_PROGRESS.md).
 
 Limitations: no scoped/link-local IPv6 interface selection, IPv6 extension-header or
-fragment reassembly, NAT-translated probe correlation, application signatures beyond
-DNS/NTP, adaptive congestion control or native packet engine. DNS question validation
+fragment reassembly, NAT-translated probe correlation, application protocols beyond the documented small service registry, adaptive congestion control or native packet engine. DNS question validation
 is deliberately strict and may ignore unusual compressed questions. Generic UDP
 uses endpoint matching only; random source ports reduce but cannot eliminate stale
 or spoofed replies. Capture loss, firewall policy, ICMP suppression and service
