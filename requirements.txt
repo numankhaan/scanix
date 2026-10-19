@@ -1,4 +1,2 @@
-pyfiglet
-colorama
-scapy
-tqdm
+# Phase 1 TCP scanning, exports, and tests require only Python's standard library.
+# Optional experimental SYN scanning: python -m pip install scapy
