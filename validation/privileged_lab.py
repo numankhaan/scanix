@@ -222,7 +222,8 @@ def loopback_evidence(packets):
                 if evidence:
                     matched.add(evidence.state)
             states.append(sorted(matched))
-    return {'passed': bool(syn_ok and states == [['open'], ['closed']]),
+    return {'passed': bool(syn_ok and udp and udp[0][1].payload.sport != udp[0][1].payload.dport
+                           and states == [['open'], ['closed']]),
             'syn_ack_and_scanix_reset': bool(syn_ok), 'udp_probe_states': states}
 
 

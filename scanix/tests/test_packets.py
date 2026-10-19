@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 from scapy.all import IP, IPv6, TCP, UDP, Raw, ICMP, ICMPv6DestUnreach
 from scanix.modules.packets import (syn_probe, reset_probe, udp_probe, classify_syn, classify_udp)
 
@@ -90,3 +91,15 @@ class PacketTests(unittest.TestCase):
         result = classify_udp(p, r, kind)
         self.assertEqual(result.state, 'open')
         self.assertTrue(result.details['rate_limited'])
+
+    def test_loopback_request_cannot_be_its_own_udp_response(self):
+        for address in ('127.0.0.1', '::1'):
+            for port in (49152, 50000, 65535):
+                for chooser in (lambda count: 0, lambda count: count-1):
+                    with patch('scanix.modules.packets.secrets.randbelow', side_effect=chooser):
+                        kind, probe = udp_probe(address, address, port)
+                        syn = syn_probe(address, address, port)
+                    self.assertNotEqual(probe.payload.sport, port)
+                    self.assertNotEqual(syn.payload.sport, port)
+                    self.assertTrue(49152 <= probe.payload.sport <= 65535)
+                    self.assertIsNone(classify_udp(probe, probe, kind))

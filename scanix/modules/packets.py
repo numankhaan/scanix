@@ -36,8 +36,16 @@ def ip_header(source, destination):
     return IP(src=source, dst=destination, id=secrets.randbits(16))
 
 
+def probe_source_port(destination_port):
+    # Reversed endpoints must differ even on loopback. Otherwise an outgoing
+    # generic UDP request can match itself when its source port equals dport.
+    excluded = 49152 <= destination_port <= 65535
+    candidate = 49152 + secrets.randbelow(16384 - int(excluded))
+    return candidate + int(excluded and candidate >= destination_port)
+
+
 def syn_probe(source, destination, port):
-    return ip_header(source, destination) / TCP(sport=49152 + secrets.randbelow(16384),
+    return ip_header(source, destination) / TCP(sport=probe_source_port(port),
                                               dport=port, flags='S', seq=secrets.randbits(32))
 
 
@@ -65,7 +73,7 @@ def udp_payload(port):
 
 def udp_probe(source, destination, port):
     kind, payload = udp_payload(port)
-    packet = ip_header(source, destination) / UDP(sport=49152 + secrets.randbelow(16384), dport=port) / Raw(payload)
+    packet = ip_header(source, destination) / UDP(sport=probe_source_port(port), dport=port) / Raw(payload)
     # Materialize checksum/length so even minimum-length ICMP quotations can match.
     return kind, packet.__class__(bytes(packet))
 
