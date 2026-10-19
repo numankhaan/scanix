@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::io::{self, BufRead, Read};
 use std::net::IpAddr;
 
-pub const VERSION: u32 = 1;
+pub const VERSION: u32 = 2;
 pub const MAX_FRAME: usize = 65536;
 pub const MAX_TARGETS: usize = 65536;
 pub const MAX_PORTS: usize = 4096;
@@ -28,6 +28,8 @@ pub struct Config {
     pub min_timeout_ms: u64,
     pub max_timeout_ms: u64,
     pub adaptive: bool,
+    pub retries: u8,
+    pub cooldown_ms: u64,
     pub concurrency: usize,
     pub per_host: usize,
     pub rate: f64,
@@ -41,7 +43,7 @@ impl Config {
         if self.protocol != VERSION {
             return Err("incompatible_protocol");
         }
-        if self.method != "connect" {
+        if self.method != "connect" && self.method != "syn" {
             return Err("unsupported_method");
         }
         if self.ports.is_empty()
@@ -58,7 +60,9 @@ impl Config {
         {
             return Err("invalid_timeout");
         }
-        if !(1..=1024).contains(&self.concurrency)
+        if self.retries > 5
+            || self.cooldown_ms > 1000
+            || !(1..=1024).contains(&self.concurrency)
             || !(1..=1024).contains(&self.per_host)
             || !self.rate.is_finite()
             || self.rate < 0.000001
@@ -130,13 +134,15 @@ pub mod tests {
     use std::io::Cursor;
     pub fn config() -> Config {
         Config {
-            protocol: 1,
+            protocol: VERSION,
             method: "connect".into(),
             ports: vec![22, 80],
             timeout_ms: 1000,
             min_timeout_ms: 100,
             max_timeout_ms: 5000,
             adaptive: true,
+            retries: 1,
+            cooldown_ms: 200,
             concurrency: 8,
             per_host: 4,
             rate: 100.,
@@ -190,10 +196,10 @@ pub mod tests {
         c.rate = f64::NAN;
         assert!(c.validate().is_err());
         let mut c = base.clone();
-        c.protocol = 2;
+        c.protocol = 1;
         assert_eq!(c.validate(), Err("incompatible_protocol"));
         let mut c = base.clone();
-        c.method = "syn".into();
+        c.method = "udp".into();
         assert_eq!(c.validate(), Err("unsupported_method"));
         let mut c = base.clone();
         c.concurrency = 1025;

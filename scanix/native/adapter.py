@@ -1,4 +1,4 @@
-"""Protocol-1 subprocess adapter. Trusted executable, untrusted bounded wire input."""
+"""Protocol-2 subprocess adapter. Trusted executable, untrusted bounded wire input."""
 from concurrent.futures import CancelledError
 import ipaddress
 from itertools import islice
@@ -8,6 +8,7 @@ import os
 import queue
 import re
 import shutil
+import sys
 import subprocess  # nosec B404: fixed argv, explicitly selected trusted engine, never a shell
 import threading
 import time
@@ -16,15 +17,18 @@ from ..core.models import ScanReport, utc_now
 from ..core.scanner import new_result
 from ..core.timing import Runtime
 
-PROTOCOL = 1
+PROTOCOL = 2
 MAX_FRAME = 65536
 QUEUE = 32
 MAX_PORTS = 4096
 
 
 def preview(config):
-    return {'engine': config.engine, 'wire_protocol': 1 if config.engine == 'native' else None,
-            'capabilities': ['connect'] if config.engine == 'native' else ['connect','syn','udp'],
+    return {'engine': config.engine, 'wire_protocol': PROTOCOL if config.engine == 'native' else None,
+            'capabilities': (['connect','syn_ipv4'] if sys.platform=='linux' else ['connect']) if config.engine == 'native' else ['connect','syn','udp'],
+            'platform_supported': config.engine!='native' or config.method=='connect' or sys.platform=='linux',
+            'syn_ipv4_only': config.engine=='native' and config.method=='syn',
+            'receive_cooldown_seconds': config.syn_cooldown if config.engine=='native' and config.method=='syn' else None,
             'session_timeout_seconds': config.engine_timeout if config.engine == 'native' else None,
             'max_ports': MAX_PORTS if config.engine == 'native' else 65535,
             'fallback': False}
@@ -126,7 +130,8 @@ def _run(config, targets, stop, report, binary, progress):
                   'min_timeout_ms':math.ceil(config.min_timeout*1000),
                   'max_timeout_ms':math.ceil(config.max_timeout*1000),'adaptive':config.adaptive,
                   'concurrency':config.concurrency,'per_host':config.per_host,
-                  'rate':config.rate or 100,'max_targets':65536,'max_results':1_000_000,
+                  'rate':config.rate or {'connect':100,'syn':10}[config.method],
+                  'retries':config.retries,'cooldown_ms':math.ceil(config.syn_cooldown*1000),'max_targets':65536,'max_results':1_000_000,
                   'session_timeout_ms':math.ceil(config.engine_timeout*1000)})
             for target in targets:
                 if stop.is_set():
@@ -177,7 +182,7 @@ def _run(config, targets, stop, report, binary, progress):
                     or not isinstance(frame.get('engine_version'),str)
                     or not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+',frame['engine_version'])
                     or not isinstance(frame.get('capabilities'),list)
-                    or config.method not in frame['capabilities']):
+                    or ('syn_ipv4' if config.method=='syn' else config.method) not in frame['capabilities']):
                     raise ValueError('incompatible native handshake')
                 report.implementation.update(engine_version=frame['engine_version'],wire_protocol=PROTOCOL)
                 hello=True;handshake.set();continue
@@ -198,21 +203,43 @@ def _run(config, targets, stop, report, binary, progress):
                     or not isinstance(frame.get('ip'),str)
                     or ipaddress.ip_address(frame['ip'])!=ipaddress.ip_address(targets[target_index].ip)):
                     raise ValueError('duplicate or out-of-scope native result')
-                allowed={'open':'connection_succeeded','closed':'connection_refused','unknown':'timeout'}
+                allowed=({'open':('connection_succeeded',),'closed':('connection_refused',),'unknown':('timeout',)}
+                         if config.method=='connect' else {'open':('syn_ack',),'closed':('syn_rst_ack',),
+                         'filtered':('icmp_administratively_prohibited',),'unknown':('no_response','icmp_unreachable_or_path_error')})
                 state,reason=frame.get('state'),frame.get('reason')
-                if (state not in (*allowed,'error') or (state in allowed and reason!=allowed[state])
+                if (state not in (*allowed,'error') or (state in allowed and reason not in allowed[state])
                     or state=='error' and reason not in ('routing_failure','permission_denied','resource_exhausted','socket_error')
-                    or not _number(frame.get('elapsed_seconds'),0,301)
+                    or not _number(frame.get('elapsed_seconds'),0,86410 if config.method=='syn' else 301)
                     or frame.get('error_code') is not None and not _integer(frame['error_code'],-2**31,2**31-1)
                     or state=='open' and frame.get('error_code') is not None):
                     raise ValueError('invalid native result evidence')
+                evidence={}
+                attempts=1
+                if config.method=='syn':
+                    attempts=frame.get('attempts');data=frame.get('evidence')
+                    if (not _integer(attempts,1,config.retries+1) or reason=='no_response' and attempts!=config.retries+1
+                        or not isinstance(data,dict)
+                        or type(data.get('matched_response')) is not bool or type(data.get('reset_sent')) is not bool
+                        or data['matched_response'] != (state not in ('error',) and reason!='no_response')
+                        or data['reset_sent'] and state!='open'
+                        or data.get('icmp_code') is not None and not _integer(data['icmp_code'],0,255)
+                        or data.get('reset_error_code') is not None and not _integer(data['reset_error_code'],-2**31,2**31-1)
+                        or data.get('send_error_code') is not None and not _integer(data['send_error_code'],-2**31,2**31-1)
+                        or data['reset_sent'] and data.get('reset_error_code') is not None
+                        or reason=='icmp_administratively_prohibited' and data.get('icmp_code') not in (9,10,13)
+                        or reason=='icmp_unreachable_or_path_error' and data.get('icmp_code') is None
+                        or reason not in ('icmp_administratively_prohibited','icmp_unreachable_or_path_error') and data.get('icmp_code') is not None):
+                        raise ValueError('invalid SYN classification evidence')
+                    evidence={key:data.get(key) for key in ('matched_response','icmp_code','reset_sent','reset_error_code','send_error_code')}
                 from ..core.models import ResolvedTarget
                 endpoint=targets[target_index]
                 result=new_result(config,ResolvedTarget(endpoint.ip,endpoint.family),port)
                 result.target=endpoint.originals[0];result.original_targets=endpoint.originals
                 result.state,result.reason,result.error_code=state,reason,frame.get('error_code')
                 result.connection_elapsed_seconds=frame['elapsed_seconds']
-                result.evidence={'engine':'native','wire_protocol':PROTOCOL,'work_id':index}
+                result.evidence={'engine':'native','wire_protocol':PROTOCOL,'work_id':index,**evidence}
+                result.attempts=attempts
+                if config.method=='syn':result.probe_type='syn'
                 report.results.append(result);seen.add(index)
                 if progress:
                     progress(len(seen),requested)
@@ -224,11 +251,30 @@ def _run(config, targets, stop, report, binary, progress):
                     or not _integer(attempted,completed,requested) or not _integer(count,0,requested)
                     or not setup_cancel and count!=requested
                     or status=='complete' and (not ready or completed!=requested or attempted!=requested)
-                    or not _integer(peak,0,min(config.concurrency,config.per_host))
+                    or not _integer(peak,0,config.concurrency if config.method=='syn' else min(config.concurrency,config.per_host))
                     or not _number(frame.get('elapsed_seconds'),0,86410)
                     or frame.get('reason') is not None and (not isinstance(frame['reason'],str)
                         or not re.fullmatch(r'[a-z_]{1,64}',frame['reason']))):
                     raise ValueError('invalid native completion coverage')
+                if config.method=='syn':
+                    bounds={'syn_sent':requested*(config.retries+1),'retries_sent':requested*config.retries,
+                            'resets_sent':requested,'send_errors':requested*(config.retries+2),
+                            'queue_drops':2**64-1,'capture_drops':2**64-1}
+                    if any((key not in frame and not setup_cancel) or (key in frame and not _integer(frame[key],0,maximum)
+                           and not (key=='capture_drops' and frame[key] is None)) for key,maximum in bounds.items()):
+                        raise ValueError('invalid SYN transmission/drop metrics')
+                    optional={'peak_per_host':config.per_host,'received_packets':2**64-1,
+                              'matched_responses':requested,'duplicate_responses':2**64-1,
+                              'unmatched_packets':2**64-1,'late_responses':2**64-1,
+                              'timeouts':requested,'cooldown_ms':1000,'receive_cooldown_ms':10000}
+                    if any(key in frame and not _integer(frame[key],0,maximum) for key,maximum in optional.items()):
+                        raise ValueError('invalid SYN coverage metrics')
+                    if (frame.get('native_cpu_seconds') is not None and not _number(frame['native_cpu_seconds'],0,1e9)
+                        or frame.get('native_peak_rss_bytes') is not None and not _integer(frame['native_peak_rss_bytes'],0,2**64-1)):
+                        raise ValueError('invalid native process resource metrics')
+                    if status=='complete' and (any(frame.get(key) for key in ('send_errors','queue_drops','capture_drops'))
+                        or any(row.evidence.get('send_error_code') is not None for row in report.results)):
+                        raise ValueError('capture/transmission loss contradicts complete status')
                 done=frame;done_at=time.monotonic()
             else:
                 raise ValueError('unknown native frame type')
@@ -244,7 +290,9 @@ def _run(config, targets, stop, report, binary, progress):
         else:
             report.completion_status=done['status']
             report.implementation['metrics']={k:done[k] for k in (
-                'status','requested','completed','attempted','peak_outstanding','elapsed_seconds','reason') if k in done}
+                'status','requested','completed','attempted','peak_outstanding','elapsed_seconds','reason',
+                'peak_per_host','syn_sent','retries_sent','resets_sent','send_errors','received_packets','matched_responses',
+                'duplicate_responses','unmatched_packets','late_responses','timeouts','queue_drops','capture_drops','cooldown_ms','receive_cooldown_ms','native_cpu_seconds','native_peak_rss_bytes') if k in done}
             expected={'complete':0,'interrupted':130,'failed':3}[done['status']]
             if process.returncode!=expected or fatal and done['status']!='failed':
                 raise ValueError('native exit status contradicts protocol')
@@ -279,6 +327,9 @@ def scan_native(config, plan, stop=None, *, binary=None, progress=None):
     try:
         if len(config.ports)>MAX_PORTS or len(targets)>65536 or report.requested_probes>1_000_000:
             raise ValueError('native scope limit exceeded')
+        if config.method=='syn' and (sys.platform!='linux' or any(target.family!='IPv4' for target in targets)):
+            report.issues.append({'reason':'native_syn_requires_linux_ipv4'})
+            raise NotImplementedError('unsupported SYN platform or address family')
         if not stop.is_set():
             _run(config,targets,stop,report,binary,progress)
         if config.service_detect:

@@ -38,6 +38,7 @@ class ScanConfig:
     allow_excluded_probes: bool = False
     engine: str = 'python'
     engine_timeout: float = 3600.0
+    syn_cooldown: float = 0.2
 
     def __post_init__(self):
         if not isinstance(self.target, str) or not self.target.strip() or '\x00' in self.target:
@@ -76,8 +77,10 @@ class ScanConfig:
             raise ValueError('unknown scan engine')
         if not math.isfinite(self.engine_timeout) or not .1 <= self.engine_timeout <= 86400:
             raise ValueError('engine timeout must be within 0.1–86400 seconds')
-        if self.engine=='native' and (self.method!='connect' or self.banner):
-            raise ValueError('native foundation supports connect only; use --service-detect instead of --banner')
+        if self.engine=='native' and (self.method not in ('connect','syn') or self.banner):
+            raise ValueError('native supports connect/SYN; use --service-detect instead of --banner')
+        if not math.isfinite(self.syn_cooldown) or not 0 <= self.syn_cooldown <= 1:
+            raise ValueError('SYN cooldown must be within 0–1 seconds')
         if self.engine=='native' and len(self.ports)>4096:
             raise ValueError('native foundation supports at most 4096 selected ports')
         if self.engine=='native' and self.rate is not None and self.rate<.000001:
@@ -124,7 +127,7 @@ class ScanReport:
     configuration: ScanConfig
     results: list[ScanResult] = field(default_factory=list)
     schema_version: int = 4
-    implementation: dict = field(default_factory=lambda: {'engine':'python','engine_version':'phase4a','wire_protocol':None})
+    implementation: dict = field(default_factory=lambda: {'engine':'python','engine_version':'phase4b','wire_protocol':None})
     probe_database_version: str | None = None
     started_at: str = field(default_factory=utc_now)
     finished_at: str | None = None

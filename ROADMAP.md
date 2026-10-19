@@ -38,14 +38,16 @@ privacy remediation is pending owner decision, independently of feature work.
 See [policy](SECURITY.md), [audit](docs/SECURITY_AUDIT.md) and
 [checkpoint](docs/AUTONOMOUS_PROGRESS.md).
 
-- **Phase 4A (PR, not delivered on main):** opt-in Rust asynchronous TCP connect
+- **Phase 4A (merged through #11):** opt-in Rust asynchronous TCP connect
   engine, bounded versioned subprocess contract, Python adapter, schema-4 metadata,
   deterministic tests and a measured loopback baseline. Python remains the default.
   Native raw SYN, UDP, discovery and durable resume are not implemented here.
 
 ## Planned
 
-- **Phase 4B:** Linux-first asynchronous native SYN discovery and controlled lab evidence.
+- **Phase 4B (PR #12, awaiting final CI/review):** Linux IPv4 native SYN packet/state/I/O
+  and protocol-2 integration; 25 isolated Linux ground-truth/capture checks passed.
+  See docs/NATIVE_SYN.md. Do not mark ready/merge until acceptance passes.
 - **Phase 4C:** durable resume, streaming, deterministic sharding and measured performance.
 - **Phase 5A:** bounded informational enumeration plugins.
 - **Phase 5B:** original remote packet OS evidence and conservative fingerprints.

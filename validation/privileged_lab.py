@@ -88,6 +88,8 @@ def peer(args):
         for protocol in ('tcp', 'udp'):
             command(tool, '-A', 'INPUT', '-p', protocol, '--dport', '19002', '-j', 'REJECT', '--reject-with', reject)
             command(tool, '-A', 'INPUT', '-p', protocol, '--dport', '19003', '-j', 'DROP')
+    for tool in ('iptables','ip6tables'):
+        command(tool,'-A','INPUT','-p','tcp','--dport','18000','-j','DROP')
     sockets = []
     try:
         for family, address in ((socket.AF_INET, V4[1]), (socket.AF_INET6, V6[1])):
@@ -338,10 +340,21 @@ def inside(args):
                 report['capture_evidence'] = capture_evidence(packets, report['cases'])
                 report['capture_sha256'] = hashlib.sha256((args.output / 'capture.pcap').read_bytes()).hexdigest()
                 report['packet_count'] = len(packets)
-                if all(case['passed'] for case in report['cases']) and all(check['passed'] for check in report['capture_evidence']) and report['loopback_tests']['passed']:
+                if args.native_binary:
+                    from validation.native_syn_lab import validate
+                    report['native_syn'] = validate(args.output,args.native_binary,args.parent_netns)
+                if all(case['passed'] for case in report['cases']) and all(check['passed'] for check in report['capture_evidence']) and report['loopback_tests']['passed'] and (not args.native_binary or report.get('native_syn',{}).get('status')=='passed'):
                     report['status'] = 'passed'
     except Exception as exc:
         report['error'] = {'type': type(exc).__name__, 'message': str(exc)}
+        frames=[];trace=exc.__traceback__
+        while trace:
+            try:relative=Path(trace.tb_frame.f_code.co_filename).resolve().relative_to(ROOT)
+            except ValueError:relative=None
+            if relative is not None:frames.append({'file':str(relative),'line':trace.tb_lineno})
+            trace=trace.tb_next
+        print(json.dumps({'lab_error_type':type(exc).__name__,'locations':frames[-8:],
+                          'exit_code':getattr(exc,'returncode',None),'errno':getattr(exc,'errno',None)}))
     finally:
         for process in (loopback_capture, capture, child):
             if process and process.poll() is None:
@@ -358,6 +371,7 @@ def inside(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True, help='new output directory; never overwrite previous evidence')
+    parser.add_argument('--native-binary', help='trusted built native engine; enables isolated IPv4 SYN validation')
     parser.add_argument('--inside', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--peer', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--parent-netns', help=argparse.SUPPRESS)
@@ -368,7 +382,7 @@ def main(argv=None):
         return 0
     if args.inside:
         return inside(args)
-    args.output.mkdir(parents=True, exist_ok=False)
+    args.output.mkdir(parents=True, exist_ok=False, mode=0o700)
     reason = preflight()
     if reason:
         record(args.output / 'results.json', {'status': 'unavailable', 'reason': reason,
@@ -377,7 +391,8 @@ def main(argv=None):
         return 2
     result = subprocess.run(['unshare', '--net', '--mount', '--propagation', 'private', '--pid', '--fork', '--kill-child', '--mount-proc',
         sys.executable, '-B', str(Path(__file__).resolve()), '--output', str(args.output),
-        '--inside', '--parent-netns', os.readlink('/proc/self/ns/net')])
+        '--inside', '--parent-netns', os.readlink('/proc/self/ns/net'),
+        *(['--native-binary',str(Path(args.native_binary).resolve())] if args.native_binary else [])])
     if not (args.output / 'results.json').exists():
         record(args.output / 'results.json', {'status': 'unavailable', 'reason': 'namespace setup failed',
                                              'exit_code': result.returncode, 'cases': [], 'capture_evidence': []})
