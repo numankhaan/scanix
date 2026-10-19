@@ -1,4 +1,4 @@
-"""Bounded IPv4 TCP connect scanning; no terminal output or OS fingerprinting."""
+"""Bounded TCP connect/raw scan orchestration; no terminal output or OS fingerprinting."""
 from concurrent.futures import CancelledError, FIRST_COMPLETED, ThreadPoolExecutor, wait
 import errno
 import socket
@@ -35,7 +35,8 @@ def new_result(config: ScanConfig, resolved: ResolvedTarget | None, port: int) -
     service = get_service_name(port) if config.method != 'udp' else None
     return ScanResult(target=config.target, resolved_ip=resolved.ip if resolved else None,
                       address_family=resolved.family if resolved else None, port=port,
-                      scan_method=config.method, protocol='udp' if config.method == 'udp' else 'tcp', service_name=service if config.method != 'udp' else None,
+                      original_targets=(config.target,), scan_method=config.method,
+                      protocol='udp' if config.method == 'udp' else 'tcp', service_name=service,
                       detection_source='port_table' if service else None)
 
 
@@ -72,7 +73,7 @@ def scan_single_port(config: ScanConfig, resolved: ResolvedTarget, port: int,
     return result
 
 
-def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None, *, endpoint=None, runtime=None) -> ScanReport:
+def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None, *, endpoint=None, runtime=None, progress=None) -> ScanReport:
     report = ScanReport(config)
     stop = cancel_event if cancel_event is not None else threading.Event()
     resolved = None
@@ -83,6 +84,8 @@ def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None,
     def record(future, port):
         try:
             report.results.append(future.result())
+            if progress:
+                progress(len(report.results), len(config.ports))
         except CancelledError:
             pass
         except Exception as exc:
@@ -105,10 +108,16 @@ def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None,
             def probe(cfg, addr, port, event):
                 from dataclasses import replace
                 runtime.limiter.acquire(event)
-                effective = replace(cfg, timeout=runtime.timeout.value()) if cfg.adaptive else cfg
+                effective = replace(cfg, banner=False, timeout=runtime.timeout.value() if cfg.adaptive else cfg.timeout)
                 result = original_probe(effective, addr, port, event)
                 if result.state in ('open', 'closed') and result.connection_elapsed_seconds is not None:
                     runtime.timeout.observe(result.connection_elapsed_seconds)
+                if result.state == 'open' and cfg.banner and not event.is_set():
+                    try:
+                        runtime.limiter.acquire(event)
+                        result.banner = grab_banner_for_port(addr.ip, port, timeout=effective.timeout)
+                    except CancelledError:
+                        pass  # retain the completed connection result
                 return result
         if not stop.is_set():
             resolved = endpoint or resolve_target(config.target)
@@ -156,7 +165,7 @@ def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None,
         if stop.is_set():
             report.completion_status = 'interrupted'
         elif any(r.reason in ('permission_denied', 'resource_exhausted', 'worker_exception')
-                 for r in report.results):
+                 for r in report.results) or (config.method != 'connect' and any(r.state == 'error' for r in report.results)):
             report.completion_status = 'failed'
         report.results.sort(key=lambda r: (r.target, r.resolved_ip or '', r.port, r.scan_method))
         report.issues.sort(key=lambda issue: (issue.get('port', -1), issue['reason']))

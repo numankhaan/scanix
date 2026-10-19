@@ -1,4 +1,4 @@
-"""Phase 1 wire schema. Unknown evidence is represented by None (JSON null)."""
+"""Phase 2 extends the Phase 1 wire schema. Unknown evidence is represented by None (JSON null)."""
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 import math
@@ -29,7 +29,7 @@ class ScanConfig:
 
     def __post_init__(self):
         if not isinstance(self.target, str) or not self.target.strip() or '\x00' in self.target:
-            raise ValueError("target must be a nonempty hostname or IPv4 address")
+            raise ValueError("target must be a nonempty hostname or IP address")
         if not self.ports or any(type(p) is not int or not 1 <= p <= 65535 for p in self.ports):
             raise ValueError("ports must be integers within 1–65535")
         object.__setattr__(self, 'ports', tuple(sorted(set(self.ports))))
@@ -86,7 +86,7 @@ class ScanResult:
 class ScanReport:
     configuration: ScanConfig
     results: list[ScanResult] = field(default_factory=list)
-    schema_version: int = 1
+    schema_version: int = 2
     started_at: str = field(default_factory=utc_now)
     finished_at: str | None = None
     completion_status: Literal["complete", "failed", "interrupted"] = "complete"
@@ -103,5 +103,5 @@ class ScanReport:
             result['original_targets'] = list(result['original_targets'])
         data['completed_ports'] = len(self.results)
         data['requested_ports'] = (self.requested_probes if self.requested_probes is not None else len(self.configuration.ports))
-        data['incomplete'] = self.completion_status != 'complete'
+        data['incomplete'] = self.completion_status != 'complete' or len(self.results) < data['requested_ports']
         return data
