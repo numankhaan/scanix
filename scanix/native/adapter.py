@@ -26,7 +26,7 @@ MAX_PORTS = 4096
 def preview(config):
     return {'engine': config.engine, 'wire_protocol': PROTOCOL if config.engine == 'native' else None,
             'capabilities': (['connect','syn_ipv4'] if sys.platform=='linux' else ['connect']) if config.engine == 'native' else ['connect','syn','udp'],
-            'backend_supported': config.engine!='native' or config.method=='connect' or sys.platform=='linux',
+            'platform_supported': config.engine!='native' or config.method=='connect' or sys.platform=='linux',
             'syn_ipv4_only': config.engine=='native' and config.method=='syn',
             'receive_cooldown_seconds': config.syn_cooldown if config.engine=='native' and config.method=='syn' else None,
             'session_timeout_seconds': config.engine_timeout if config.engine == 'native' else None,
@@ -269,6 +269,9 @@ def _run(config, targets, stop, report, binary, progress):
                               'timeouts':requested,'cooldown_ms':1000,'receive_cooldown_ms':10000}
                     if any(key in frame and not _integer(frame[key],0,maximum) for key,maximum in optional.items()):
                         raise ValueError('invalid SYN coverage metrics')
+                    if (frame.get('native_cpu_seconds') is not None and not _number(frame['native_cpu_seconds'],0,1e9)
+                        or frame.get('native_peak_rss_bytes') is not None and not _integer(frame['native_peak_rss_bytes'],0,2**64-1)):
+                        raise ValueError('invalid native process resource metrics')
                     if status=='complete' and (any(frame.get(key) for key in ('send_errors','queue_drops','capture_drops'))
                         or any(row.evidence.get('send_error_code') is not None for row in report.results)):
                         raise ValueError('capture/transmission loss contradicts complete status')
@@ -289,7 +292,7 @@ def _run(config, targets, stop, report, binary, progress):
             report.implementation['metrics']={k:done[k] for k in (
                 'status','requested','completed','attempted','peak_outstanding','elapsed_seconds','reason',
                 'peak_per_host','syn_sent','retries_sent','resets_sent','send_errors','received_packets','matched_responses',
-                'duplicate_responses','unmatched_packets','late_responses','timeouts','queue_drops','capture_drops','cooldown_ms','receive_cooldown_ms') if k in done}
+                'duplicate_responses','unmatched_packets','late_responses','timeouts','queue_drops','capture_drops','cooldown_ms','receive_cooldown_ms','native_cpu_seconds','native_peak_rss_bytes') if k in done}
             expected={'complete':0,'interrupted':130,'failed':3}[done['status']]
             if process.returncode!=expected or fatal and done['status']!='failed':
                 raise ValueError('native exit status contradicts protocol')

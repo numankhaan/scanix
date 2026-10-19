@@ -225,6 +225,7 @@ pub async fn scan(
     if let Some(code) = failure {
         diagnostic(writer, code).await?;
     }
+    let (cpu, rss) = crate::linux_wire::process_usage();
     emit(writer,json!({"type":"done","status":status,"requested":requested,"completed":state.completed,
         "attempted":stats.attempted.load(Ordering::Relaxed),"peak_outstanding":state.peak,"peak_per_host":state.peak_per_host,
         "elapsed_seconds":start.elapsed().as_secs_f64(),"reason":failure,"syn_sent":stats.syn_sent.load(Ordering::Relaxed),
@@ -232,6 +233,6 @@ pub async fn scan(
         "send_errors":stats.send_errors.load(Ordering::Relaxed),"received_packets":stats.received.load(Ordering::Relaxed),
         "matched_responses":state.matched,"duplicate_responses":state.duplicates,"unmatched_packets":state.unmatched,
         "late_responses":state.late,"timeouts":state.timeouts,"queue_drops":stats.queue_drops.load(Ordering::Relaxed),
-        "capture_drops":drops,"cooldown_ms":cfg.cooldown_ms,"receive_cooldown_ms":receive_cooldown})).await?;
+        "native_cpu_seconds":cpu,"native_peak_rss_bytes":rss,"capture_drops":drops,"cooldown_ms":cfg.cooldown_ms,"receive_cooldown_ms":receive_cooldown})).await?;
     Ok(exit)
 }

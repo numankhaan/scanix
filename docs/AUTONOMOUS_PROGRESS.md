@@ -97,3 +97,22 @@ Next: commit concurrency fix (intended state/driver/wire/adapter/tests/checkpoin
 then validate/commit lab changes, push, dispatch existing privileged workflow at the
 exact head after checking GitHub, inspect lab and ordinary CI. Do not mark ready or
 merge until the independent packet ground truth passes. Later roadmap stages wait.
+
+
+## Controlled lab ready for dispatch
+
+Concurrency fix `59f61a4` committed locally; not yet pushed. Guarded namespace lab
+and workflow now include native SYN ground-truth/capture checks and measured native
+CPU/RSS. Capture contents remain ephemeral/private; logs contain whitelisted numeric
+metrics, synthetic case states, hashes and safe failure locations only.
+Syntax checks, actionlint/workflow policy, Linux cross-Clippy and six SYN wire tests
+passed. Local macOS lab preflight correctly returned unavailable (exit 2), not pass;
+no raw traffic was sent on macOS. Initial implementation head `05422a9` passed all
+push/PR workflows: Tests 39340795879/39340801289, CodeQL 39340795865/39340801320,
+Native 39340795972/39340801470, Security 39340795933/39340801304. These do not count
+as validation of the newer concurrency/measurement/lab changes.
+
+Next: commit lab/measurement increment, push after remote-state check, dispatch
+`gh workflow run privileged-lab.yml --ref phase4b/native-syn-design` exactly once at
+that pushed SHA (inspect prior runs first), capture run ID and inspect results.
+Run all latest-head CI and fix actual failures. #12 stays draft pending live evidence.

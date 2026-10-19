@@ -75,6 +75,9 @@ pending on cancellation is incomplete coverage, not a completed closed port.
 Reset errors do not erase an observed open state. Actual successful SYN/retry/reset
 sends, unique attempted work, send errors, matched/duplicate/unmatched/late packets,
 timeouts, peaks, receive cooldown and userspace queue drops are reported separately.
+Linux getrusage records native-process CPU seconds and peak userspace RSS (bytes),
+including process setup; it excludes the Python adapter and kernel socket buffers.
+Unavailable resource metrics remain null.
 PACKET_STATISTICS supplies kernel capture drops where available; unknown is null,
 not zero. These counters cover selected capture sockets, including unrelated traffic,
 and do not infer end-to-end network loss. Measured capture drops/queue drops or send

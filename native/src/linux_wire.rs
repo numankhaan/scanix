@@ -100,6 +100,24 @@ fn interface(source: Ipv4Addr) -> io::Result<u32> {
     }
 }
 
+/// Native process CPU/peak userspace RSS; failure remains unknown, not zero.
+pub fn process_usage() -> (Option<f64>, Option<u64>) {
+    let mut usage: libc::rusage = unsafe { zeroed() };
+    // SAFETY: getrusage writes the correctly sized initialized output object.
+    if unsafe { libc::getrusage(libc::RUSAGE_SELF, &mut usage) } != 0 {
+        return (None, None);
+    }
+    let seconds = usage.ru_utime.tv_sec as f64
+        + usage.ru_stime.tv_sec as f64
+        + (usage.ru_utime.tv_usec + usage.ru_stime.tv_usec) as f64 / 1_000_000.;
+    (
+        Some(seconds),
+        u64::try_from(usage.ru_maxrss)
+            .ok()
+            .and_then(|kb| kb.checked_mul(1024)),
+    )
+}
+
 impl Backend {
     /// All scope, route/source, privilege and capture setup succeeds before any send job.
     pub fn setup(targets: &[IpAddr]) -> io::Result<Self> {
