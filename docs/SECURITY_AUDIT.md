@@ -80,7 +80,17 @@ network tests were run for this audit.
 - Paused native branch: `cargo fmt --check`, `cargo clippy --locked --all-targets
   -- -D warnings`, `cargo test --locked`: exit 0; six Rust tests passed. No native
   feature changes.
-- CI: not yet run for this security branch. Queued/not-run is not passing.
+- First security head `3f0aa86`: push Security `39303305067` and Tests
+  `39303305082` passed; PR Security `39303359676` and Tests `39303359675` passed.
+  All seven platform/Python test jobs passed on each event. CodeQL push
+  `39303305044` and PR `39303359667` failed with two `py/insecure-protocol`
+  findings (tool severity high), at `scanix/service/transport.py:111` and
+  `validation/service_lab.py:39`. These relied on context defaults; an explicit
+  TLS 1.2 floor is now enforced at handshake boundaries without rule suppression.
+  Verification opt-out does not enable obsolete protocols. A transport regression
+  was added. Follow-up CI is pending until the fix is pushed.
+- GitHub's API confirmed uploaded alert messages use the fixed redacted message,
+  not the original finding text. No raw SARIF/database was uploaded.
 
 ## Coverage limits and owner actions
 

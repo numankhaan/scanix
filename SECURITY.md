@@ -1,7 +1,8 @@
 # Security and privacy
 
 Scanix is a network scanner. Only scan systems you are authorized to test.
-Passing automated checks **does not guarantee security or privacy**. Scan evidence,
+Passing automated checks **does not guarantee security or privacy**. TLS service handshakes require TLS 1.2 or newer, including certificate-verification
+opt-out mode. Scan evidence,
 banners and certificate claims are untrusted; versions alone are not vulnerabilities.
 
 ## Reporting and containment

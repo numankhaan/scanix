@@ -34,6 +34,7 @@ def endpoint(certificate=None):
     server.daemon_threads = True
     if certificate:
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
         context.load_cert_chain(TLS / (certificate+'.pem'), TLS / 'server-TEST-ONLY.key')
         context.set_alpn_protocols(['http/1.1'])
         server.socket = context.wrap_socket(server.socket, server_side=True)

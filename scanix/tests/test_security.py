@@ -4,6 +4,11 @@ import io
 import csv
 from pathlib import Path
 import tempfile
+import ssl
+import threading
+import time
+from unittest.mock import Mock
+from scanix.service.transport import Session
 from scanix.core.models import ScanConfig, ScanReport, ScanResult
 from scanix.output.save_csv import save_csv
 import unittest
@@ -44,6 +49,17 @@ class SecurityRegressionTests(unittest.TestCase):
         for hops in (0, 65, True):
             with self.assertRaises(ValueError):
                 traceroute('127.0.0.1', hops)
+
+    def test_tls_boundary_enforces_minimum_even_for_custom_context(self):
+        report = Mock(transmissions=0)
+        context = Mock(minimum_version=None)
+        session = Session('127.0.0.1', 443, threading.Event(), Mock(), report,
+                          {'transmissions': 2}, time.monotonic()+1)
+        session.sock = Mock()
+        wrapped = session.tls(context, 'localhost')
+        self.assertEqual(context.minimum_version, ssl.TLSVersion.TLSv1_2)
+        context.wrap_socket.assert_called_once()
+        wrapped.do_handshake.assert_called_once()
 
     @patch('scanix.modules.traceroute.shutil.which', return_value='/synthetic/traceroute')
     @patch('scanix.modules.traceroute.subprocess.run')

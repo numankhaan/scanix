@@ -108,6 +108,8 @@ class Session:
             raise BudgetExceeded('transmission budget exhausted')
         self.pace()
         self.report.transmissions += 1
+        # Verification opt-out does not enable obsolete TLS protocol versions.
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
         self.sock = context.wrap_socket(self.sock, server_hostname=name, do_handshake_on_connect=False)
         self.sock.setblocking(False)
         end = time.monotonic()+self.budget['operation_timeout']

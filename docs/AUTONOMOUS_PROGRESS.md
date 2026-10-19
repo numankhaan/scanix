@@ -26,6 +26,14 @@ review of main and all locally fetched history. Do not merge the security PR.
   content-addressed test-key exceptions. Fourteen synthetic gate tests passed; full-history secrets gate passed with
   exactly two content-addressed fixture exceptions. Historical privacy inventory
   failed as expected (108 email/24 path/13 bytecode flags), not a clean result.
-- Next: stage/review only security files, run full gates, commit, push and open
-  security PR; inspect latest CI. CI currently not run; do not label it passed.
+- Security commit/head: `3f0aa867f50344f5d20eac36ea1db111cc6842e8`, pushed.
+  PR: https://github.com/numankhaan/scanix/pull/8, base main, open/unmerged.
+- CI on `3f0aa86`: push/PR Security and all seven Tests jobs passed.
+  CodeQL `39303305044`/`39303359667` failed on two missing explicit TLS minimums.
+  Fix prepared: enforce TLS 1.2 at transport/lab boundaries, no query suppression.
+- Uncommitted: TLS transport/lab/test changes plus audit/checkpoint/TLS policy
+  documentation, awaiting local regression and a focused fix commit.
+- Next: validate/commit/push the TLS floor fix; inspect fresh CodeQL and all checks,
+  then update audit/checkpoint/PR with actual final results.
+  Do not merge #8, do not resume feature work.
 - Privileged macOS/BPF validation remains incomplete. No public targets tested.
