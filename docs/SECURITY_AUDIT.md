@@ -128,3 +128,36 @@ TLS-floor CI at `4e3a00a`: CodeQL push `39304016664` and PR `39304056735`
 passed; Security push `39304016596` and PR `39304056684` passed. Tests push
 `39304016584` and PR `39304056633` failed on the recorded incomplete test budget.
 The subsequent fixture correction is local `9f6caee`, with the passing rerun above.
+
+## Final coverage follow-up
+
+Local `git fsck --full --no-reflogs --unreachable` passed. Its additional three
+commits, ten blobs and six trees were inventoried; available content/metadata
+secret scanning returned zero findings, with seven historical email review
+candidates retained privately. Local Git configuration secret scan passed.
+Three tag refs include two annotated tag objects: secret scan passed; two personal
+email candidates remain historical exposure. No PR attachment links were present.
+Nine artifact pcaps were decoded **offline** with system tcpdump, all successful;
+this does not establish that arbitrary payloads contain no private/encoded data.
+
+Prevention now also checks path text and annotated/nested tag metadata/messages,
+including outgoing tags with no new commit. Gate tests: **18 passed**; full-history
+secret gate including tags passed. No new secret exception was introduced.
+
+At `f02cf86610fac0bd4d9c4ea6b50a1c49a807f85d`, all push and PR workflows passed:
+Security `39304666932`/`39304679135`, CodeQL `39304666952`/`39304679123`,
+Tests `39304666938`/`39304679100`. Final path/tag coverage follow-up CI will run
+on its new head; do not transfer earlier results to an untested SHA.
+
+Before Phase 4 resumes, synchronize these reviewed security changes into the
+paused native branch, sanitize its current progress text and pin its native
+workflow actions. That branch is intentionally not merged/modified here. CodeQL
+coverage here is Python; the unmerged Rust branch received RustSec/Clippy/unit
+checks, not a Rust CodeQL analysis. Historical exposure still needs owner review.
+
+Final history inventory including tags: exit 1 as expected for unresolved privacy,
+110 email candidates, 24 home-path occurrences and 13 bytecode review flags.
+The seven unreachable-object email candidates are a separate local inventory.
+At f02cf86 each CI platform ran 121 regressions: Linux/macOS 119 passed/two
+privileged skips; Windows 118 passed/three skips (including the existing POSIX-only
+interrupt test). These skips are not successful privileged validation.

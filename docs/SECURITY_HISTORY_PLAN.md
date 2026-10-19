@@ -5,7 +5,8 @@ reachable commits contain a non-noreply personal identity, and old progress file
 and 13 bytecode blobs contain personal home paths. The separately paused Phase 4A
 head `d08659e` also needs its progress text sanitized before further publication.
 Public GitHub-generated identities and synthetic loopback fixtures are intentional.
-No actual production credential was identified by this audit.
+Two annotated tags and three unreachable local commits also contain historical
+email candidates. No actual production credential was identified by this audit.
 
 A maintainer should privately review the retained findings and decide whether
 historical privacy exposure warrants disruption. Do not publish the values or raw

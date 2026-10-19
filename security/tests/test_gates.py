@@ -64,6 +64,12 @@ class PrivacyTests(unittest.TestCase):
             self.fail('privacy scan exceeded bounded input test deadline')
         self.assertEqual(proc.returncode, 0, 'long-text privacy scan failed')
 
+    def test_privacy_in_filename_is_blocked_without_printing_it(self):
+        path = 'nested/Users/' + 'synthetic-user/source.py'
+        found = check.file_findings(path, b'pass', 'tree')
+        self.assertTrue(any(x['category'] == 'home-path' for x in found))
+        self.assertTrue(path not in json.dumps(found), 'private path appeared in output')
+
     def test_reports_detected_independently_of_filename(self):
         payload = json.dumps({'configuration': {}, 'results': [], 'completion_status': 'complete'}).encode()
         self.assertTrue(any(x['category'] == 'scan-report-review' for x in check.file_findings('arbitrary.json', payload, 'tree')))
@@ -180,6 +186,15 @@ class GitGates(unittest.TestCase):
         proc = self.invoke('range', '--base', base, '--secrets-only')
         self.assertEqual(proc.returncode, 1)
         self.assertTrue(token not in proc.stdout+proc.stderr, 'merge sample leaked')
+
+    def test_annotated_tag_secrets_are_scanned_without_new_commits(self):
+        token = 'ghp_' + 'Ab3Cd4Ef5Gh6Ij7Kl8Mn9Op0Qr1St2Uv3Wx4'
+        self.git('tag', '-a', 'synthetic-tag', '-m', 'token: '+token)
+        for arguments in [('range', '--base', self.base, '--head', 'synthetic-tag', '--secrets-only'),
+                          ('history', '--secrets-only')]:
+            proc = self.invoke(*arguments)
+            self.assertEqual(proc.returncode, 1)
+            self.assertTrue(token not in proc.stdout+proc.stderr, 'tag message exposed')
 
     def test_metadata_and_commit_messages_are_scanned(self):
         self.git('config', 'user.email', 'synthetic'+'@personal.invalid')

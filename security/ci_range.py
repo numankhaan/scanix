@@ -11,6 +11,10 @@ def main():
     if event not in ('push', 'pull_request'):
         print('No incremental event range; full-tree and history checks follow')
         return 0
+    ref = os.environ.get('GIT_REF', '')
+    if event == 'push' and ref.startswith('refs/tags/'):
+        subprocess.run(['git', 'check-ref-format', ref], check=True, capture_output=True)
+        head = subprocess.check_output(['git', 'rev-parse', '--verify', ref], text=True).strip()
     if not re.fullmatch('[0-9a-f]{40}', head):
         raise ValueError()
     if event == 'push' and (not base or set(base) == {'0'}):

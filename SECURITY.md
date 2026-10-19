@@ -81,7 +81,8 @@ remove previously published content, and force-add still needs the gates.
 `Security` and `CodeQL` run on **all branch pushes, PRs, weekly schedules and manual
 dispatch** (schedules/manual UI activate after the workflows reach the default
 branch). Checkouts use full history for the gates. PR ranges use event base/head
-SHAs; pushes use before/head, new branches use origin/default. Every branch commit
+SHAs; pushes use before/head, new branches use origin/default. Annotated/nested tag messages and tagger metadata are also scanned; tag pushes
+resolve the actual tag object instead of only its commit. Every branch commit
 is examined, not just the last; missing old objects fail. A full reachable-history
 secret scan runs on every event. Historical privacy inventory runs separately each
 week/manually and is expected to fail until historical exposure is addressed.

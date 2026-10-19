@@ -39,7 +39,7 @@ def digest(data):
 
 
 def safe_path(path):
-    if path in ('(commit metadata/message)', '(prospective author)', '(prospective committer)'):
+    if path in ('(commit metadata/message)', '(prospective author)', '(prospective committer)', '(tag metadata/message)'):
         return path
     # Paths themselves can disclose personal information or terminal controls.
     if re.fullmatch(r'[A-Za-z0-9_./-]{1,240}', path) and not any(re.search(p, path) for p in RULES.values()):
@@ -92,7 +92,7 @@ def fixture_ok(path, data, rule='private-key'):
 
 
 def file_findings(path, data, ref):
-    result = privacy(data, path, ref)
+    result = privacy(data, path, ref) + privacy(path.encode(), path, ref)
     name = Path(path).name.lower()
     forbidden = (path.startswith('.security-private/') or '.env' in Path(path).parts or name == '.env' or name.startswith('.env.') or
                  name in ('.netrc', '.pypirc', '.npmrc', 'cookies.txt', 'credentials.json', 'terraform.tfstate') or
@@ -163,6 +163,29 @@ def inspect(mode, base=None, head='HEAD'):
             findings.extend(privacy(git('var', 'GIT_AUTHOR_IDENT'), '(prospective author)', metadata=True))
             findings.extend(privacy(git('var', 'GIT_COMMITTER_IDENT'), '(prospective committer)', metadata=True))
         return findings, blobs
+    # git log omits annotated tag messages/tagger metadata, including nested tags.
+    tags = (git('for-each-ref', '--format=%(objectname)', 'refs/tags').decode().splitlines()
+            if mode == 'history' else [head])
+    seen_tags = set()
+    while tags:
+        tag = tags.pop()
+        oid = git('rev-parse', '--verify', tag).decode().strip()
+        if oid in seen_tags:
+            continue
+        seen_tags.add(oid)
+        if len(seen_tags) > 10000:
+            raise ScanError('tag inventory exceeds scan budget')
+        if git('cat-file', '-t', oid).strip() != b'tag':
+            continue
+        if int(git('cat-file', '-s', oid)) > MAX_BYTES:
+            raise ScanError('tag exceeds scan limit')
+        data = git('cat-file', 'tag', oid)
+        blobs['tag-metadata/' + oid + '.txt'] = data
+        findings.extend(privacy(data, '(tag metadata/message)', oid, metadata=True))
+        first = data.split(b'\n', 1)[0]
+        if not re.fullmatch(rb'object [0-9a-f]{40,64}', first):
+            raise ScanError('invalid tag object')
+        tags.append(first.split()[1].decode())
     revisions = git('rev-list', '--all').decode().splitlines() if mode == 'history' else commits(base, head)
     seen = set()
     for revision in revisions:
