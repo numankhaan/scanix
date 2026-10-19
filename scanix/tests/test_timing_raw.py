@@ -2,7 +2,7 @@ import errno
 import threading
 import unittest
 from concurrent.futures import CancelledError
-from unittest.mock import MagicMock, patch
+from unittest.mock import DEFAULT, MagicMock, patch
 from scanix.core.models import ScanConfig, ResolvedTarget
 from scanix.core.scanner import scan_target
 from scanix.core.timing import RateLimiter, AdaptiveTimeout, Runtime
@@ -172,8 +172,15 @@ class BackendSelectionTests(unittest.TestCase):
         for destination, source, name in [('127.0.0.1', '127.0.0.1', 'L3RawSocket'), ('::1', '::1', 'L3RawSocket6')]:
             with patch('scanix.modules.transport.sys.platform', 'linux'), \
                  patch('scanix.modules.transport.route', return_value=('lo', source, '::' if ':' in source else '0.0.0.0')), \
-                 patch('scapy.supersocket.' + name, create=True) as factory:
+                 patch.multiple('scapy.supersocket', L3RawSocket=DEFAULT,
+                                L3RawSocket6=DEFAULT, create=True) as factories:
+                # Both imports are a Linux backend contract; neither class is
+                # exported by Scapy on Windows. Model the whole contract while
+                # keeping this selection test active on every CI platform.
                 with PacketTransport(destination):
                     pass
+                factory = factories[name]
                 factory.assert_called_once_with(iface='lo', promisc=False)
                 factory.return_value.close.assert_called_once()
+                other = 'L3RawSocket6' if name == 'L3RawSocket' else 'L3RawSocket'
+                factories[other].assert_not_called()

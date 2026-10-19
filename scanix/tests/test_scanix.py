@@ -69,7 +69,9 @@ class ScannerTests(unittest.TestCase):
                 print(json.dumps({'loopback_refusal_diagnostic': {
                     'platform': sys.platform, 'timeout': 0.5, 'error_code': code,
                     'elapsed': time.monotonic() - started}}), file=sys.stderr)
-            config = ScanConfig('127.0.0.1', (open_port, closed_port), timeout=5.0)
+            # This checks eventual native refusal with a fixed budget, rather
+            # than shrinking that budget using the other port's loopback RTT.
+            config = ScanConfig('127.0.0.1', (open_port, closed_port), timeout=5.0, adaptive=False)
             report = scan_target(config)
             results = {r.port: r for r in report.results}
             self.assertEqual(report.completion_status, 'complete')
