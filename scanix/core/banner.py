@@ -1,51 +1,22 @@
+"""Bounded best-effort plaintext evidence. No protocol or version confirmation."""
 import socket
-from .utils import safe_print
 import re
 
-COMMON_PROBES = {
-    "HTTP": b"HEAD / HTTP/1.1\r\nHost: example.com\r\n\r\n",
-    "SMTP": b"HELO example.com\r\n",
-    "POP3": b"\r\n",
-    "IMAP": b"\r\n",
-}
 
-def grab_banner_for_port(target, port, timeout=2):
-    """
-    Attempt to connect and read a banner, optionally send a tiny probe for some known services.
-    Returns banner string or None.
-    """
+def grab_banner_for_port(target, port, timeout=1.0):
     try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(timeout)
-        sock.connect((target, port))
-
-        # choose small probe if we know the service by port
-        probe = None
-        if port == 80 or port == 8080:
-            probe = COMMON_PROBES["HTTP"]
-        elif port in (25, 587):
-            probe = COMMON_PROBES["SMTP"]
-
-        if probe:
-            try:
-                sock.sendall(probe)
-            except Exception:
-                pass
-
-        try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(timeout)
+            sock.connect((target, port))
+            if port in (80, 8080):
+                sock.sendall(b'HEAD / HTTP/1.0\r\n\r\n')
+            elif port in (25, 587):
+                sock.sendall(b'HELO scanix\r\n')
             data = sock.recv(2048)
-            if not data:
-                sock.close()
-                return None
-            banner = data.decode(errors="ignore").strip()
-            sock.close()
-            return banner
-        except Exception:
-            sock.close()
-            return None
-    except Exception as e:
-        # connection failed
+            return data.decode('utf-8', errors='replace').strip() or None
+    except OSError:
         return None
+
 
 def parse_service_version(port: int, banner: str):
     """

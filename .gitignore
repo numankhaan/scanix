@@ -1,7 +1,10 @@
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-venv/
-.env
 .DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+scan_results.json
+scan_results.csv
+scan_results.html
+.env
+.env.*
