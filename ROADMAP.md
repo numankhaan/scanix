@@ -12,7 +12,7 @@
 
 Phase 2 has deterministic unprivileged coverage and passing Linux/macOS/Windows
 CI, including the repaired Windows refusal/backend fixtures. The separate opt-in
-Linux namespace lab passed 26 live IPv4/IPv6 SYN/UDP/ARP/ND cases, 26 pcap checks
+Linux namespace lab passed 28 live IPv4/IPv6 SYN/UDP/ICMP/ARP/ND cases, 28 pcap checks
 and both privileged loopback tests. See [recorded evidence](validation/RESULTS.md).
 Privileged macOS/BPF and broader DNS/NTP interoperability remain unverified.
 See [PHASE2_PROGRESS.md](PHASE2_PROGRESS.md) and README for the

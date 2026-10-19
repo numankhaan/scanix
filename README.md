@@ -89,7 +89,8 @@ python -m scanix scan -t 127.0.0.1 -p 53,123 --udp --rate 1 --per-host 1 --retri
 python -m scanix scan -t ::1 --family 6 -p 53 --udp --out json --out-file udp.json
 ```
 
-SYN probes use random source ports and sequence numbers. Replies must reverse the
+SYN probes use random source ports and sequence numbers. Raw probe source ports
+exclude the destination port, preventing self-matches on loopback. Replies must reverse the
 actual source/destination addresses and ports and acknowledge `sequence + 1`.
 Matched SYN/ACK is `open/syn_ack`; RST/ACK is `closed/syn_rst_ack`. Naked RSTs,
 incorrect acknowledgments and unrelated packets supply no evidence. A successful
@@ -203,7 +204,8 @@ Connect uses one attempt. Slow/limited ICMP may still require a higher timeout,
 lower rate and `--per-host 1`. Native Windows CI took about two seconds to
 finish a loopback refusal; a 0.5-second deadline returned Winsock 10035 and correctly
 remained inconclusive. For an eventual-refusal check use `--timeout 5 --fixed-timeout`;
-RTT adaptation otherwise can shorten the deadline after a fast open-port response. `--progress` writes completed/selected coverage to
+RTT adaptation otherwise can shorten the deadline after a fast open-port response.
+`--progress` writes completed/selected coverage to
 stderr; it does not infer responses for unfinished probes.
 
 Ctrl+C stops submission, wakes pacing waits and stops raw capture within its polling
@@ -269,8 +271,8 @@ SCANIX_PRIVILEGED_TESTS=1 python -B -m unittest scanix.tests.test_integration_op
 
 The default suite uses synthetic IPv4/IPv6 packets, deterministic timing and loopback
 sockets. It requires no public network or administrator access. CI installs Scapy
-and tests Python 3.10–3.14 on Linux plus 3.14 on macOS/Windows. The separate opt-in Linux namespace lab passed 26 IPv4/IPv6 SYN/UDP/ARP/ND cases,
-26 packet-capture checks and both existing privileged loopback tests. It includes
+and tests Python 3.10–3.14 on Linux plus 3.14 on macOS/Windows. The separate opt-in Linux namespace lab passed 28 IPv4/IPv6 SYN/UDP/ICMP/ARP/ND cases,
+28 packet-capture checks and both existing privileged loopback tests. It includes
 minimal DNS and NTP services, explicit reject/drop rules and routed-method rejection.
 [Validation results](validation/RESULTS.md) link to the captures, topology and hashes;
 [validation instructions](validation/README.md) reproduce the isolated lab. Live

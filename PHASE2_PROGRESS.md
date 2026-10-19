@@ -23,8 +23,8 @@ README and ROADMAP describe result semantics, compatibility and limitations.
 
 - Phase 1 current local regression: Python 3.14.3, **36 passed**.
 - Phase 2 current local regression: Python 3.14.3, Scapy 2.6.1 and 2.8.0,
-  **79 run, 77 passed, two opt-in privileged tests skipped, no failures**.
-- Native CI: Phase 1 run 39286464882 and Phase 2 run 39287789066 each passed
+  **82 run, 80 passed, two opt-in privileged tests skipped, no failures**.
+- Native CI: Phase 1 run 39286464882 and Phase 2 run 39289431799 each passed
   all seven matrix jobs (Ubuntu Python 3.10–3.14; macOS/Windows Python 3.14).
 - Original Windows failures: shared half-second refusal assertion and Phase 2's
   incomplete Linux backend mock. Diagnostics measured 10035 at 0.5 seconds and
@@ -32,11 +32,11 @@ README and ROADMAP describe result semantics, compatibility and limitations.
   result semantics are unchanged. Phase 2's fixture uses a fixed budget.
 - Phase 1 repair `fb0277f` was merged normally into Phase 2 (`b0f0cde`);
   Phase 2-specific repair is `dccb8ba`. No history rewrite or PR merge.
-- Separate optional privileged Linux run 39287789060 on `4070b5a`: **26/26 live
-  cases, 26/26 pcap checks and 2/2 opt-in raw loopback tests passed**. Captures and
+- Separate optional privileged Linux run 39289424498 on `aa07fde`: **28/28 live
+  cases, 28/28 pcap checks and 2/2 opt-in raw loopback tests passed**. Captures and
   topology retained in the linked artifact; hashes and expected/observed results
   are in [validation/RESULTS.md](validation/RESULTS.md).
-- Ethernet pcap has 83 packets; loopback pcap has nine. Both report zero kernel
+- Ethernet pcap has 88 packets; loopback pcap has nine. Both report zero kernel
   drops. Downloaded packet evidence was rechecked offline locally.
 - No public hosts/networks scanned. Regular CI remains unprivileged; the lab is
   a separate explicitly opted-in workflow. Generated evidence remains in Actions
@@ -49,8 +49,7 @@ README and ROADMAP describe result semantics, compatibility and limitations.
 Privileged macOS/BPF validation is incomplete: local capture and passwordless sudo
 are denied, and the installed Podman VM fails with `vfkit` SIGTRAP/exit 2. The
 successful privileged result is from hosted Linux namespaces, not this Mac.
-Live ICMP echo discovery and broader protocol/backend interoperability are not
-established by the current raw lab. Windows raw methods intentionally fail
+Broader protocol/backend interoperability is not established by the minimal lab peers. Windows raw methods intentionally fail
 explicitly; portable connect remains covered. Scoped IPv6, extension headers and
 reassembly, NAT correlation, rich protocol signatures and rate control over
 kernel/backend-generated packets remain unsupported. See README and the linked

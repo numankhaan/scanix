@@ -55,11 +55,12 @@ rejects routed ARP/ND; no IP scan is sent to those addresses.
 | UDP 19001 without service | closed | matching quoted ICMP port unreachable |
 | UDP 19002 with administrative reject | filtered | matching quoted ICMP admin prohibition |
 | UDP 19003 with DROP | open\|filtered | two UDP attempts and no matching response |
+| ICMP echo to peer | up | matching addresses, ID, sequence and echoed nonce |
 | ARP / ND to peer | up | matching ARP reply / solicited NA |
 | ARP / ND to unused .3 / ::3 | no_response | request(s), no matching reply |
 | ARP / ND to routed test address | error | `routed_target_not_on_link`; zero ARP/NS requests to that address |
 
-This is **26 live cases**: 20 scan cases and six link-discovery cases. Scan attempts
+This is **28 live cases**: 20 scan cases, two ICMP echo cases and six link-discovery cases. Scan attempts
 are serial, fixed timeout 0.75 seconds, one retry, rate four transmissions/second.
 Raw reset cleanup is also paced. The peer's reject/drop rules are per-protocol,
 per-port rules in its namespace. TCP 19001 is not artificially reclassified.
@@ -73,14 +74,15 @@ classification evidence. `capture.pcap` contains only the isolated `sxscan` link
 setup and errors. Capture is capped at 10,000 packets and 256 bytes per packet;
 all generated requests/ICMP quotations fit within that snap length. A separate
 `loopback.pcap` and test/capture logs preserve execution of the two existing opt-in
-raw loopback tests. The driver requires those tests to pass as well.
+raw loopback tests. The driver requires those tests and correlated loopback packet evidence to pass,
+using immediate capture delivery and a finite drain deadline.
 
 **Local macOS execution is unavailable.** `sudo -n true` requires a password;
 `tcpdump -i lo0` cannot open `/dev/bpf0` (permission denied). The installed Podman
 VM fails to start (`vfkit` SIGTRAP, exit code 2), so no local Linux namespace lab
 is available. The driver returns unavailable on macOS without creating sockets or
 sending packets. There is no local pcap and no local privileged validation pass.
-The hosted Linux lab **passed 26 live cases and 26 capture checks**, plus both
+The hosted Linux lab **passed 28 live cases and 28 capture checks**, plus both
 existing opt-in raw loopback integration tests. See [RESULTS.md](RESULTS.md) for
 actual observations, native CI links, pcap hashes and the downloadable artifact.
 Linux validation does not establish macOS privileged backend behavior.

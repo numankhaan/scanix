@@ -43,13 +43,25 @@ No Windows matrix entry or existing assertion was removed.
 - `dccb8ba` on Phase 2: fixed-timeout fixture and complete Linux backend mocks.
 - macOS Python 3.14.3: Phase 1 **36 passed**; Phase 2 **74 run, 72 passed, two
   opt-in privileged tests skipped**, with both Scapy 2.6.1 and 2.8.0.
-- The lab driver adds five unprivileged guard/evidence tests: **79 run, 77 passed,
+- The lab driver adds seven unprivileged guard/evidence tests, and one packet
+  regression prevents loopback self-matches: **82 run, 80 passed,
   two opt-in tests skipped** locally with Scapy 2.8.0. These do not prove live I/O.
 
 ## CI verification
 
 - Phase 1 [run 39286464882](https://github.com/numankhaan/scanix/actions/runs/39286464882): **all seven matrix jobs passed**, including Windows (36 run, 35 passed, one POSIX skip).
-- Phase 2 [run 39287789066](https://github.com/numankhaan/scanix/actions/runs/39287789066): **all seven matrix jobs passed**, including Windows (79 run, 76 passed, three skips: POSIX SIGINT and two opt-in privileged tests).
+- Phase 2 [run 39289431799](https://github.com/numankhaan/scanix/actions/runs/39289431799): **all seven matrix jobs passed**, including Windows (82 run, 79 passed, three skips: POSIX SIGINT and two opt-in privileged tests).
 - Initial Phase 2 fix verification [39286512391](https://github.com/numankhaan/scanix/actions/runs/39286512391), Windows job 118174352669, passed all 74 then-current tests (three skips) and supplied the timing evidence above.
-- Separate optional Linux [lab run 39287789060](https://github.com/numankhaan/scanix/actions/runs/39287789060): **26 live cases and 26 capture checks passed**, plus **2/2 privileged loopback tests passed without skips**. This is separate from the regular unprivileged matrix.
+- Separate optional Linux [lab run 39289424498](https://github.com/numankhaan/scanix/actions/runs/39289424498): **28 live cases and 28 capture checks passed**, plus **2/2 privileged loopback tests passed without skips**. This is separate from the regular unprivileged matrix.
 - See [RESULTS.md](RESULTS.md) for topology, expected/observed states, packet evidence and explicit remaining macOS validation gaps.
+
+## Additional Phase 2 validation fixes
+
+- `6443c65`: live IPv4/IPv6 echo discovery and packet correlation added to the lab.
+- `2e4671f`: packet review exposed tcpdump loopback buffering. The lab now enables
+  immediate delivery, waits for verified SYN/reset and UDP open/closed packet
+  evidence, and refuses to pass merely because the test process returned zero.
+- `aa07fde`: deterministic reproduction showed source port = destination port on
+  loopback allowed a generic UDP request to classify itself open. Builders now
+  choose a bounded random source port excluding the destination; tests cover both
+  loopback families and boundary ports. The reproduced own request is now ignored.
