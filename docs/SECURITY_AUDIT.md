@@ -90,10 +90,16 @@ Local Python 3.14.3/macOS arm64; no public targets or privileged networking used
   CodeQL `39305925905`/`39305934034`. All seven test-matrix jobs passed.
   Linux/macOS: 119 passed/two skips; Windows: 118 passed/three skips, including
   the existing POSIX-only interrupt case.
-- Final resume follow-up adds environment-name coverage, nested-tag event tests,
-  explicit binary-string secret views and private Git-failure handling. It has the
-  local results above; its new-head CI must be checked after push. The PR records
-  the latest exact tested SHA/run results; earlier passes do not transfer to it.
+- Resume follow-up `f09bda0f0d7470e37280f909501ebcec3c55ed87` passed all six
+  workflows; logs were inspected after resumption: Security push `39333896104` /
+  PR `39333902108`; Tests push `39333896135` / PR `39333901889`; CodeQL push
+  `39333896122` / PR `39333901956`. Security ran 19 gate tests and three zero-finding
+  gates per event. Each Tests run completed all seven 121-test jobs: Linux/macOS
+  119 passed/two skips; Windows 118 passed/three skips. No queued checks are counted
+  as passing. Historical privacy jobs were skipped on push/PR, not passed.
+- This documentation-only reconciliation records those exact source-head results.
+  Its own latest-head checks are recorded in PR #8 after pushing; the source-head
+  passes above are not a claim about a different SHA.
 
 Earlier failures are retained accurately: first isolated test run lacked Scapy
 (90 tests, six import/setup errors); installing audited Scapy resolved it. Initial
