@@ -9,9 +9,9 @@ an implemented high-speed SYN backend or a parity claim.
 
 ## Build and use
 
-The manifest declares Rust 1.85 as its minimum; local/CI validation uses **1.91.1**.
-The minimum toolchain has not been separately validated. Commit
-Cargo.lock and build with `--locked`. A release binary is separate from the Python
+The manifest declares Rust **1.85** as its minimum. A dedicated Linux CI job
+builds and tests the locked dependencies with Rust **1.85.0**; the cross-platform
+integration matrix uses **1.91.1**. Commit Cargo.lock and build with `--locked`. A release binary is separate from the Python
 installation; no new Python runtime dependency is needed.
 
 ```sh
