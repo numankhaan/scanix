@@ -100,7 +100,8 @@ fn interface(source: Ipv4Addr) -> io::Result<u32> {
     }
 }
 
-/// Native process CPU/peak userspace RSS; failure remains unknown, not zero.
+/// Process-lifetime CPU/RSS accounting; RSS may include the pre-exec image high-water.
+/// Failed accounting remains unknown, not zero.
 pub fn process_usage() -> (Option<f64>, Option<u64>) {
     let mut usage: libc::rusage = unsafe { zeroed() };
     // SAFETY: getrusage writes the correctly sized initialized output object.
@@ -370,5 +371,116 @@ impl Backend {
                 break;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn local_pair() -> (OwnedFd, OwnedFd) {
+        let mut pair = [-1; 2];
+        // SAFETY: successful socketpair initializes two distinct owned descriptors.
+        assert_eq!(
+            unsafe {
+                libc::socketpair(
+                    libc::AF_UNIX,
+                    libc::SOCK_DGRAM | libc::SOCK_NONBLOCK | libc::SOCK_CLOEXEC,
+                    0,
+                    pair.as_mut_ptr(),
+                )
+            },
+            0
+        );
+        unsafe { (OwnedFd::from_raw_fd(pair[0]), OwnedFd::from_raw_fd(pair[1])) }
+    }
+    #[tokio::test]
+    async fn receive_backpressure_is_counted_without_privileges_or_network() {
+        let (sender, receiver) = local_pair();
+        // SAFETY: the owned descriptor is never replaced/closed before AsyncFd drops.
+        let capture = Arc::new(unsafe { AsyncFd::register(receiver) }.unwrap());
+        let backend = Backend {
+            sources: vec![],
+            sender,
+            captures: vec![capture],
+        };
+        let stats = Arc::new(Counters::default());
+        let (output, mut input) = mpsc::channel(1);
+        let tasks = backend.receivers(output, stats.clone());
+        let bytes = packet::tcp(packet::tests::probe(), None);
+        for _ in 0..3 {
+            // Local Unix datagrams only: no IP packet is sent to any network.
+            assert_eq!(
+                unsafe {
+                    libc::send(
+                        backend.sender.as_raw_fd(),
+                        bytes.as_ptr() as *const libc::c_void,
+                        bytes.len(),
+                        0,
+                    )
+                },
+                40
+            );
+        }
+        time::timeout(std::time::Duration::from_secs(2), async {
+            while stats.received.load(Ordering::Relaxed) < 3 {
+                time::sleep(std::time::Duration::from_millis(1)).await;
+            }
+        })
+        .await
+        .unwrap();
+        assert_eq!(stats.queue_drops.load(Ordering::Relaxed), 2);
+        assert!(matches!(input.try_recv(), Ok(Received::Packet(_))));
+        assert!(input.try_recv().is_err());
+        assert_eq!(backend.capture_drops(), None); // Not a packet socket: unknown is not zero.
+        for task in &tasks {
+            task.abort();
+        }
+        for task in tasks {
+            let _ = task.await;
+        }
+        let (cpu, rss) = process_usage();
+        assert!(cpu.unwrap() >= 0.);
+        assert!(rss.unwrap() > 0);
+    }
+    #[tokio::test(start_paused = true)]
+    async fn transmitter_paces_local_failures_and_reports_actual_attempts() {
+        let (sender, _peer) = local_pair();
+        let backend = Arc::new(Backend {
+            sources: vec![],
+            sender,
+            captures: vec![],
+        });
+        let stats = Arc::new(Counters::default());
+        let (jobs, input) = mpsc::channel(2);
+        let (output, mut events) = mpsc::channel(2);
+        let (_stop, stop) = watch::channel(false);
+        for id in 0..2 {
+            jobs.send(Job {
+                id,
+                probe: packet::tests::probe(),
+                kind: Kind::Syn,
+                remote_sequence: None,
+            })
+            .await
+            .unwrap();
+        }
+        drop(jobs);
+        let task = tokio::spawn(backend.transmitter(
+            input,
+            output,
+            stop,
+            2.,
+            Instant::now() + std::time::Duration::from_secs(10),
+            stats.clone(),
+        ));
+        let first = events.recv().await.unwrap();
+        let second = events.recv().await.unwrap();
+        task.await.unwrap();
+        // AF_INET destination on AF_UNIX fails locally; no raw privileges/IP traffic.
+        assert!(first.error.is_some() && second.error.is_some());
+        assert_eq!(second.at - first.at, std::time::Duration::from_millis(500));
+        assert_eq!(stats.attempted.load(Ordering::Relaxed), 2);
+        assert_eq!(stats.syn_sent.load(Ordering::Relaxed), 0);
+        assert_eq!(stats.send_errors.load(Ordering::Relaxed), 2);
     }
 }

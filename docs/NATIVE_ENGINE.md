@@ -1,8 +1,8 @@
-# Native engine boundary (Phase 4A and draft 4B)
+# Native engine boundary (Phases 4A–4B)
 
 Python remains the default. The original Python TCP/SYN/UDP paths remain available.
 The opt-in Rust engine **implements asynchronous TCP connect scanning** for numeric
-IPv4/IPv6 targets on Linux, macOS and Windows. The draft Phase 4B path adds Linux IPv4 SYN; live validation remains pending
+IPv4/IPv6 targets on Linux, macOS and Windows. Phase 4B adds validated Linux IPv4 SYN
 ([support and evidence](NATIVE_SYN.md)). Native UDP/discovery are not implemented. Unsupported requests fail explicitly; no engine fallback or
 automatic build/download happens. This is a foundation and connect baseline, not
 a high-speed or parity claim.
@@ -80,7 +80,7 @@ local resource/permission failures still marks the Python report failed.
 
 ## Bounds, timing and evidence
 
-The table below describes connect. Draft SYN concurrency, retry, capture and packet
+The table below describes connect. SYN concurrency, retry, capture and packet
 rate bounds are documented separately in [NATIVE_SYN.md](NATIVE_SYN.md).
 
 | Resource | Enforced bound |

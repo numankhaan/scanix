@@ -45,8 +45,8 @@ See [policy](SECURITY.md), [audit](docs/SECURITY_AUDIT.md) and
 
 ## Planned
 
-- **Phase 4B (implementation draft #12):** Linux IPv4 native SYN packet/state/I/O
-  and protocol-2 integration; controlled live validation remains pending.
+- **Phase 4B (PR #12, awaiting final CI/review):** Linux IPv4 native SYN packet/state/I/O
+  and protocol-2 integration; 25 isolated Linux ground-truth/capture checks passed.
   See docs/NATIVE_SYN.md. Do not mark ready/merge until acceptance passes.
 - **Phase 4C:** durable resume, streaming, deterministic sharding and measured performance.
 - **Phase 5A:** bounded informational enumeration plugins.

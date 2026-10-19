@@ -1,7 +1,7 @@
 # Phase 4B: native asynchronous SYN discovery
 
-Status: implementation in draft PR #12. Packet, work-state, Linux I/O and Python
-protocol-2 integration are in progress; live acceptance is not established yet. Python remains the default; the native connect engine remains available.
+Status: implementation in PR #12. Linux namespace ground truth/capture passed 25
+checks at d181e1b. Latest-head CI and final review are still required before merge. Python remains the default; the native connect engine remains available.
 
 ## Starting point
 

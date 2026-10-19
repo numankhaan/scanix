@@ -1,7 +1,8 @@
-# Native IPv4 SYN — Phase 4B implementation draft
+# Native IPv4 SYN — Phase 4B
 
-PR #12 remains draft until isolated Linux ground-truth and packet-capture validation
-pass. Synthetic tests/cross-compilation do not establish a working raw backend.
+Linux ground-truth and independent packet-capture validation passed 25 checks in
+run 39342284692; see [measured evidence](../validation/NATIVE_SYN_RESULTS.md).
+PR #12 remains under review until all latest-head checks and acceptance pass.
 Python remains default; native connect remains available on Linux/macOS/Windows.
 
 ## Selection and compatibility
@@ -76,7 +77,9 @@ Reset errors do not erase an observed open state. Actual successful SYN/retry/re
 sends, unique attempted work, send errors, matched/duplicate/unmatched/late packets,
 timeouts, peaks, receive cooldown and userspace queue drops are reported separately.
 Linux getrusage records native-process CPU seconds and peak userspace RSS (bytes),
-including process setup; it excludes the Python adapter and kernel socket buffers.
+including process setup. Linux retains usage across exec: RSS may include the
+pre-exec Python image and is an upper bound, not isolated Rust workload memory.
+Parent adapter CPU and kernel socket buffers are outside these measurements.
 Unavailable resource metrics remain null.
 PACKET_STATISTICS supplies kernel capture drops where available; unknown is null,
 not zero. These counters cover selected capture sockets, including unrelated traffic,
@@ -85,14 +88,15 @@ errors mark execution failed while preserving completed rows. Raw packets, arbit
 stderr and exception messages are not exported. Service enrichment remains a separate
 bounded stage, explicitly requested and scoped to confirmed open results.
 
-## Validation still required
+## Validation and limits
 
 Pure packet/work-state/wire tests and cross-builds run without privileges. Regular CI
 must retain Python/native connect, security, Rust lint/audit and minimum 1.85 coverage.
-Live namespace validation must independently check open/closed/admin-filtered/silent
-states, retries, resets, pacing, exclusions, parallel outstanding sends, cancellation,
-IPv6/platform rejection and Python agreement, plus capture/drop/resource measurements.
-No live native SYN results or performance figures are claimed yet. Privileged macOS/BPF
+Live namespace validation checked open/closed/admin-filtered/silent states, retries,
+resets, pacing, exclusions, parallel outstanding sends, cancellation and Python
+agreement, with capture/drop/resource measurements. Unit/wire tests cover IPv6 and
+platform rejection. The live result is one small correctness baseline, not a
+throughput/scalability claim. Privileged macOS/BPF
 validation remains incomplete; this backend explicitly does not support macOS raw I/O.
 
 Primary API references: [Linux packet sockets](https://man7.org/linux/man-pages/man7/packet.7.html),
