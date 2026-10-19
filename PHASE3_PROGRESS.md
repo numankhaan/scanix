@@ -1,20 +1,23 @@
 # Phase 3 progress
 
-## Repository and dependency verification
+## Repository and integration verification
 
 - No applicable AGENTS.md or PR template was present.
 - Origin: git@github.com:numankhaan/scanix.git; default branch main. SSH transport
   was unavailable; fetch/push used the same origin repository's HTTPS URL.
 - PR #4 is merged into main, with passing CI.
-- PR #5 is merged, but GitHub reports its base as phase1/tcp-connect-reliability,
-  not main. Updated main (ece9bd0) does not contain Phase 2 head 3dbad9c.
+- PR #5 originally merged into phase1/tcp-connect-reliability. Main at ece9bd0
+  lacked Phase 2, confirmed by ancestry and tree diffs. Recovery PR #7 has now
+  merged Phase 2 into main as ad61a83, resolving that dependency.
 - Isolated worktree: /Users/nouman/Downloads/scanix-phase3, branch
   phase3/service-identification. It started from updated main and normally merged
   Phase 2 as 3bf9831, preserving existing commit ancestry.
-- PR #6: https://github.com/numankhaan/scanix/pull/6, base
-  phase2/scanning-accuracy. This compares only Phase 3 changes. Neither earlier PR
-  was retargeted or merged by this work. Phase 2 still needs to reach main before
-  Phase 3 can be integrated there. No force-push was used.
+- PR #6: https://github.com/numankhaan/scanix/pull/6, retargeted to main after
+  PR #7 merged. Normal merge 32e5e2d synchronizes Phase 3 with main at ad61a83.
+  It changed only progress records; application files exactly match delivered
+  Phase 3 head 44843e0. The resulting main-to-PR diff contains Phase 3 and
+  integration documentation, without repeated Phase 2-only files. Final merge
+  commit and post-merge CI outcomes are recorded in PR #6.
 - Original worktree's unrelated scanix/modules/udp_scan.py edit was preserved and
   excluded. Its recorded SHA-256 is
   880894f38bc74007b1ad0d94609964f136667fe8be865e7466cb37535056893c.
@@ -43,9 +46,13 @@ Final local suite with Python 3.14.3 and each of Scapy 2.8.0 / 2.6.1:
 115 run, 113 passed, 2 privileged skips. Four real CLI loopback cases passed. Certificate regeneration
 reproduced all four PEMs byte-for-byte. No public targets were scanned.
 
-CI at 4196bde passed all seven Linux/macOS/Windows PR and push jobs. Each ran 114 tests;
-Linux/macOS skipped two privileged cases, Windows also skipped the existing
-POSIX subprocess SIGINT case. Earlier 107-test CI also passed. See
+Original Phase 3 CI at 44843e0 passed all seven Linux/macOS/Windows PR and push jobs,
+each running 115 tests. Those delivery runs skipped two privileged cases on
+Linux/macOS; Windows also skipped the existing POSIX subprocess SIGINT case.
+Integration local reruns after synchronizing main at ad61a83 again ran 115 tests
+with 113 passed and two skips under each Scapy version (9.126 / 9.074 seconds),
+and all four real CLI loopback cases passed. Updated-base integration CI and final
+post-merge main results are recorded in PR #6. See
 [precise evidence](validation/SERVICE_RESULTS.md). Later-head/PR checks must be
 reported from their actual statuses; previous passes do not certify queued checks.
 
@@ -59,6 +66,9 @@ Certificate revocation/chain export are absent. TLS handshake bytes are bounded
 by the backend/deadline rather than the application-data counters. Low rate/time
 budgets may prevent later fallback probes; issues/attempt counts disclose this.
 
-The Phase 2-to-main dependency is unresolved. Optional privileged Phase 2 validation
-is retained, with its previous Linux evidence; no new privileged run was made in
-Phase 3. Privileged macOS/BPF remains explicitly incomplete. No PR has been merged by this Phase 3 work.
+The Phase 2-to-main dependency is resolved by #7. Optional privileged Phase 2
+validation is retained with its previous Linux evidence; no fresh privileged run
+is claimed for integration. Privileged macOS/BPF remains explicitly incomplete.
+Integration merges require reviewed diffs, passing checks and no unresolved review
+blockers; no force-push, branch deletion or required-check bypass is used. Phase 4
+has not started.

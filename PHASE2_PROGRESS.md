@@ -1,17 +1,16 @@
 # Phase 2 delivery and validation
 
-The completed implementation is on `phase2/scanning-accuracy` at `3dbad9c`.
-PR #4 merged Phase 1 into main; PR #5 merged Phase 2 into the Phase 1 branch.
-Ancestry and tree comparison confirmed that main at `ece9bd0` still lacked Phase 2.
-The `integration/phase2-to-main` branch restores it through a normal merge with
-existing history intact. Before documentation updates, the integration tree was
-identical to the completed Phase 2 tree. See [integration record](INTEGRATION_PROGRESS.md)
-and the integration PR for review, merge and current CI outcomes.
+The completed implementation at `3dbad9c` is now included in main through
+[integration PR #7](https://github.com/numankhaan/scanix/pull/7), merge commit
+`ad61a834210b79ac955e675fd1cbf9af0f57797b`. PR #4 originally merged Phase 1 into main;
+PR #5 merged Phase 2 into Phase 1. Recovery reused that existing history with a
+normal merge (`7427f70`) and no implementation changes or conflicts. Before the
+progress updates, the recovery tree exactly matched the Phase 2 tree.
+See [integration record](INTEGRATION_PROGRESS.md) for ancestry and validation.
 
 The original worktree's unrelated `scanix/modules/udp_scan.py` edit is preserved
 and excluded. Its prototype is separate from the committed Phase 2 implementation.
-The user's integration authorization now permits merging reviewed, passing PRs;
-the earlier instruction to leave both delivery PRs unmerged is historical.
+Integration merges follow reviewed diffs and passing CI; no required check is bypassed.
 
 ## Implemented
 
@@ -37,7 +36,8 @@ README and ROADMAP describe result semantics, compatibility and limitations.
   10061/refusal after about two seconds. Strict closed assertions remain; product
   result semantics are unchanged. Phase 2's fixture uses a fixed budget.
 - Phase 1 repair `fb0277f` was merged normally into Phase 2 (`b0f0cde`);
-  Phase 2-specific repair is `dccb8ba`. No history rewrite or PR merge.
+  Phase 2-specific repair is `dccb8ba`. These repairs preserved history; later
+  delivery and integration merges are recorded above.
 - Separate optional privileged Linux run 39289424498 on `aa07fde`: **28/28 live
   cases, 28/28 pcap checks and 2/2 opt-in raw loopback tests passed**. Captures and
   topology retained in the linked artifact; hashes and expected/observed results
