@@ -1,3 +1,3 @@
 # TCP connect scanning and preview use only the standard library.
 # Raw scans/discovery and synthetic packet tests require Scapy.
-scapy>=2.6,<3
+scapy==2.8.0

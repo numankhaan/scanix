@@ -186,3 +186,6 @@ security audit. Completed observations are evidence, not authenticated product f
 See [validation results](../validation/SERVICE_RESULTS.md) and the retained optional
 [privileged Phase 2 lab](../validation/README.md). No public hosts or elevated privileges
 are required by regular CI or the service lab.
+
+TLS handshakes require TLS 1.2 or newer, including `--tls-insecure`; that flag
+changes certificate verification only. Legacy TLS protocol enumeration is unsupported.

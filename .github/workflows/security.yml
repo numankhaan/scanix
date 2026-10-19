@@ -1,0 +1,69 @@
+name: Security
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '27 6 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  gates:
+    name: Secret/privacy and static gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.14'
+      - name: Install checksum-verified scanners
+        run: |
+          python security/install_tools.py "$RUNNER_TEMP/scanix-tools"
+          echo "$RUNNER_TEMP/scanix-tools" >> "$GITHUB_PATH"
+          python -m pip install -r security/requirements.txt > "$RUNNER_TEMP/security-install.log" 2>&1 || { echo 'Security tools failed to install'; exit 2; }
+      - name: Check actual commit range and metadata
+        env:
+          EVENT: ${{ github.event_name }}
+          GIT_REF: ${{ github.ref }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: python security/ci_range.py
+      - name: Full-tree secrets and privacy
+        run: python security/check.py tree
+      - name: Full reachable-history secrets (no credential baseline)
+        run: python security/check.py history --secrets-only
+      - name: Security gate negative/regression tests
+        run: python -m unittest discover -s security/tests -v
+      - name: Python static analysis
+        run: python security/run.py bandit
+      - name: Runtime dependency advisories
+        run: python security/run.py dependencies
+      - name: Workflow lint and security rules
+        run: python security/run.py workflows
+      - name: Rust audit, formatting and static checks when present
+        run: |
+          if git ls-files '*Cargo.lock' | grep -q .; then
+            cargo install cargo-audit --locked --version 0.22.2 --quiet > "$RUNNER_TEMP/cargo-audit-install.log" 2>&1 || { echo 'cargo-audit installation failed'; exit 2; }
+          fi
+          python security/run.py rust
+  historical-privacy:
+    name: Historical privacy review (existing exposure)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.14'
+      # Separate failing historical inventory: do not suppress or baseline it.
+      - run: python security/check.py history --privacy-only

@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+tool_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+exec "${SCANIX_SECURITY_PYTHON:-python3}" "$tool_root/security/check.py" pre-push

@@ -31,6 +31,13 @@ See [PHASE2_PROGRESS.md](PHASE2_PROGRESS.md) and README for the
 implemented platform/privilege requirements and limitations. This is not a claim
 of feature or performance parity with other scanners.
 
+## Security checkpoint
+
+Feature work is paused for the privacy/security audit. See
+[security policy](SECURITY.md), [sanitized audit](docs/SECURITY_AUDIT.md) and
+[resume checkpoint](docs/AUTONOMOUS_PROGRESS.md). Phase 4A remains on its separate
+unmerged branch; it is not delivered on main.
+
 ## Planned
 
 - **Phase 4:** separately designed native asynchronous discovery engine, with

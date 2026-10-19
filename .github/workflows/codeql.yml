@@ -1,0 +1,39 @@
+name: CodeQL
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '41 6 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  python:
+    name: CodeQL Python (redacted)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4, verified upstream tag
+        with:
+          languages: python
+          build-mode: none
+          queries: security-extended
+      - uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
+        with:
+          upload: never
+          upload-database: false
+          output: ${{ runner.temp }}/codeql-private
+      - name: Redact and enforce severity policy
+        id: redact
+        run: python3 security/redact_sarif.py "$RUNNER_TEMP/codeql-private" "$RUNNER_TEMP/codeql-redacted"
+      - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
+        if: always() && (steps.redact.outcome == 'success' || steps.redact.outcome == 'failure')
+        with:
+          sarif_file: ${{ runner.temp }}/codeql-redacted
+          category: scanix-python-redacted

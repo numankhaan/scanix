@@ -1,4 +1,5 @@
 import threading
+import unicodedata
 try:
     from colorama import init as colorama_init, Fore, Style
 except ImportError:
@@ -18,7 +19,7 @@ def color_init():
     try:
         colorama_init()
     except Exception:
-        pass
+        return  # Optional terminal color initialization must not abort scanning.
 
 def safe_print(*args, success=False, info=False, warn=False, error=False, **kwargs):
     with lock:
@@ -32,4 +33,6 @@ def safe_print(*args, success=False, info=False, warn=False, error=False, **kwar
         elif error:
             prefix = Fore.RED + "[-]" + Style.RESET_ALL + " "
         print(prefix, end="")
-        print(*args, **kwargs)
+        cleaned = [''.join(c if c in '\n\t' or unicodedata.category(c)[0] != 'C' else '\ufffd'
+                           for c in str(value)) for value in args]
+        print(*cleaned, **kwargs)

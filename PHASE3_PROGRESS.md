@@ -3,13 +3,13 @@
 ## Repository and integration verification
 
 - No applicable AGENTS.md or PR template was present.
-- Origin: git@github.com:numankhaan/scanix.git; default branch main. SSH transport
+- Origin: <project-commit-email>:numankhaan/scanix.git; default branch main. SSH transport
   was unavailable; fetch/push used the same origin repository's HTTPS URL.
 - PR #4 is merged into main, with passing CI.
 - PR #5 originally merged into phase1/tcp-connect-reliability. Main at ece9bd0
   lacked Phase 2, confirmed by ancestry and tree diffs. Recovery PR #7 has now
   merged Phase 2 into main as ad61a83, resolving that dependency.
-- Isolated worktree: /Users/nouman/Downloads/scanix-phase3, branch
+- Isolated worktree: <workspace> branch
   phase3/service-identification. It started from updated main and normally merged
   Phase 2 as 3bf9831, preserving existing commit ancestry.
 - PR #6: https://github.com/numankhaan/scanix/pull/6, retargeted to main after

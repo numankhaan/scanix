@@ -43,7 +43,7 @@ def classify_echo(probe, reply):
     v4_reply = isinstance(echo, ICMP) and int(echo.type) == 0
     if (v4_reply or isinstance(echo, ICMPv6EchoReply)) and same_ip(outer.src, probe.dst):
         if (echo.id, echo.seq) == (sent.id, sent.seq) and bytes(echo)[8:] == bytes(sent)[8:]:
-            return Evidence('up', 'echo_reply', {'responder': str(outer.src), 'matched_token': True})
+            return Evidence('up', 'echo_reply', {'responder': str(outer.src), 'matched_token': True})  # nosec B105: boolean correlation evidence, not a password
     path_error = (isinstance(echo, ICMP) and int(echo.type) in (3, 11)) or isinstance(echo, (ICMPv6DestUnreach, ICMPv6TimeExceeded))
     if path_error:
         quote = echo.payload
