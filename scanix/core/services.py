@@ -14,4 +14,4 @@ PORT_SERVICES = {
 }
 
 def get_service_name(port):
-    return PORT_SERVICES.get(port, "Unknown")
+    return PORT_SERVICES.get(port)

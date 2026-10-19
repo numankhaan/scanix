@@ -1,11 +1,6 @@
-TTL_VALUES = {
-    "Windows": 128,
-    "Linux": 64,
-    "MacOS": 64,
-}
+"""OS identification is unimplemented until remote packet fingerprinting exists."""
+
 
 def guess_os_from_ttl(ttl):
-    for os, val in TTL_VALUES.items():
-        if ttl == val:
-            return os
-    return "Unknown"
+    """Compatibility helper; a TTL alone cannot identify an operating system."""
+    return None

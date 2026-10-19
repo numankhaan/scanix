@@ -1,5 +1,15 @@
 import threading
-from colorama import init as colorama_init, Fore, Style
+try:
+    from colorama import init as colorama_init, Fore, Style
+except ImportError:
+    def colorama_init():
+        pass
+
+    class Fore:
+        GREEN = CYAN = YELLOW = RED = ""
+
+    class Style:
+        RESET_ALL = ""
 
 lock = threading.Lock()
 

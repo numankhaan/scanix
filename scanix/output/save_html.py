@@ -1,31 +1,19 @@
-from ..core.utils import safe_print
 import html
+import json
+from .common import atomic_text, RESULT_FIELDS, scalar
 
-def save_html(data, filename="scan_results.html", title="Scanix Results"):
-    try:
-        rows = ""
-        if data:
-            keys = sorted({k for d in data for k in d.keys()})
-            # header
-            header = "".join(f"<th>{html.escape(str(k))}</th>" for k in keys)
-            for item in data:
-                row = "".join(f"<td>{html.escape(str(item.get(k, '')))}</td>" for k in keys)
-                rows += f"<tr>{row}</tr>\n"
-            table = f"<table border='1'><thead><tr>{header}</tr></thead><tbody>{rows}</tbody></table>"
-        else:
-            table = "<p>No results</p>"
 
-        html_doc = f"""<!doctype html>
-<html>
-<head><meta charset="utf-8"><title>{html.escape(title)}</title></head>
-<body>
-<h1>{html.escape(title)}</h1>
-{table}
-</body>
-</html>"""
-
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write(html_doc)
-        safe_print(f"Saved HTML results to {filename}", success=True)
-    except Exception as e:
-        safe_print(f"Failed to save HTML: {e}", error=True)
+def save_html(data, filename='scan_results.html', title='Scanix Results'):
+    payload = data.to_dict()
+    escape = lambda value: html.escape(str(value), quote=True)
+    with atomic_text(filename) as stream:
+        stream.write('<!doctype html><html><head><meta charset="utf-8"><title>'
+                     + escape(title) + '</title></head><body><h1>' + escape(title) + '</h1>')
+        metadata = {key: value for key, value in payload.items() if key != 'results'}
+        stream.write('<pre>' + escape(json.dumps(metadata, indent=2, ensure_ascii=False)) + '</pre>')
+        stream.write('<table border="1"><thead><tr>' + ''.join(
+            '<th>' + escape(key) + '</th>' for key in RESULT_FIELDS) + '</tr></thead><tbody>')
+        for result in payload['results']:
+            stream.write('<tr>' + ''.join('<td>' + escape(scalar(result[key])) + '</td>'
+                                          for key in RESULT_FIELDS) + '</tr>')
+        stream.write('</tbody></table></body></html>\n')
