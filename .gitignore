@@ -6,3 +6,5 @@ venv/
 scan_results.json
 scan_results.csv
 scan_results.html
+.env
+.env.*
