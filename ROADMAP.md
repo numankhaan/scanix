@@ -10,9 +10,12 @@
   DNS policies, lazy bounded CIDRs, target/exclusion files and offline scope preview;
   bounded TCP/ICMP/ARP/IPv6 ND discovery with evidence and route restrictions.
 
-Phase 2 has deterministic unprivileged coverage. Privileged loopback tests are
-opt-in; live ARP/ND and DNS/NTP validation on isolated Linux/macOS lab networks is
-still outstanding. See [PHASE2_PROGRESS.md](PHASE2_PROGRESS.md) and README for the
+Phase 2 has deterministic unprivileged coverage and passing Linux/macOS/Windows
+CI, including the repaired Windows refusal/backend fixtures. The separate opt-in
+Linux namespace lab passed 26 live IPv4/IPv6 SYN/UDP/ARP/ND cases, 26 pcap checks
+and both privileged loopback tests. See [recorded evidence](validation/RESULTS.md).
+Privileged macOS/BPF and broader DNS/NTP interoperability remain unverified.
+See [PHASE2_PROGRESS.md](PHASE2_PROGRESS.md) and README for the
 implemented platform/privilege requirements and limitations. This is not a claim
 of feature or performance parity with other scanners.
 

@@ -48,8 +48,8 @@ No Windows matrix entry or existing assertion was removed.
 
 ## CI verification
 
-Phase 2 run [39286512391](https://github.com/numankhaan/scanix/actions/runs/39286512391)
-Windows job **passed**, 74 tests, three skips (POSIX SIGINT and two opt-in privileged
-tests). Other new matrix jobs and the Phase 1 Windows job remain pending at this
-record's creation. Later results will be recorded in PR descriptions and the final
-validation record; a pending job is never counted as a pass.
+- Phase 1 [run 39286464882](https://github.com/numankhaan/scanix/actions/runs/39286464882): **all seven matrix jobs passed**, including Windows (36 run, 35 passed, one POSIX skip).
+- Phase 2 [run 39287789066](https://github.com/numankhaan/scanix/actions/runs/39287789066): **all seven matrix jobs passed**, including Windows (79 run, 76 passed, three skips: POSIX SIGINT and two opt-in privileged tests).
+- Initial Phase 2 fix verification [39286512391](https://github.com/numankhaan/scanix/actions/runs/39286512391), Windows job 118174352669, passed all 74 then-current tests (three skips) and supplied the timing evidence above.
+- Separate optional Linux [lab run 39287789060](https://github.com/numankhaan/scanix/actions/runs/39287789060): **26 live cases and 26 capture checks passed**, plus **2/2 privileged loopback tests passed without skips**. This is separate from the regular unprivileged matrix.
+- See [RESULTS.md](RESULTS.md) for topology, expected/observed states, packet evidence and explicit remaining macOS validation gaps.

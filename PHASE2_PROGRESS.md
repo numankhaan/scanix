@@ -21,30 +21,41 @@ README and ROADMAP describe result semantics, compatibility and limitations.
 
 ## Validation record
 
-- Phase 1 before committing: Python 3.14.3, **35 tests passed**; **36 passed** after synchronizing current `main` and retaining its banner parser.
-- Phase 2: Python 3.14.3, both Scapy 2.8.0 and 2.6.1, `python -B -m unittest discover -s scanix/tests -v`:
-  **74 tests run; 72 passed, 2 optional privileged tests skipped; no failures**.
-- Retained/adapted Phase 1 tests run as part of the Phase 2 suite. Unsupported UDP
-  tests were deliberately replaced by working-UDP routing/invalid-method tests.
-- Unprivileged TCP connect and TCP discovery exercised on loopback without Scapy.
-- SYN on loopback with Scapy but no BPF permissions: exit 1, failed report,
-  0/1 completed results, explicit `/dev/bpf0` permission error; no probes sent.
-- `scan --help`, `discover --help`, offline previews and CLI argument examples
-  checked against the actual parser. Privileged examples are syntax-verified only.
-- No public hosts/networks scanned. No privileged integration tests run locally.
-- GitHub Actions currently queued/pending; this is not a CI pass. PR descriptions
-  carry the latest observed status because queues can change after this file.
+- Phase 1 current local regression: Python 3.14.3, **36 passed**.
+- Phase 2 current local regression: Python 3.14.3, Scapy 2.6.1 and 2.8.0,
+  **79 run, 77 passed, two opt-in privileged tests skipped, no failures**.
+- Native CI: Phase 1 run 39286464882 and Phase 2 run 39287789066 each passed
+  all seven matrix jobs (Ubuntu Python 3.10–3.14; macOS/Windows Python 3.14).
+- Original Windows failures: shared half-second refusal assertion and Phase 2's
+  incomplete Linux backend mock. Diagnostics measured 10035 at 0.5 seconds and
+  10061/refusal after about two seconds. Strict closed assertions remain; product
+  result semantics are unchanged. Phase 2's fixture uses a fixed budget.
+- Phase 1 repair `fb0277f` was merged normally into Phase 2 (`b0f0cde`);
+  Phase 2-specific repair is `dccb8ba`. No history rewrite or PR merge.
+- Separate optional privileged Linux run 39287789060 on `4070b5a`: **26/26 live
+  cases, 26/26 pcap checks and 2/2 opt-in raw loopback tests passed**. Captures and
+  topology retained in the linked artifact; hashes and expected/observed results
+  are in [validation/RESULTS.md](validation/RESULTS.md).
+- Ethernet pcap has 83 packets; loopback pcap has nine. Both report zero kernel
+  drops. Downloaded packet evidence was rechecked offline locally.
+- No public hosts/networks scanned. Regular CI remains unprivileged; the lab is
+  a separate explicitly opted-in workflow. Generated evidence remains in Actions
+  artifacts, not the source commits.
+- Original source worktree's unrelated UDP prototype remains unchanged and
+  uncommitted; SHA-256 `880894f38bc74007b1ad0d94609964f136667fe8be865e7466cb37535056893c`.
 
 ## Remaining validation and limitations
 
-No requested feature is intentionally deferred. Live raw accuracy remains
-unverified in this environment: run the optional loopback tests with capture
-privileges, then isolated Linux/macOS ARP/ND and DNS/NTP lab checks. Windows raw
-scans/discovery intentionally fail explicitly; connect remains portable.
-Scoped IPv6, extension headers/reassembly, NAT translation, rich protocol discovery
-and rate control over kernel/backend-generated packets are unsupported and
-documented. Default offline preview cannot resolve hostname scope; it reports
-that uncertainty, with DNS permitted only by explicit `--resolve-preview`.
+Privileged macOS/BPF validation is incomplete: local capture and passwordless sudo
+are denied, and the installed Podman VM fails with `vfkit` SIGTRAP/exit 2. The
+successful privileged result is from hosted Linux namespaces, not this Mac.
+Live ICMP echo discovery and broader protocol/backend interoperability are not
+established by the current raw lab. Windows raw methods intentionally fail
+explicitly; portable connect remains covered. Scoped IPv6, extension headers and
+reassembly, NAT correlation, rich protocol signatures and rate control over
+kernel/backend-generated packets remain unsupported. See README and the linked
+validation report for exact coverage and reproduction instructions.
 
-Before merging, review the final Actions results and any platform-specific
-failures. The source worktree must continue to retain its unrelated UDP edit.
+New documentation-only pushes can start additional matrix runs; PR descriptions
+carry the latest observed check state. Never interpret queued checks as passes.
+Neither PR is to be merged automatically.

@@ -30,7 +30,7 @@ It runs separately from the regular test matrix and uploads artifacts on success
 or failure. Manual dispatch is also provided for when the workflow is available
 on the default branch. No Windows test is disabled or skipped by this workflow.
 
-## Planned topology and expectations
+## Topology and expectations
 
 | Node | IPv4 | IPv6 | Interface |
 | --- | --- | --- | --- |
@@ -71,14 +71,19 @@ per-case capture checks and capture SHA-256. Per-method Scanix JSON reports reta
 classification evidence. `capture.pcap` contains only the isolated `sxscan` link;
 `scanner-topology.json`, `peer-topology.json`, `peer.log` and `capture.log` record
 setup and errors. Capture is capped at 10,000 packets and 256 bytes per packet;
-all generated requests/ICMP quotations fit within that snap length.
+all generated requests/ICMP quotations fit within that snap length. A separate
+`loopback.pcap` and test/capture logs preserve execution of the two existing opt-in
+raw loopback tests. The driver requires those tests to pass as well.
 
 **Local macOS execution is unavailable.** `sudo -n true` requires a password;
 `tcpdump -i lo0` cannot open `/dev/bpf0` (permission denied). The installed Podman
 VM fails to start (`vfkit` SIGTRAP, exit code 2), so no local Linux namespace lab
 is available. The driver returns unavailable on macOS without creating sockets or
 sending packets. There is no local pcap and no local privileged validation pass.
-The hosted Linux attempt and artifact URL will be recorded after the workflow runs.
+The hosted Linux lab **passed 26 live cases and 26 capture checks**, plus both
+existing opt-in raw loopback integration tests. See [RESULTS.md](RESULTS.md) for
+actual observations, native CI links, pcap hashes and the downloadable artifact.
+Linux validation does not establish macOS privileged backend behavior.
 
 See [CI_WINDOWS.md](CI_WINDOWS.md) for exact CI failure evidence and the fixes.
 Protocol/tool references: [unshare](https://www.man7.org/linux/man-pages/man1/unshare.1.html)

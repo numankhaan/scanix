@@ -79,7 +79,9 @@ or version and does not implement TLS.
 ## SYN and UDP evidence
 
 Raw examples below match the CLI help. They require the privileges described above;
-the local validation run exercised their permission-failure path, not privileged I/O.
+local macOS validation exercised their permission-failure path. The isolated hosted
+Linux lab validated successful IPv4/IPv6 raw behavior and preserved packet captures
+([results and evidence](validation/RESULTS.md)).
 
 ```sh
 python -m scanix scan -t 127.0.0.1 -p 22,80 --syn --rate 10 --retries 1
@@ -198,7 +200,10 @@ RTT adaptation uses a per-host EWMA plus four times deviation, clamped to the
 configured bounds. Raw retry deadlines double within the same bounds. Only matched
 first-attempt replies contribute RTT samples (no ambiguous retransmission samples).
 Connect uses one attempt. Slow/limited ICMP may still require a higher timeout,
-lower rate and `--per-host 1`. `--progress` writes completed/selected coverage to
+lower rate and `--per-host 1`. Native Windows CI took about two seconds to
+finish a loopback refusal; a 0.5-second deadline returned Winsock 10035 and correctly
+remained inconclusive. For an eventual-refusal check use `--timeout 5 --fixed-timeout`;
+RTT adaptation otherwise can shorten the deadline after a fast open-port response. `--progress` writes completed/selected coverage to
 stderr; it does not infer responses for unfinished probes.
 
 Ctrl+C stops submission, wakes pacing waits and stops raw capture within its polling
@@ -258,15 +263,19 @@ minimum IPv4 ICMP quotation handling follows the header layout in
 
 ```sh
 python -B -m unittest discover -s scanix/tests -v
-# Optional, only in a privileged local lab (never enabled by CI):
+# Optional; regular CI skips these. The separate namespace lab executes them:
 SCANIX_PRIVILEGED_TESTS=1 python -B -m unittest scanix.tests.test_integration_optional -v
 ```
 
 The default suite uses synthetic IPv4/IPv6 packets, deterministic timing and loopback
 sockets. It requires no public network or administrator access. CI installs Scapy
-and tests Python 3.10–3.14 on Linux plus 3.14 on macOS/Windows. Privileged tests cover
-loopback SYN and generic UDP; ARP/ND and real DNS/NTP require additional isolated
-lab verification. The current validation record is in [PHASE2_PROGRESS.md](PHASE2_PROGRESS.md).
+and tests Python 3.10–3.14 on Linux plus 3.14 on macOS/Windows. The separate opt-in Linux namespace lab passed 26 IPv4/IPv6 SYN/UDP/ARP/ND cases,
+26 packet-capture checks and both existing privileged loopback tests. It includes
+minimal DNS and NTP services, explicit reject/drop rules and routed-method rejection.
+[Validation results](validation/RESULTS.md) link to the captures, topology and hashes;
+[validation instructions](validation/README.md) reproduce the isolated lab. Live
+privileged macOS/BPF verification remains unavailable. The current validation record
+is in [PHASE2_PROGRESS.md](PHASE2_PROGRESS.md).
 
 Limitations: no scoped/link-local IPv6 interface selection, IPv6 extension-header or
 fragment reassembly, NAT-translated probe correlation, application signatures beyond
