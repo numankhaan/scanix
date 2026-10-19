@@ -185,7 +185,7 @@ def capture_evidence(packets, cases):
 
 def inside(args):
     assert_isolated(args.parent_netns, ('lo',))
-    child = capture = None
+    child = capture = loopback_capture = None
     report = {'status': 'failed', 'cases': [], 'capture_evidence': [], 'topology': {
         'scanner': {'IPv4': V4[0] + '/29', 'IPv6': V6[0] + '/64', 'interface': 'sxscan'},
         'peer': {'IPv4': V4[1] + '/29', 'IPv6': V6[1] + '/64', 'interface': 'sxpeer'},
@@ -248,6 +248,27 @@ def inside(args):
                         report['cases'].append({'name': name, 'method': method, 'target': address,
                             'expected': expected, 'observed': discovery['state'], 'passed': discovery['state'] == expected
                             and (expected != 'error' or any(e.get('reason') == 'routed_target_not_on_link' for e in discovery['evidence']))})
+                # Exercise the existing opt-in raw loopback tests in this same
+                # isolated namespace. Capture lo separately from Ethernet.
+                with (args.output / 'loopback-capture.log').open('w') as loopback_log:
+                    loopback_capture = subprocess.Popen(['tcpdump', '-n', '-U', '-s', '256', '-c', '10000',
+                        '-i', 'lo', '-w', str(args.output / 'loopback.pcap')],
+                        stdout=subprocess.DEVNULL, stderr=loopback_log)
+                    deadline = time.monotonic() + 5
+                    while 'listening on' not in (args.output / 'loopback-capture.log').read_text():
+                        if loopback_capture.poll() is not None or time.monotonic() > deadline:
+                            raise RuntimeError('loopback capture did not start')
+                        time.sleep(.02)
+                    with (args.output / 'loopback-tests.log').open('w') as test_log:
+                        result = subprocess.run([sys.executable, '-B', '-m', 'unittest',
+                            'scanix.tests.test_integration_optional', '-v'], cwd=ROOT,
+                            env=dict(os.environ, SCANIX_PRIVILEGED_TESTS='1'),
+                            stdout=test_log, stderr=test_log, timeout=30)
+                    loopback_capture.send_signal(signal.SIGINT)
+                    loopback_capture.wait(timeout=10)
+                    report['loopback_tests'] = {'exit_code': result.returncode,
+                        'passed': result.returncode == 0,
+                        'capture_sha256': hashlib.sha256((args.output / 'loopback.pcap').read_bytes()).hexdigest()}
                 capture.send_signal(signal.SIGINT)
                 capture.wait(timeout=10)
                 from scapy.all import rdpcap
@@ -255,12 +276,12 @@ def inside(args):
                 report['capture_evidence'] = capture_evidence(packets, report['cases'])
                 report['capture_sha256'] = hashlib.sha256((args.output / 'capture.pcap').read_bytes()).hexdigest()
                 report['packet_count'] = len(packets)
-                if all(case['passed'] for case in report['cases']) and all(check['passed'] for check in report['capture_evidence']):
+                if all(case['passed'] for case in report['cases']) and all(check['passed'] for check in report['capture_evidence']) and report['loopback_tests']['passed']:
                     report['status'] = 'passed'
     except Exception as exc:
         report['error'] = {'type': type(exc).__name__, 'message': str(exc)}
     finally:
-        for process in (capture, child):
+        for process in (loopback_capture, capture, child):
             if process and process.poll() is None:
                 process.terminate()
                 try:
