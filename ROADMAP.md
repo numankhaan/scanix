@@ -31,18 +31,27 @@ See [PHASE2_PROGRESS.md](PHASE2_PROGRESS.md) and README for the
 implemented platform/privilege requirements and limitations. This is not a claim
 of feature or performance parity with other scanners.
 
-## Security checkpoint
+## Security and current work
 
-Feature work is paused for the privacy/security audit. See
-[security policy](SECURITY.md), [sanitized audit](docs/SECURITY_AUDIT.md) and
-[resume checkpoint](docs/AUTONOMOUS_PROGRESS.md). Phase 4A remains on its separate
-unmerged branch; it is not delivered on main.
+The privacy/security work is merged in #8; its gates remain enforced. Historical
+privacy remediation is pending owner decision, independently of feature work.
+See [policy](SECURITY.md), [audit](docs/SECURITY_AUDIT.md) and
+[checkpoint](docs/AUTONOMOUS_PROGRESS.md).
+
+- **Phase 4A (PR, not delivered on main):** opt-in Rust asynchronous TCP connect
+  engine, bounded versioned subprocess contract, Python adapter, schema-4 metadata,
+  deterministic tests and a measured loopback baseline. Python remains the default.
+  Native raw SYN, UDP, discovery and durable resume are not implemented here.
 
 ## Planned
 
-- **Phase 4:** separately designed native asynchronous discovery engine, with
-  measured throughput, resource bounds and correctness checks.
-- **Phase 5:** enumeration plugins, remote OS fingerprints and scan history.
+- **Phase 4B:** Linux-first asynchronous native SYN discovery and controlled lab evidence.
+- **Phase 4C:** durable resume, streaming, deterministic sharding and measured performance.
+- **Phase 5A:** bounded informational enumeration plugins.
+- **Phase 5B:** original remote packet OS evidence and conservative fingerprints.
+- **Phase 5C:** optional versioned SQLite history and partial-scan comparisons.
+- **Phase 6:** cross-platform release validation, fuzzing, packaging/license review
+  and release-candidate report; no public publishing without separate authorization.
 
 Service follow-ups: more original signatures, broader server interoperability,
 HTTP/2 and richer insecure-certificate metadata, virtual-host enumeration within

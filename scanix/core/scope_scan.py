@@ -7,6 +7,8 @@ from .timing import RateLimiter, Runtime
 
 
 def scan_scope(config, plan, stop=None, *, discovery_methods=(), discovery_ports=(80, 443), progress=None):
+    if config.engine != 'python':
+        raise ValueError('use the explicit native adapter for native configurations')
     stop = stop or threading.Event()
     report = ScanReport(config, requested_probes=plan.count() * len(config.ports))
     if config.service_detect:

@@ -1,42 +1,93 @@
-# Autonomous security checkpoint
+# Autonomous checkpoint — Phase 4A
 
-Feature roadmap paused until security review. Do not merge the security PR.
+Phase 4A is implemented and locally validated; PR #11 is open for review.
+The owner subsequently authorized review, merge after passing checks, and preparation of Phase 4B.
+A dedicated Rust 1.85.0 locked build/test CI job was added during review.
+Check the latest PR head and required checks before merging; earlier CI results do not apply to new commits.
 
-- Stage: security/privacy audit and prevention, ready for owner review. Required
-  mechanisms, synthetic failure tests, manual code review and sanitized reporting
-  implemented. Historical privacy remediation and owner settings remain open.
-- Branch/worktree: `security/privacy-audit`, sibling `scanix-security`.
-  Base main remains `3a98cda708546bc0a84ea7f9dca42b8e3fe7db5c`.
-  PR: https://github.com/numankhaan/scanix/pull/8 (open; do not merge).
-  Current HEAD: `git rev-parse HEAD`; this final commit reconciles documentation.
-- Completed source head: `f09bda0f0d7470e37280f909501ebcec3c55ed87`.
-  Commits: `5abb5a4` fixes; `3f0aa86` gates/workflows; `4e3a00a` TLS floor;
-  `9f6caee` fixture; `f02cf86` exports/regex bounds; `22a95de` paths/tags;
-  `f09bda0` binary history/environment checks and final validation.
-- Exact commands and scope: CONTRIBUTING.md and SECURITY_AUDIT.md. Local:
-  `python -m unittest discover -s security/tests -v`: 19 passed;
-  `python -m unittest discover -s scanix/tests -v`: 121 run, 119 passed/two skips;
-  `python security/check.py history --secrets-only`: passed.
-  Bandit, actionlint/workflow policy, pinned runtime/tool/environment audits passed.
-  Older repo venv pip/Scapy verified before upgrade, audited and regression-tested.
-  Paused native branch: six Rust tests, fmt/Clippy/RustSec passed; no Rust CodeQL.
-- At f09bda0, all push/PR runs passed, verified from logs:
-  Security `39333896104`/`39333902108` (19 tests, three zero-finding gates each);
-  Tests `39333896135`/`39333901889` (seven platform jobs each; 121 tests/job);
-  CodeQL `39333896122`/`39333901956`.
-  Linux/macOS: 119 pass/two skips; Windows: 118 pass/three skips.
-  Historical privacy is skipped on push/PR and still fails its separate inventory.
-  Documentation follow-up latest-head checks must be reconciled in #8 after push.
-- Private evidence pointer: `/tmp/scanix-security-session`; raw reports never belong
-  in Git/CI artifacts. Historical privacy remains unresolved. No production
-  credential identified; no revocation, rewrite, force-push, evidence deletion,
-  account-wide setting change or repeated earlier commit/push/PR.
-- Original unrelated UDP edit remains uncommitted and unchanged. Security worktree
-  was clean before this documentation-only update; only these two intended docs
-  await commit. Generated caches remain ignored. After commit it should be clean.
-- Next action: reconcile this documentation commit's push/PR checks, update #8,
-  then wait for owner security review. On any later resume inspect Git/GitHub first.
-  Do not merge #8 or resume Phase 4 without review. Owner decides history cleanup,
-  branch rules, Dependabot alert/security-update activation and private reporting.
-- Privileged macOS/BPF remains incomplete. Paused native branch still needs
-  security synchronization, progress sanitation and native-workflow pins after review.
+## Acceptance and implementation
+
+Real opt-in Rust IPv4/IPv6 TCP connect scanning; Python remains the default.
+Protocol 1 bounded NDJSON requests/results/diagnostics; strict compatibility, scope,
+work-ID/state/coverage/exit validation; cancellation retains completed results;
+paced bounded workers/timeouts; schema-4 typed exports and separate service stage.
+Native raw SYN/UDP/discovery and durable resume are not implemented here.
+Rust streams; Python compatibility exports still aggregate up to the pair ceiling.
+
+## Repository and preservation
+
+- Base: main `ef1c3dc0ecabf4ee101bb018922006668c47fe86` (#8 merged).
+  Main Security `39335020364`, Tests `39335020577`, CodeQL `39335020611`: passed.
+- Branch/worktree: `phase4a/native-foundation-reviewed`, sibling
+  `scanix-phase4a-reviewed`; current HEAD: `git rev-parse HEAD`.
+  PR: https://github.com/numankhaan/scanix/pull/11 (base main; leave open).
+- Commits: `322516d` enforced checks/privacy review; `40f5e3` Rust engine;
+  `50322ab` Python/CLI/export/tests/workflow integration; `05204cc` measured baseline.
+  This final documentation commit adds PR/CI reconciliation; inspect its SHA on resume.
+- Existing native branch/head `phase4a/native-foundation` / `d08659e` preserved.
+  Its old checkpoint has a personal path; implementation was reused in fresh commits
+  without inheriting or allowlisting that history. No rewrite or force-push.
+- Original worktree retains only its unrelated UDP edit, checksum verified unchanged.
+  Reviewed worktree was clean before this checkpoint-only update; only this intended
+  doc awaits commit. Build/cache/generated raw records are ignored or outside Git.
+
+## Security review and policy
+
+Verified active main ruleset `25438618`: nine GitHub Actions security/CodeQL/regression
+contexts, strict up-to-date base, no bypass actors. Follow-up historical privacy
+inventory exited 1: 112 email candidates, 24 home-path occurrences, 13 bytecode flags.
+Locations/references in SECURITY_AUDIT.md; no values published, silent allowlist or
+cleanup. Owner decision on historical cleanup remains pending. Passing scanners do
+not guarantee privacy/security. Private evidence pointer: `/tmp/scanix-security-session`.
+
+## Commands and actual local outcomes
+
+- `cargo test --locked --manifest-path native/Cargo.toml`: 8 passed.
+- `cargo fmt --manifest-path native/Cargo.toml --check`, release build and
+  `cargo clippy --locked --manifest-path native/Cargo.toml --all-targets -- -D warnings`: passed.
+- `python -B validation/native_ci.py`: 138 run, 136 passed/two privileged skips.
+- `python -B -m unittest discover -s scanix/tests -q` without native env:
+  138 run, 131 passed/seven skips (five native, two privileged).
+- `python -B -m unittest discover -s security/tests -v`: 19 passed.
+- `python security/check.py tree`, staged, range --base origin/main --head HEAD,
+  and history --secrets-only passed. Existing exact synthetic TLS key exceptions only.
+- `python security/run.py` bandit/workflows/dependencies/rust: passed; zero
+  findings/advisories/warnings. CLI help verified native flags.
+- At clean `50322ab61e8031525d4be16918fd6de00177ab8a`, benchmark driver ran
+  --ports 32/128 --samples 5 with release binary. All expected open counts matched.
+  Median completions/s Python 409.4/417.2; native 300.6/307.1. Native was slower.
+  Apple M4, 16 GiB, 10 logical CPUs, macOS arm64/Python 3.14.3/Rust 1.91.1.
+  Exact reproduction, timing/resource boundaries: validation/NATIVE_BASELINE.md.
+
+## CI at initial PR head 05204cc
+
+The following are observations at checkpoint preparation, not transferred passes
+for this documentation commit. PR #11 holds final latest-head outcomes.
+- pull_request CodeQL: `39336558595`, in_progress, pending.
+- pull_request Native foundation: `39336558574`, in_progress, pending.
+- pull_request Security: `39336558347`, in_progress, pending.
+- pull_request Tests: `39336558509`, in_progress, pending.
+- push CodeQL: `39336470421`, completed, success.
+- push Native foundation: `39336470495`, in_progress, pending.
+- push Security: `39336470449`, in_progress, pending.
+- push Tests: `39336470533`, completed, success.
+
+## Precise next action
+
+Commit/push only this checkpoint, inspect all eight latest-head push/PR workflow runs
+(Security, CodeQL, Tests, Native foundation), investigate actual failures and update
+PR #11 with exact SHA/run outcomes. Retain private final reconciliation beside audit
+evidence to avoid endless CI-status-only commits. Reconcile remote/local HEAD and main
+on resume before repeating any operation. Review final diff and merge only after latest required checks pass under the owner's authorization.
+
+Privileged macOS/BPF remains incomplete. Local measurements are loopback-only, no
+packet-loss/SYN speed or parity claim; minimum Rust 1.85 now has a dedicated CI build/test job; verify its latest result.
+No account-wide setting changes or public scans performed. Later roadmap stages wait.
+
+
+Final documentation review corrected inherited pre-merge security wording in README,
+SECURITY and SECURITY_AUDIT. Native source remains `50322ab`; current HEAD resolves
+with Git. At initial head `05204cc`, push native workflow `39336470495` passed all
+four Linux/macOS/Windows jobs. Newer head checks remain pending until confirmed in
+PR #11; final latest-head reconciliation is retained privately and linked through
+this checkpoint's evidence pointer. Do not create more CI-status-only commits.

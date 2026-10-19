@@ -39,11 +39,13 @@ No new production dependency is required: service detection uses the standard li
 
 ## Evidence and report schema
 
-Report schema **3** retains the Phase 2 fields and adds top-level
+Report schema **4** retains the Phase 3 service fields below and adds engine
+implementation metadata; native/Python policy is documented in NATIVE_ENGINE.md.
+The Phase 3 service extension introduced top-level
 `probe_database_version` (null when enrichment is disabled) and per-result
 `service_detection` (null for unenriched/non-open results). CSV has the same new
 metadata column and a JSON cell for nested detection; HTML renders escaped nested
-evidence through the existing atomic exporters. Consumers that require schema 2
+evidence through the existing atomic exporters. Consumers that require schema 2/3
 must accept the new version/columns. Discovery's separate JSON envelope is unchanged.
 
 `service_name` with `detection_source: port_table` remains a **port guess**, even

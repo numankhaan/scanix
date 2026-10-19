@@ -1,8 +1,8 @@
 # Scanix
 
-Scanix is a bounded Python network reconnaissance tool. Phase 3 adds opt-in
-protocol evidence and TLS-aware service identification to Phase 2's correlated
-SYN/UDP scans, IPv6 scopes, discovery, timing controls and atomic exports.
+Scanix is a bounded network reconnaissance tool. Python is the default engine;
+Phase 4A introduces an opt-in Rust TCP-connect engine and a versioned subprocess
+boundary alongside existing SYN/UDP, IPv6, discovery and TLS-aware service detection.
 It does not claim Nmap accuracy or Masscan throughput. Scan only authorized systems.
 
 ## Installation
@@ -77,6 +77,21 @@ and sorted. `--connect` (default), `--syn` and `--udp` are mutually exclusive.
 plaintext evidence on a separately paced connection. It does not confirm a service
 or version and does not implement TLS.
 
+## Opt-in native foundation
+
+```sh
+cargo build --release --locked --manifest-path native/Cargo.toml
+python -m scanix scan -t 127.0.0.1 -p 8080 --engine native --native-binary native/target/release/scanix-engine
+python -m scanix scan -t ::1 --family 6 -p 8080 --engine native --preview
+```
+
+Use the `.exe` binary on Windows. Python remains the default and no fallback occurs.
+Rust currently implements bounded asynchronous **connect** scanning, not native SYN,
+UDP or discovery. `--service-detect` reuses the separate bounded Python enrichment
+stage. Native `--banner` and discovery gates are explicit unsupported combinations.
+The protocol is version 1; reports are schema 4. See [contract, bounds, build and
+benchmark instructions](docs/NATIVE_ENGINE.md) and [autonomous checkpoint](docs/AUTONOMOUS_PROGRESS.md).
+
 ## Service identification
 
 ```sh
@@ -97,7 +112,7 @@ SNI uses the original hostname or `--sni`, while connections remain within scope
 Quick/deep profiles bound attempts, writes, bytes, time and workers; all operations
 share existing pacing. Printer/spooler ports 515 and 9100–9107 are excluded unless
 `--allow-excluded-probes` is set. Offline preview shows this policy without traffic.
-The original CC0 registry is schema 1/database 1.0.0; reports are schema 3.
+The original CC0 registry is schema 1/database 1.0.0; reports are schema 4.
 See [exact coverage, confidence rules, TLS policy and limits](docs/SERVICE_DETECTION.md)
 and [actual loopback validation](validation/SERVICE_RESULTS.md).
 
@@ -248,14 +263,15 @@ python -m scanix scan -t 127.0.0.1 -p 22,80 --out html --out-file results.html
 python -m scanix scan -t 127.0.0.1 -p 22 --out json --out-file - --progress
 ```
 
-Schema version **3** retains Phase 2 fields and adds `probe_database_version` and
+Schema version **4** retains Phase 3 fields and adds engine/session configuration
+and top-level `implementation` metadata. Phase 3 introduced `probe_database_version` and
 per-result `service_detection`, with observations, TLS metadata, budgets consumed
 and issues. Unknown evidence is `null`. Existing `service_name`/`port_table` values
 remain port guesses; protocol observations are separate, and UDP does not inherit
 TCP service guesses. Legacy `banner`, `version_evidence` and the existing
 `parse_service_version` helper remain for compatibility. OS detection is still
 unimplemented. CSV adds the database-version metadata column and nested detection
-JSON cell; schema-2 consumers must accept the new version/columns.
+JSON cell; schema-2/3 consumers must accept the new version/columns, including implementation metadata.
 `connection_elapsed_seconds` is monotonic; for raw probes it includes pacing,
 retries and cleanup. Wall timestamps are UTC ISO 8601.
 
@@ -309,7 +325,7 @@ privileged macOS/BPF verification remains unavailable. The current validation re
 is in [PHASE2_PROGRESS.md](PHASE2_PROGRESS.md).
 
 Limitations: no scoped/link-local IPv6 interface selection, IPv6 extension-header or
-fragment reassembly, NAT-translated probe correlation, application protocols beyond the documented small service registry, adaptive congestion control or native packet engine. DNS question validation
+fragment reassembly, NAT-translated probe correlation, application protocols beyond the documented small service registry, adaptive congestion control or an implemented native raw packet engine. DNS question validation
 is deliberately strict and may ignore unusual compressed questions. Generic UDP
 uses endpoint matching only; random source ports reduce but cannot eliminate stale
 or spoofed replies. Capture loss, firewall policy, ICMP suppression and service
@@ -323,4 +339,5 @@ Install the [local gates](CONTRIBUTING.md), use a verified GitHub noreply identi
 and keep real reports/captures and private detection patterns outside Git.
 CSV now prefixes formula-like text cells with an apostrophe for spreadsheet safety;
 JSON preserves the original evidence. Security checks reduce risk; passing checks
-cannot guarantee security or privacy. The feature roadmap is paused for this audit.
+cannot guarantee security or privacy. Security #8 is merged; Phase 4A continues in
+a separate review PR. Historical privacy cleanup remains pending the owner.

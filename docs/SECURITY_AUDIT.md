@@ -1,7 +1,9 @@
 # Sanitized security/privacy audit
 
-Security work is proposed in [PR #8](https://github.com/numankhaan/scanix/pull/8),
-base main `3a98cda`. The PR remains unmerged and Phase 4 is paused pending review.
+Security work in [PR #8](https://github.com/numankhaan/scanix/pull/8) merged as
+`ef1c3dc`. The original audit scope below used base `3a98cda`; post-merge review
+and current enforcement are recorded at the end. Owner-authorized Phase 4A continues
+in [PR #11](https://github.com/numankhaan/scanix/pull/11), which remains unmerged.
 Raw evidence stays outside Git in access-controlled local storage. Passing checks
 cannot guarantee security or privacy.
 
@@ -30,9 +32,9 @@ cannot guarantee security or privacy.
   service connections/TLS, targets, subprocesses, paths/atomic exports,
   HTML/terminal/CSV output, cancellation, privileged I/O and workflow trust.
   Enumeration plugin modules remain placeholders.
-- The paused native branch received a RustSec lock audit, formatting, Clippy and
-  six Rust tests. This main-based PR contains no native feature implementation;
-  its CodeQL workflow analyzes Python, not the unmerged Rust branch.
+- During the initial audit, the paused native branch received a RustSec lock audit,
+  formatting, Clippy and six Rust tests. Security PR #8 contained no native feature
+  implementation. CodeQL analyzes Python, not Rust; Phase 4A validation is separate.
 
 ## Findings and fixes
 
@@ -113,11 +115,14 @@ text views now detect that case. No failing attempt is counted as passing.
 
 ## Remaining actions and limits
 
-Secret scanning/push protection were verified enabled. Main is unprotected and has
-no rulesets. Dependabot alert API returned 403 reporting disabled; security updates
+At initial audit, secret scanning/push protection were verified enabled. Main was
+unprotected with no rulesets (changed in the authorized follow-up below).
+Dependabot alert API returned 403 reporting disabled; security updates
 were also disabled. Private vulnerability reporting was verified disabled. Owner
-setup is documented in SECURITY.md. Version-update workflows/config activate on
-the default branch only after review/merge; this PR has not configured protection.
+setup is documented in SECURITY.md. After #8 merged, version-update configuration
+activated on main and opened Dependabot PRs; this does not prove vulnerability
+alerts/security updates are enabled. Required-check enforcement was configured and
+verified in the owner-authorized follow-up below.
 Historical privacy review is separately failing weekly/manually, not silently
 baselined. No raw SARIF/database/capture uploads are enabled by these workflows.
 Uploaded CodeQL alert messages were verified to use the fixed redacted text.
@@ -129,8 +134,37 @@ or every encoding. No LFS pointers or tracked submodules were found; future ones
 need separate handling. Private local patterns are not automatically available to
 public CI. Detectors and advisory data have false positives/negatives and change.
 
-Privileged macOS/BPF remains incomplete. Before Phase 4 resumes after security
-review, synchronize approved security changes, sanitize the paused native branch's
-progress text and pin its native workflow. No feature work resumed. The separate
-history-cleanup plan requires authorization; no rewrite, force-push, branch/evidence
-deletion or account-wide configuration change was performed.
+Privileged macOS/BPF remains incomplete. Authorized Phase 4A work now reuses the
+old native implementation on sanitized main with SHA-pinned workflow and preserved
+security gates; the old branch is untouched. Historical cleanup still requires the
+owner's decision; no rewrite, force-push, branch/evidence deletion or account-wide
+configuration change was performed.
+
+## Owner-requested post-merge review
+
+Security #8 merged as `ef1c3dc0ecabf4ee101bb018922006668c47fe86`. Main push
+Security `39335020364`, Tests `39335020577` and CodeQL `39335020611` passed.
+Owner-authorized main ruleset `25438618` was created and read back as active:
+security, redacted CodeQL and all seven regression jobs required from GitHub Actions,
+strict base updates, no bypass actors. Earlier unprotected observations above are
+historical, not the current enforcement state.
+
+A fresh private `python security/check.py history --privacy-only` inventory exited
+1: 112 email candidates, 24 home-path occurrences, 13 bytecode review flags. Counts
+changed with fetched/merged metadata; candidates are not automatically private or
+credentials. No raw matched values, silent exceptions, cleanup or history rewrite.
+
+| Category | Affected repository location | Sanitized reference |
+| --- | --- | --- |
+| Email identity/message review | Author/committer/messages across 50 commit refs | Includes historical native head `d08659e5adc7`; private evidence retains exact refs |
+| Email identity/message review | Two annotated tag messages/taggers | `e4c295919882`, `f078dbe6f783` |
+| Email/path review | `PHASE3_PROGRESS.md` | Five historical refs, including `32e5e2dc848a` |
+| Home paths | `PHASE2_PROGRESS.md` | Four historical refs, including `4070b5a57b98` |
+| Home paths | `docs/AUTONOMOUS_PROGRESS.md` on preserved native branch | `d08659e5adc7` |
+| Compiled path metadata / forbidden bytecode | `scanix/__pycache__`, `scanix/core/__pycache__`, `scanix/modules/__pycache__` | 13 files at blob/history reference `a1f11c16eba4` |
+
+Historical cleanup remains pending the owner's decision under SECURITY_HISTORY_PLAN.md.
+The old native branch remains unchanged. Its implementation is reused in new reviewed
+commits from sanitized main, without inheriting or allowlisting the old checkpoint.
+This is not removal of the previously published branch/history. Regular scans do
+not establish complete privacy or security.

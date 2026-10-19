@@ -104,16 +104,23 @@ The Dependabot alert API reported disabled (403); private vulnerability reportin
 was also verified disabled.
 The API reported **no rulesets**, main `protected: false`, and the main protection
 endpoint returned not found.
-This PR does not configure branch protection or account settings.
+After #8 merged, owner-authorized follow-up created and verified active repository
+ruleset `25438618` for `refs/heads/main`: `Secret/privacy and static gates`,
+`CodeQL Python (redacted)` and all seven supported-platform `test (...)` checks
+are required from GitHub Actions (integration 15368), with an up-to-date base and
+no bypass actors. No account-wide settings were changed. The separately failing
+historical privacy inventory is not a merge check; no findings are allowlisted.
+Ruleset: https://github.com/numankhaan/scanix/rules/25438618.
 
-Owner setup after review/merge:
+Owner setup and continuing verification:
 
-1. Require `Secret/privacy and static gates`, `CodeQL Python (redacted)` and the
-   supported-platform test matrix on main. Require review of security configuration,
+1. Keep the verified main status-check ruleset active; update its exact contexts
+   when renaming jobs. Require review of security configuration,
    actions, exceptions and dependency changes; disallow force-push/bypass as policy.
 2. Enable Dependabot security updates/alerts and review available secret-scanning
    non-provider options in repository settings. Version-update PRs are configured
-   here, but activation and vulnerability alerts must be verified after merge.
+   here and operating after #8 merged; vulnerability alert/security-update activation
+   must still be verified independently.
 3. Keep account email privacy and "block pushes exposing my email" enabled if
    desired. The email API was inaccessible. A GitHub-signed, account-associated
    commit verified the noreply address used for repository-local future commits;
