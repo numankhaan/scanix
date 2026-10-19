@@ -53,7 +53,7 @@ def selected_discovery(value):
 
 def build_parser():
     parser = argparse.ArgumentParser(prog='scanix', description='Scanix bounded IPv4/IPv6 network reconnaissance')
-    parser.add_argument('--version', action='version', version='Scanix Phase 3')
+    parser.add_argument('--version', action='version', version='Scanix Phase 4A')
     sub = parser.add_subparsers(dest='command', required=True)
     scan = sub.add_parser('scan', help='TCP connect, raw SYN or protocol-aware UDP scan')
     scan.add_argument('-t', '--target', action='append', default=[], help='IP, hostname or CIDR; repeatable')
@@ -75,6 +75,9 @@ def build_parser():
     scan.add_argument('--sni', help='TLS SNI/verification name override; connection remains at selected numeric address')
     scan.add_argument('--starttls', action='store_true', help='try advertised SMTP/POP3/IMAP TLS upgrade during service detection')
     scan.add_argument('--allow-excluded-probes', action='store_true', help='allow active service probes on excluded printer/spooler ports')
+    scan.add_argument('--engine', choices=['python','native'], default='python', help='explicit engine; Python remains the default')
+    scan.add_argument('--native-binary', help='trusted native executable path; otherwise SCANIX_NATIVE_ENGINE or PATH')
+    scan.add_argument('--engine-timeout', type=float, default=3600, help='native session budget seconds, 0.1–86400')
     scan.add_argument('--banner', action='store_true', help='best-effort plaintext banner evidence')
     scan.add_argument('--timeout', type=float, default=1.0, help='connection timeout seconds (0, 300]')
     scan.add_argument('--concurrency', type=int, default=100, help='outstanding tasks/workers (1–1024)')
@@ -113,6 +116,10 @@ def _run_scan(parser, args):
         if args.resolve_preview and not args.preview:
             raise ValueError('--resolve-preview requires --preview')
         methods = () if args.skip_discovery else selected_discovery(args.discovery)
+        if args.engine=='native' and methods:
+            raise ValueError('native foundation does not support discovery gates; select --discovery none')
+        if args.native_binary and args.engine!='native':
+            raise ValueError('--native-binary requires --engine native')
         discovery_ports = parse_ports(args.discovery_ports)
         if len(discovery_ports) > 16:
             raise ValueError('select at most 16 TCP discovery ports')
@@ -122,13 +129,14 @@ def _run_scan(parser, args):
                             service_detect=args.service_detect, service_profile=args.service_profile,
                             service_timeout=args.service_timeout, service_workers=args.service_workers,
                             tls_insecure=args.tls_insecure, tls_ca_file=args.tls_ca_file, sni=args.sni,
-                            starttls=args.starttls, allow_excluded_probes=args.allow_excluded_probes)
+                            starttls=args.starttls, allow_excluded_probes=args.allow_excluded_probes,
+                            engine=args.engine,engine_timeout=args.engine_timeout)
     except ValueError as exc:
         parser.error(str(exc))
     # Validate CLI/config before DNS, sockets or capture. Offline preview requires no Scapy.
     simple = (len(args.target) == 1 and not args.target_file and not args.exclude and not args.exclude_file
               and args.family == '4' and args.dns_policy == 'first' and '/' not in args.target[0]
-              and not methods and not args.preview)
+              and not methods and not args.preview and args.engine=='python')
     plan = None
     if simple:
         try:
@@ -151,6 +159,8 @@ def _run_scan(parser, args):
                           'min_timeout': config.min_timeout, 'max_timeout': config.max_timeout}
         from .service.engine import policy
         data['service_detection'] = policy(config)
+        from .native.adapter import preview
+        data['implementation'] = preview(config)
         json.dump(data, sys.stdout, indent=2)
         print()
         return 0
@@ -169,7 +179,11 @@ def _run_scan(parser, args):
     stop = threading.Event()
     previous_handler = signal.signal(signal.SIGINT, lambda *_: stop.set())
     try:
-        if plan is None:
+        if args.engine=='native':
+            from .native.adapter import scan_native
+            progress=(lambda done,total: print(f'Progress: {done}/{total} completed port results',file=sys.stderr)) if args.progress else None
+            report=scan_native(config,plan,stop,binary=args.native_binary,progress=progress)
+        elif plan is None:
             if args.progress:
                 report = scan_target(config, stop, progress=lambda done, total: print(
                     f'Progress: {done}/{total} completed port results', file=sys.stderr))

@@ -48,3 +48,23 @@ and release build passed. Twelve adapter wire tests also passed, including expli
 Python parser depth behavior and was fixed with an explicit bound, not an assertion
 change. Native source is ready for its focused commit. Adapter/CLI/tests/docs/workflow
 remain intended uncommitted work awaiting full regressions and release baseline.
+
+## Python integration milestone
+
+Engine commit `40f5e377a493e5288dea37583c96eb81e3a9370d` follows security/rules
+review `322516d`. Full real-release-subprocess command
+`python -B validation/native_ci.py`: 138 run/136 passed/two privileged skips.
+`python -B -m unittest discover -s scanix/tests -q` without native configuration:
+138 run/131 passed/seven skips (five native, two privileged).
+`python -B -m unittest discover -s security/tests -v`: 19 passed.
+`python security/check.py tree` and `python security/run.py` with bandit, workflows,
+dependencies and rust: all passed (zero reported findings/advisories/warnings).
+`python -m scanix scan --help` verified engine, native-binary, engine-timeout,
+preview and service-detect flags. Two-port/one-sample benchmark smoke passed; this
+is a driver check, not published performance evidence. Rust dependency licenses
+were inspected using `cargo metadata --locked --manifest-path native/Cargo.toml`.
+
+Next: commit reviewed adapter/CLI/exports/tests/workflow/docs and benchmark driver;
+run release benchmarks at that clean known SHA (32/128 ports, five samples each),
+record measured data/hardware and limitations, then push/open PR and inspect CI.
+Native stage remains unmerged. No public scans or privileged operations performed.

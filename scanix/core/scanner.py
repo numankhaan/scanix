@@ -51,6 +51,8 @@ def resolve_target(target: str) -> ResolvedTarget:
 
 def scan_single_port(config: ScanConfig, resolved: ResolvedTarget, port: int,
                      cancel_event: threading.Event | None = None) -> ScanResult:
+    if config.engine != 'python':
+        raise ValueError('use the explicit native adapter for native configurations')
     if cancel_event is not None and cancel_event.is_set():
         raise CancelledError()
     result = new_result(config, resolved, port)
@@ -75,6 +77,8 @@ def scan_single_port(config: ScanConfig, resolved: ResolvedTarget, port: int,
 
 
 def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None, *, endpoint=None, runtime=None, progress=None, originals=None) -> ScanReport:
+    if config.engine != 'python':
+        raise ValueError('use the explicit native adapter for native configurations')
     report = ScanReport(config)
     report.scope = {'effective_rate': config.rate or {'connect': 100, 'syn': 10, 'udp': 1}[config.method],
                     'effective_per_host': min(config.concurrency, config.per_host),

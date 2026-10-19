@@ -9,7 +9,7 @@ from ..core.models import ScanResult
 
 RESULT_FIELDS = [field.name for field in fields(ScanResult)]
 METADATA_FIELDS = ['completion_status', 'incomplete', 'requested_ports', 'completed_ports',
-                   'configuration', 'issues', 'schema_version', 'probe_database_version', 'scope', 'discovery']
+                   'configuration', 'issues', 'schema_version', 'implementation', 'probe_database_version', 'scope', 'discovery']
 CSV_FIELDS = ['record_type'] + METADATA_FIELDS + RESULT_FIELDS
 
 
