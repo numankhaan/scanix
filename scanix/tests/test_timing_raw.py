@@ -103,3 +103,77 @@ class RawTests(unittest.TestCase):
             with PacketTransport('127.0.0.1'):
                 pass
         sock.assert_not_called()
+
+class SchedulingRegressionTests(unittest.TestCase):
+    def test_per_host_window_and_banner_share_global_limiter(self):
+        config = ScanConfig('127.0.0.1', (80,), banner=True, per_host=1)
+        result = MagicMock(state='open', connection_elapsed_seconds=.02, reason='connection_succeeded',
+                           target='127.0.0.1', resolved_ip='127.0.0.1', port=80, scan_method='connect')
+        runtime = Runtime(config)
+        runtime.limiter = MagicMock()
+        with patch('scanix.core.scanner.scan_single_port', return_value=result) as probe, \
+             patch('scanix.core.scanner.grab_banner_for_port', return_value='fixture') as banner:
+            report = scan_target(config, endpoint=ResolvedTarget('127.0.0.1'), runtime=runtime)
+        self.assertEqual(runtime.limiter.acquire.call_count, 2)
+        self.assertFalse(probe.call_args.args[0].banner)
+        self.assertEqual(report.results[0].banner, 'fixture')
+        banner.assert_called_once()
+
+    def test_udp_rate_limited_icmp_then_response_and_local_failure(self):
+        config = ScanConfig('127.0.0.1', (53,), method='udp', retries=2)
+        transport = MagicMock(source='127.0.0.2')
+        transport.exchange.side_effect = [(None, None, 1),
+            (Evidence('closed', 'icmp_port_unreachable', {'matched_quote': True}), None, .01)]
+        runtime = Runtime(config)
+        with patch('scanix.modules.raw_scan.PacketTransport') as factory:
+            factory.return_value.__enter__.return_value = transport
+            result = raw_scan_port(config, ResolvedTarget('127.0.0.1'), 53, threading.Event(), runtime)
+        self.assertEqual(result.state, 'closed')
+        self.assertEqual(result.attempts, 2)
+        self.assertIsNone(runtime.timeout.srtt)  # ambiguous retry response: no RTT sample
+        transport.exchange.side_effect = OSError(errno.ENETUNREACH, 'no route')
+        with patch('scanix.modules.raw_scan.PacketTransport') as factory:
+            factory.return_value.__enter__.return_value = transport
+            result = raw_scan_port(config, ResolvedTarget('127.0.0.1'), 53, threading.Event())
+        self.assertEqual(result.state, 'error')
+        self.assertEqual(result.reason, 'routing_failure')
+
+    def test_raw_cancellation_never_claims_retry_budget_exhausted(self):
+        config = ScanConfig('127.0.0.1', (80,), method='syn', retries=0)
+        stop = threading.Event()
+        transport = MagicMock(source='127.0.0.2')
+        def exchange(*args):
+            stop.set()
+            return None, None, .01
+        transport.exchange.side_effect = exchange
+        with patch('scanix.modules.raw_scan.PacketTransport') as factory:
+            factory.return_value.__enter__.return_value = transport
+            result = raw_scan_port(config, ResolvedTarget('127.0.0.1'), 80, stop)
+        self.assertEqual(result.reason, 'cancelled_during_probe')
+        self.assertNotIn('retry_budget_exhausted', result.evidence)
+
+    def test_capture_failure_cleanup_and_no_implicit_send(self):
+        fake = MagicMock()
+        fake.send.return_value = None
+        transport = PacketTransport('127.0.0.1')
+        transport.socket = fake
+        with self.assertRaises(BackendUnavailable):
+            transport.send('packet', MagicMock(), threading.Event())
+        with patch('scanix.modules.transport.sys.platform', 'darwin'), \
+             patch('scanix.modules.transport.route', return_value=('lab0', '127.0.0.1', '0.0.0.0')), \
+             patch('scanix.modules.transport.conf.L3socket', side_effect=PermissionError(errno.EACCES, 'denied')), \
+             self.assertRaises(PermissionError):
+            with PacketTransport('127.0.0.1'):
+                pass
+        fake.send.assert_called_once_with('packet')
+
+class BackendSelectionTests(unittest.TestCase):
+    def test_linux_loopback_uses_ipv4_and_ipv6_raw_sockets(self):
+        for destination, source, name in [('127.0.0.1', '127.0.0.1', 'L3RawSocket'), ('::1', '::1', 'L3RawSocket6')]:
+            with patch('scanix.modules.transport.sys.platform', 'linux'), \
+                 patch('scanix.modules.transport.route', return_value=('lo', source, '::' if ':' in source else '0.0.0.0')), \
+                 patch('scapy.supersocket.' + name) as factory:
+                with PacketTransport(destination):
+                    pass
+                factory.assert_called_once_with(iface='lo', promisc=False)
+                factory.return_value.close.assert_called_once()

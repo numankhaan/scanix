@@ -37,6 +37,7 @@ def new_result(config: ScanConfig, resolved: ResolvedTarget | None, port: int) -
                       address_family=resolved.family if resolved else None, port=port,
                       original_targets=(config.target,), scan_method=config.method,
                       protocol='udp' if config.method == 'udp' else 'tcp', service_name=service,
+                      probe_type='tcp_connect' if config.method == 'connect' else None,
                       detection_source='port_table' if service else None)
 
 
@@ -75,6 +76,9 @@ def scan_single_port(config: ScanConfig, resolved: ResolvedTarget, port: int,
 
 def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None, *, endpoint=None, runtime=None, progress=None) -> ScanReport:
     report = ScanReport(config)
+    report.scope = {'effective_rate': config.rate or {'connect': 100, 'syn': 10, 'udp': 1}[config.method],
+                    'effective_per_host': min(config.concurrency, config.per_host),
+                    'effective_retries': 0 if config.method == 'connect' else config.retries}
     stop = cancel_event if cancel_event is not None else threading.Event()
     resolved = None
     runtime = runtime or Runtime(config)

@@ -21,8 +21,9 @@ def add_scope_options(parser):
     parser.add_argument('--resolve-preview', action='store_true', help='allow DNS in preview; no probes')
 
 
-def add_timing_options(parser):
-    parser.add_argument('--rate', type=float, help='global probes/sec (raw includes retries/resets); defaults connect=100, SYN=10, UDP=1')
+def add_timing_options(parser, discovery=False):
+    defaults = 'discovery=10' if discovery else 'connect=100, SYN=10, UDP=1'
+    parser.add_argument('--rate', type=float, help='global probes/sec (raw includes retries/resets); defaults ' + defaults)
     parser.add_argument('--per-host', type=int, default=8, help='per-host outstanding tasks; default 8')
     parser.add_argument('--retries', type=int, default=1, help='raw retries after first attempt, 0–5; connect never retries')
     parser.add_argument('--min-timeout', type=float, default=.1)
@@ -79,7 +80,7 @@ def build_parser():
     disc.add_argument('-n', '--network', dest='target', action='append', default=[], help='legacy alias for --target')
     disc.add_argument('-t', '--target', dest='target', action='append', help='IP, hostname or CIDR; repeatable')
     add_scope_options(disc)
-    add_timing_options(disc)
+    add_timing_options(disc, discovery=True)
     disc.add_argument('--methods', default='tcp', help='comma-separated icmp,tcp,arp,nd; default tcp')
     disc.add_argument('-p', '--ports', default='80,443', help='TCP discovery ports (at most 16)')
     disc.add_argument('--timeout', type=float, default=1)

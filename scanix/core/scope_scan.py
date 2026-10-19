@@ -11,6 +11,9 @@ def scan_scope(config, plan, stop=None, *, discovery_methods=(), discovery_ports
     report = ScanReport(config, schema_version=2, requested_probes=plan.count() * len(config.ports))
     report.scope = plan.preview(config.ports, config.method, discovery_methods, limit=0)
     rate = config.rate or {'connect': 100, 'syn': 10, 'udp': 1}[config.method]
+    report.scope['effective_rate'] = rate
+    report.scope['effective_per_host'] = min(config.concurrency, config.per_host)
+    report.scope['effective_retries'] = 0 if config.method == 'connect' else config.retries
     limiter = RateLimiter(rate)
     try:
         for target in plan:

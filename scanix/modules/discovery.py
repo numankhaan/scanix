@@ -201,7 +201,7 @@ def discover_targets(plan, methods, ports, config, stop=None, progress=None):
                     results.append(_collect(future, target))
     return {'requested_hosts': plan.count(), 'completed_hosts': len(results),
             'completion_status': 'interrupted' if stop.is_set() else 'failed' if any(r['state'] == 'error' for r in results) else 'complete',
-            'incomplete': stop.is_set() or len(results) < plan.count(),
+            'incomplete': stop.is_set() or len(results) < plan.count() or any(r['state'] == 'error' for r in results),
             'scope': plan.preview(ports, 'discovery', methods, limit=0), 'hosts': sorted(results, key=lambda r: r['ip'])}
 
 

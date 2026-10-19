@@ -29,6 +29,10 @@ class PacketTransport:
         self.iface, self.source, self.gateway = route(self.destination)
         factory = conf.L2socket if self.layer2 else (
             conf.L3socket6 if ipaddress.ip_address(self.destination).version == 6 else conf.L3socket)
+        if sys.platform == 'linux' and not self.layer2 and ipaddress.ip_address(self.destination).is_loopback:
+            # Linux loopback needs raw IP transmission, rather than Ethernet injection.
+            from scapy.supersocket import L3RawSocket, L3RawSocket6
+            factory = L3RawSocket6 if ':' in self.destination else L3RawSocket
         # Open capture before any packet can be transmitted. Failure propagates.
         self.socket = factory(iface=self.iface, promisc=False)
         if not hasattr(self.socket, 'select'):
@@ -44,7 +48,9 @@ class PacketTransport:
         limiter.acquire(stop)
         if stop.is_set():
             raise CancelledError()
-        self.socket.send(packet)
+        sent = self.socket.send(packet)
+        if sent is None or (isinstance(sent, int) and sent <= 0):
+            raise BackendUnavailable('capture backend did not transmit packet')
 
     def exchange(self, packet, classifier, timeout, limiter, stop):
         self.send(packet, limiter, stop)

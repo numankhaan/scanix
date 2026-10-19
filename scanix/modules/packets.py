@@ -136,9 +136,9 @@ def classify_syn(probe, reply):
     if not flags & 0x10 or int(tcp.ack) != (int(sent.seq) + 1) % 2**32:
         return None
     details = {'responder': str(outer.src), 'tcp_flags': flags, 'matched_ack': True}
-    if flags & 0x04:
+    if flags & 0x17 == 0x14:
         return Evidence('closed', 'syn_rst_ack', details)
-    if flags & 0x02:
+    if flags & 0x3f == 0x12:
         return Evidence('open', 'syn_ack', details)
     return None
 
@@ -155,5 +155,10 @@ def classify_udp(probe, reply, kind='generic'):
         return None
     if not match_udp_payload(kind, bytes(sent.payload), bytes(udp.payload)):
         return None
-    return Evidence('open', 'udp_response', {'responder': str(outer.src), 'matched_endpoints': True,
-                                            'protocol_token_validated': kind != 'generic'})
+    details = {'responder': str(outer.src), 'matched_endpoints': True,
+               'protocol_token_validated': kind != 'generic'}
+    body = bytes(udp.payload)
+    if kind == 'ntp' and body[1] == 0:
+        details['ntp_kiss_code'] = body[12:16].decode('ascii', errors='replace')
+        details['rate_limited'] = body[12:16] == b'RATE'
+    return Evidence('open', 'udp_response', details)

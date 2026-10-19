@@ -23,7 +23,7 @@ class PacketTests(unittest.TestCase):
                              (0x14, r.payload.ack, 124))
             self.assertEqual(classify_syn(p, self.syn_reply(p, 'RA')).state, 'closed')
             for reply in [None, IP()/UDP(), self.syn_reply(p, ack=0),
-                          self.syn_reply(p, dport=1), self.syn_reply(p, 'R')]:
+                          self.syn_reply(p, dport=1), self.syn_reply(p, 'R'), self.syn_reply(p, 'SAF')]:
                 self.assertIsNone(classify_syn(p, reply))
             r.src = src
             self.assertIsNone(classify_syn(p, r))
@@ -79,3 +79,14 @@ class PacketTests(unittest.TestCase):
         self.assertEqual(classify_udp(p, reply).state, 'unknown')
         reply.payload.payload.id ^= 1
         self.assertIsNone(classify_udp(p, reply))
+
+    def test_ntp_rate_limit_reply_is_open_with_evidence(self):
+        kind, p = udp_probe('127.0.0.1', '127.0.0.2', 123)
+        body = bytearray(48)
+        body[0] = 0x24
+        body[12:16] = b'RATE'
+        body[24:32] = bytes(p.payload.payload)[40:48]
+        r = IP(src=p.dst, dst=p.src)/UDP(sport=123, dport=p.payload.sport)/Raw(bytes(body))
+        result = classify_udp(p, r, kind)
+        self.assertEqual(result.state, 'open')
+        self.assertTrue(result.details['rate_limited'])
