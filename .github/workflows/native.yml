@@ -34,3 +34,15 @@ jobs:
       - run: python -m pip install -r requirements.txt
       - name: Run Python regressions with real native subprocess integration
         run: python -B validation/native_ci.py
+  msrv:
+    name: Rust minimum version (1.85)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install declared minimum Rust toolchain
+        run: rustup toolchain install 1.85.0 --profile minimal
+      - run: cargo +1.85.0 test --locked --manifest-path native/Cargo.toml
+      - run: cargo +1.85.0 build --release --locked --manifest-path native/Cargo.toml
