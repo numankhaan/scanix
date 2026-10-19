@@ -28,11 +28,15 @@ plaintext retry. The TEST ONLY keys are intentionally public fixtures, not produ
 credentials. Rebuilding four PEMs with the fixture generator was byte-identical;
 regular tests do not require the generator's cryptography dependency.
 
-The final failure-path follow-up ran **113 tests, 111 passed, 2 privileged skips**
+The failure-path follow-up ran **113 tests, 111 passed, 2 privileged skips**
 with Python 3.14.3 / Scapy 2.8.0 (9.074 s). The additional regression proves that
 a reset during a capability or post-TLS application probe preserves existing service
 evidence and cannot trigger a new plaintext fallback connection. The 112-test
 results above remain the recorded minimum-Scapy and earlier CI revision outcomes.
+
+The registry-read follow-up ran **114 tests, 112 passed, 2 privileged skips**
+with each of Scapy 2.8.0 and 2.6.1 (9.058 / 9.101 s). Its additional regression
+checks that oversized registry input is bounded during the read, before JSON parsing.
 
 ## Actual CLI loopback lab
 
@@ -76,6 +80,10 @@ Windows's third skip is the pre-existing POSIX subprocess SIGINT test. The new
 cancellation and partial-export cases run on Windows. Earlier implementation
 `3c33b79` also passed all seven jobs with 107 tests in
 [run 39293637807](https://github.com/numankhaan/scanix/actions/runs/39293637807).
+The subsequent 113-test revision cb594e1 also passed all seven jobs in both
+[push run 39294803011](https://github.com/numankhaan/scanix/actions/runs/39294803011)
+and [PR run 39294812664](https://github.com/numankhaan/scanix/actions/runs/39294812664):
+each Linux/macOS job passed 111 with two skips; Windows passed 110 with three skips.
 These are actual completed CI outcomes, separate from local runs. Checks on later
 documentation commits and PR merge refs are tracked live on
 [PR #6](https://github.com/numankhaan/scanix/pull/6); an earlier pass does not imply

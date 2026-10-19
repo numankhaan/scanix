@@ -74,3 +74,18 @@ class RegistryTests(unittest.TestCase):
         for malformed in (None, [], {}, {**base,'schema_version':True}, {**base,'database_version':None}, {**base,'probes':[None]},
                           {**base,'probes':base['probes']+[base['probes'][0]]}):
             with self.subTest(value=str(malformed)[:50]),self.assertRaises(ValueError):validate(malformed)
+
+    def test_registry_read_is_bounded_before_json_parsing(self):
+        from io import BytesIO
+        from unittest.mock import patch, MagicMock
+        import scanix.service.registry as module
+        stream=BytesIO(b'x'*70000)
+        stream.read=MagicMock(wraps=stream.read)
+        path=MagicMock();path.resolve.return_value.parents.__getitem__.return_value.joinpath.return_value.open.return_value=stream
+        module.load_registry.cache_clear()
+        try:
+            with patch.object(module,'Path',return_value=path),self.assertRaisesRegex(ValueError,'64 KiB'):
+                module.load_registry()
+            stream.read.assert_called_once_with(65537)
+        finally:
+            module.load_registry.cache_clear()

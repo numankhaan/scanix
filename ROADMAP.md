@@ -17,7 +17,7 @@
   DNS/NTP evidence reuse and targeted UDP fallback; schema-3 JSON/CSV/HTML exports,
   previewed policies, printer exclusions and shared rate/cancellation controls.
 
-Phase 3 has 113 local regression tests (111 passing, two privileged skips), including
+Phase 3 has 114 local regression tests (112 passing, two privileged skips), including
 loopback protocol/TLS and deterministic parser/resource cases, plus four actual CLI
 lab cases. See [coverage and limitations](docs/SERVICE_DETECTION.md),
 [validation](validation/SERVICE_RESULTS.md) and [progress](PHASE3_PROGRESS.md).

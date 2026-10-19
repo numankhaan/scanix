@@ -161,7 +161,9 @@ def validate(data):
 
 @lru_cache(maxsize=1)
 def load_registry():
-    data = Path(__file__).resolve().parents[1].joinpath('data', 'probes-v1.json').read_bytes()
+    path = Path(__file__).resolve().parents[1].joinpath('data', 'probes-v1.json')
+    with path.open('rb') as stream:
+        data = stream.read(65537)
     if len(data) > 65536:
         raise ValueError('probe database exceeds 64 KiB')
     return validate(json.loads(data))
