@@ -140,10 +140,11 @@ def capture_evidence(packets, cases):
     checks = []
     for case in cases:
         method, target = case['method'], case['target']
+        sources = (case['source'],) if 'source' in case else (V4[0], V6[0])
         if method in ('syn', 'udp'):
             layer = TCP if method == 'syn' else UDP
             probes = [network(p) for p in packets if network(p) is not None
-                      and network(p).src in (V4[0], V6[0]) and network(p).dst == target
+                      and network(p).src in sources and network(p).dst == target
                       and isinstance(network(p).payload, layer)
                       and network(p).payload.dport == case['port']
                       and (method == 'udp' or int(network(p).payload.flags) == 2)]
@@ -174,7 +175,7 @@ def capture_evidence(packets, cases):
                            'matched_states': matched, 'validated_reset_packets': reset_count})
         elif method == 'icmp':
             probes = [network(p) for p in packets if network(p) is not None
-                      and network(p).src in (V4[0], V6[0]) and network(p).dst == target
+                      and network(p).src in sources and network(p).dst == target
                       and ((isinstance(network(p).payload, ICMP) and network(p).payload.type == 8)
                            or isinstance(network(p).payload, ICMPv6EchoRequest))]
             matches = any(classify_echo(probe, packet) is not None
@@ -190,6 +191,39 @@ def capture_evidence(packets, cases):
             ok = (bool(probes) and matches) if case['expected'] == 'up' else not probes if case['expected'] == 'error' else bool(probes) and not matches
             checks.append({'case': case['name'], 'passed': bool(ok), 'probe_packets': len(probes), 'matching_link_reply': matches})
     return checks
+
+
+def loopback_evidence(packets):
+    from scapy.all import TCP, UDP
+    from scanix.modules.packets import network, classify_udp
+    syns = [network(p) for p in packets if network(p) is not None
+            and network(p).src == network(p).dst == '127.0.0.1'
+            and isinstance(network(p).payload, TCP) and int(network(p).payload.flags) == 2]
+    syn_ok = False
+    if len(syns) == 1:
+        syn = syns[0]
+        case = {'name': 'loopback-syn', 'method': 'syn', 'source': '127.0.0.1',
+                'target': '127.0.0.1', 'port': int(syn.payload.dport), 'expected': 'open', 'attempts': 1}
+        syn_ok = capture_evidence(packets, [case])[0]['passed']
+    udp = [(index, network(p)) for index, p in enumerate(packets) if network(p) is not None
+           and network(p).src == network(p).dst == '127.0.0.1' and isinstance(network(p).payload, UDP)]
+    states = []
+    if udp:
+        # First UDP packet is the outbound echo probe. Both tests target that
+        # service port; responses target the random client port instead. Bound
+        # each response window to its probe, even if source ports are reused.
+        service_port = udp[0][1].payload.dport
+        requests = [(index, p) for index, p in udp if p.payload.dport == service_port]
+        for position, (index, probe) in enumerate(requests):
+            end = requests[position+1][0] if position+1 < len(requests) else len(packets)
+            matched = set()
+            for response in packets[index+1:end]:
+                evidence = classify_udp(probe, response)
+                if evidence:
+                    matched.add(evidence.state)
+            states.append(sorted(matched))
+    return {'passed': bool(syn_ok and states == [['open'], ['closed']]),
+            'syn_ack_and_scanix_reset': bool(syn_ok), 'udp_probe_states': states}
 
 
 def inside(args):
@@ -218,7 +252,7 @@ def inside(args):
                    'routes_v4': json.loads(command('ip', '-j', '-4', 'route')),
                    'routes_v6': json.loads(command('ip', '-j', '-6', 'route'))})
             with (args.output / 'capture.log').open('w') as capture_log:
-                capture = subprocess.Popen(['tcpdump', '-n', '-U', '-s', '256', '-c', '10000', '-i', 'sxscan', '-w', str(args.output / 'capture.pcap')],
+                capture = subprocess.Popen(['tcpdump', '-n', '--immediate-mode', '-U', '-s', '256', '-c', '10000', '-i', 'sxscan', '-w', str(args.output / 'capture.pcap')],
                                            stdout=subprocess.DEVNULL, stderr=capture_log)
                 deadline = time.monotonic() + 5
                 while 'listening on' not in (args.output / 'capture.log').read_text():
@@ -227,6 +261,7 @@ def inside(args):
                     time.sleep(.02)
                 # Import Scapy after interfaces/routes exist, avoiding stale route caches.
                 import scapy
+                from scapy.all import rdpcap
                 from scanix.core.models import ScanConfig, ResolvedTarget
                 from scanix.core.scanner import scan_target
                 from scanix.core.targets import Target
@@ -264,7 +299,7 @@ def inside(args):
                 # Exercise the existing opt-in raw loopback tests in this same
                 # isolated namespace. Capture lo separately from Ethernet.
                 with (args.output / 'loopback-capture.log').open('w') as loopback_log:
-                    loopback_capture = subprocess.Popen(['tcpdump', '-n', '-U', '-s', '256', '-c', '10000',
+                    loopback_capture = subprocess.Popen(['tcpdump', '-n', '--immediate-mode', '-U', '-s', '256', '-c', '10000',
                         '-i', 'lo', '-w', str(args.output / 'loopback.pcap')],
                         stdout=subprocess.DEVNULL, stderr=loopback_log)
                     deadline = time.monotonic() + 5
@@ -277,10 +312,23 @@ def inside(args):
                             'scanix.tests.test_integration_optional', '-v'], cwd=ROOT,
                             env=dict(os.environ, SCANIX_PRIVILEGED_TESTS='1'),
                             stdout=test_log, stderr=test_log, timeout=30)
+                    # A passing test process alone is insufficient: capture may
+                    # still be buffered. Wait for independently correlated wire
+                    # evidence before stopping, with a finite deadline.
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        try:
+                            checks = loopback_evidence(rdpcap(str(args.output / 'loopback.pcap')))
+                        except (OSError, EOFError, ValueError):
+                            checks = {'passed': False}
+                        if checks['passed'] or loopback_capture.poll() is not None:
+                            break
+                        time.sleep(.05)
                     loopback_capture.send_signal(signal.SIGINT)
                     loopback_capture.wait(timeout=10)
                     report['loopback_tests'] = {'exit_code': result.returncode,
-                        'passed': result.returncode == 0,
+                        'passed': result.returncode == 0 and loopback_evidence(rdpcap(str(args.output / 'loopback.pcap')))['passed'],
+                        'capture_checks': loopback_evidence(rdpcap(str(args.output / 'loopback.pcap'))),
                         'capture_sha256': hashlib.sha256((args.output / 'loopback.pcap').read_bytes()).hexdigest()}
                 capture.send_signal(signal.SIGINT)
                 capture.wait(timeout=10)

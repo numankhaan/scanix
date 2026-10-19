@@ -73,3 +73,19 @@ class LabValidationTests(unittest.TestCase):
         self.assertTrue(lab.capture_evidence([probe, reply], [case])[0]['passed'])
         reply.payload.seq ^= 1
         self.assertFalse(lab.capture_evidence([probe, reply], [case])[0]['passed'])
+
+    def test_loopback_capture_requires_all_three_observations(self):
+        from scapy.all import ICMP
+        from scanix.modules.packets import reset_probe
+        syn = syn_probe('127.0.0.1', '127.0.0.1', 40000)
+        syn_ack = IP(src=syn.dst, dst=syn.src)/TCP(sport=40000, dport=syn.payload.sport,
+                      flags='SA', seq=42, ack=(syn.payload.seq+1) % 2**32)
+        reset = reset_probe(syn, syn_ack)
+        _, udp = udp_probe('127.0.0.1', '127.0.0.1', 40001)
+        reply = IP(src=udp.dst, dst=udp.src)/UDP(sport=40001, dport=udp.payload.sport)/Raw(bytes(udp.payload.payload))
+        _, closed = udp_probe('127.0.0.1', '127.0.0.1', 40001)
+        unreachable = IP(src=closed.dst, dst=closed.src)/ICMP(type=3, code=3)/closed.copy()
+        packets = [syn, syn_ack, reset, udp, reply, closed, unreachable]
+        self.assertTrue(lab.loopback_evidence(packets)['passed'])
+        self.assertFalse(lab.loopback_evidence(packets[:-1])['passed'])
+        self.assertFalse(lab.loopback_evidence([syn, syn_ack, udp, reply, closed, unreachable])['passed'])
