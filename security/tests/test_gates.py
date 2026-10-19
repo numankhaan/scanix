@@ -77,6 +77,8 @@ class PrivacyTests(unittest.TestCase):
         self.assertTrue(any(x['category'] == 'scan-report-review' for x in check.file_findings('arbitrary.csv', csv, 'tree')))
         html = b'<!doctype html><pre>&quot;configuration&quot;: {}</pre><th>resolved_ip</th>'
         self.assertTrue(any(x['category'] == 'scan-report-review' for x in check.file_findings('arbitrary.html', html, 'tree')))
+        for name in ('deployment.env', '.envrc', '.git-credentials'):
+            self.assertTrue(any(x['category'] == 'forbidden-file-review' for x in check.file_findings(name, b'SYNTHETIC=true', 'tree')))
         self.assertEqual(check.file_findings('database.json', b'{"schema_version":1,"probes":[]}', 'tree'), [])
 
     def test_precise_key_exceptions(self):
@@ -190,11 +192,33 @@ class GitGates(unittest.TestCase):
     def test_annotated_tag_secrets_are_scanned_without_new_commits(self):
         token = 'ghp_' + 'Ab3Cd4Ef5Gh6Ij7Kl8Mn9Op0Qr1St2Uv3Wx4'
         self.git('tag', '-a', 'synthetic-tag', '-m', 'token: '+token)
+        self.git('tag', '-a', 'outer-tag', 'synthetic-tag', '-m', 'nested synthetic tag')
         for arguments in [('range', '--base', self.base, '--head', 'synthetic-tag', '--secrets-only'),
+                          ('range', '--base', self.base, '--head', 'outer-tag', '--secrets-only'),
                           ('history', '--secrets-only')]:
             proc = self.invoke(*arguments)
             self.assertEqual(proc.returncode, 1)
             self.assertTrue(token not in proc.stdout+proc.stderr, 'tag message exposed')
+        scripts = self.root/'security'
+        scripts.mkdir()
+        for name in ('check.py', 'ci_range.py', 'gitleaks.toml', 'synthetic-keys.json'):
+            shutil.copyfile(ROOT/'security'/name, scripts/name)
+        self.git('update-ref', 'refs/remotes/origin/main', self.base)
+        env = dict(os.environ, EVENT='push', BASE='0'*40, HEAD=self.base,
+                   DEFAULT_BRANCH='main', GIT_REF='refs/tags/outer-tag')
+        proc = subprocess.run(['python3', 'security/ci_range.py'], cwd=self.root, env=env, capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 1)
+        self.assertTrue(token not in proc.stdout+proc.stderr, 'CI tag message exposed')
+
+    def test_historical_binary_secret_is_not_hidden_by_git_patch_output(self):
+        token = 'ghp_' + 'Ab3Cd4Ef5Gh6Ij7Kl8Mn9Op0Qr1St2Uv3Wx4'
+        (self.root/'synthetic.bin').write_bytes(b'\0token = '+token.encode()+b'\n')
+        self.git('add', 'synthetic.bin'); self.commit('binary fixture')
+        proc = self.invoke('history', '--secrets-only')
+        self.assertEqual(proc.returncode, 1)
+        self.assertTrue('secret-github-pat' in proc.stdout)
+        self.assertTrue('blob:' in proc.stdout)
+        self.assertTrue(token not in proc.stdout+proc.stderr, 'binary sample exposed')
 
     def test_metadata_and_commit_messages_are_scanned(self):
         self.git('config', 'user.email', 'synthetic'+'@personal.invalid')
@@ -246,6 +270,10 @@ class GitGates(unittest.TestCase):
             proc = self.invoke('tree', env=dict(os.environ, PATH=temporary))
             self.assertEqual(proc.returncode, 2)
             self.assertTrue('failure' in proc.stderr)
+        with tempfile.TemporaryDirectory() as outside:
+            proc = subprocess.run(['python3', str(ROOT/'security/check.py'), 'tree'], cwd=outside, capture_output=True, text=True)
+            self.assertEqual(proc.returncode, 2)
+            self.assertTrue(outside not in proc.stderr, 'Git error disclosed a local path')
         shallow = self.root/'shallow'
         subprocess.run(['git', 'clone', '-q', '--depth=1', self.root.as_uri(), str(shallow)], capture_output=True, check=True)
         proc = subprocess.run(['python3', str(ROOT/'security/check.py'), 'tree'], cwd=shallow, capture_output=True)

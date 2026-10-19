@@ -1,35 +1,31 @@
-# Autonomous work checkpoint
+# Autonomous security checkpoint
 
-Feature roadmap **paused**. Current stage: security/privacy audit; security PR
-must remain unmerged. No Phase 4 feature work resumed.
+Feature roadmap paused until security review. Do not merge the security PR.
 
-- Branch: `security/privacy-audit`; worktree: sibling `scanix-security`.
-  Base main: `3a98cda`. PR: https://github.com/numankhaan/scanix/pull/8.
-  Current HEAD: the commit containing this checkpoint (`git rev-parse HEAD`).
-  Last fully CI-validated implementation head: `f02cf86610fac0bd4d9c4ea6b50a1c49a807f85d`.
-- Commits: `5abb5a4` product/privacy fixes; `3f0aa86` local/CI gates and audit;
-  `4e3a00a` TLS 1.2 floor; `9f6caee` missing test-budget correction;
-  `f02cf86` report detection/bounded matching. This milestone adds path/tag coverage.
-- Actual local validation: 121 regressions (119 pass/two privileged skips);
-  18 gate tests passed; full-history secrets including annotated tags passed;
-  Bandit/actionlint/workflow/dependency checks passed. Rust paused branch: six tests,
-  fmt/Clippy/RustSec passed. See SECURITY_AUDIT.md for earlier failed attempts.
-- All f02cf86 push/PR workflows passed: Security `39304666932`/`39304679135`,
-  CodeQL `39304666952`/`39304679123`, Tests `39304666938`/`39304679100`.
-  New path/tag follow-up has local validation; its next pushed head needs CI.
-- Initial audit covered 63 reachable commits/505 objects, tracked/staged/working
-  changes, untracked inventory, accessible PR text/comments and all five artifacts.
-  Later coverage adds unreachable objects, annotated tags and offline pcap decoding.
-  Raw evidence remains private; local location pointer: `/tmp/scanix-security-session`.
-- Historical privacy exposure remains unresolved (including old tags/bytecode).
-  No production credential detected; no rotation/rewrite/deletion performed.
-  Secret scanning/push protection verified enabled; branch rules/settings need owner
-  action. Privileged macOS/BPF remains incomplete. Unscanned areas are in the audit.
-- Original worktree: unrelated UDP edit remains uncommitted and unchanged.
-  No raw reports/captures are tracked. Security changes in this milestone await
-  commit/push after validated gates; no other intentional uncommitted security work.
-- Next: push final path/tag milestone, inspect its exact push/PR CI, reconcile
-  any failures, update the PR with actual outcomes. Leave #8 open for owner review.
-  Then normal-merge approved security changes into the paused native branch before
-  further publication; sanitize its progress text and pin its native workflow.
-  Do not merge #8, rewrite history, or resume feature work in this task.
+- Branch/worktree: `security/privacy-audit`, sibling `scanix-security`.
+  Base main remains `3a98cda`. PR: https://github.com/numankhaan/scanix/pull/8.
+  Current HEAD resolves with `git rev-parse HEAD`; this checkpoint is part of the
+  final resume follow-up. Last fully CI-tested source head: `22a95dea32cd0d24f7649a311b40cf56c1e6c672`.
+- Existing commits: `5abb5a4` product/privacy fixes; `3f0aa86` gates/workflows;
+  `4e3a00a` TLS floor; `9f6caee` fixture correction; `f02cf86` export/bounded
+  matching; `22a95de` paths/tags. No earlier commit/push/PR was repeated on resume.
+- Local final follow-up: 19 gate tests passed; full-history secrets including
+  metadata/tags/binary string views passed; 121 regressions, 119 pass/two skips.
+  Older repo venv pip/Scapy verified pristine, upgraded, audited clean and tested.
+  Native paused branch: six Rust tests, fmt/Clippy/RustSec passed.
+- All 22a95de push/PR runs passed: Security `39305925933`/`39305934391`,
+  Tests `39305925967`/`39305934230`, CodeQL `39305925905`/`39305934034`.
+  Final follow-up CI must be reconciled after its push; latest results belong in #8.
+- Audit coverage/findings/earlier failed runs: SECURITY_AUDIT.md. Private evidence
+  pointer: `/tmp/scanix-security-session`. Nothing raw belongs in Git/CI artifacts.
+  Historical privacy remains unresolved; no production credential found; no
+  revocation, rewrite, force-push or evidence deletion. No global Git changes.
+- Original unrelated UDP edit remains uncommitted and unchanged. Only intended
+  security follow-up files await commit; no unrelated edits are staged. After the
+  final commit, expected security worktree is clean. Generated caches stay ignored.
+- Next: inspect final-head push/PR Security, CodeQL and all seven Tests jobs;
+  fix actual failures, update #8 with exact SHA/run outcomes, then leave for owner
+  review. Main is unchanged; do not merge #8 or start Phase 4. On future resumption,
+  first reconcile Git/GitHub again. Owner must decide history/settings actions.
+- Privileged macOS/BPF is incomplete. Paused native branch still needs security
+  synchronization, progress sanitation and native-workflow pins after review.

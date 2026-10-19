@@ -12,6 +12,7 @@ Python **3.10–3.14** is supported. From the repository root:
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
+python -m pip install --upgrade pip==26.2.1
 python -m pip install -r requirements.txt
 python -m scanix --help
 python -m scanix scan --help

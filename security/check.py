@@ -12,7 +12,7 @@ import sys
 import tempfile
 
 TOOL_ROOT = Path(__file__).resolve().parents[1]
-ROOT = Path(subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], text=True).strip())
+ROOT = TOOL_ROOT
 MAX_BYTES = 16 * 1024 * 1024
 RUN_KEY = os.urandom(32)
 RULES = {
@@ -95,8 +95,8 @@ def file_findings(path, data, ref):
     result = privacy(data, path, ref) + privacy(path.encode(), path, ref)
     name = Path(path).name.lower()
     forbidden = (path.startswith('.security-private/') or '.env' in Path(path).parts or name == '.env' or name.startswith('.env.') or
-                 name in ('.netrc', '.pypirc', '.npmrc', 'cookies.txt', 'credentials.json', 'terraform.tfstate') or
-                 Path(path).suffix.lower() in ('.key', '.p12', '.pfx', '.pcap', '.pcapng', '.har', '.sqlite', '.sqlite3', '.db', '.log', '.pyc', '.pdf', '.docx', '.odt', '.xlsx', '.pptx') or
+                 name in ('.envrc', '.git-credentials', '.netrc', '.pypirc', '.npmrc', 'cookies.txt', 'credentials.json', 'terraform.tfstate') or
+                 Path(path).suffix.lower() in ('.env', '.key', '.p12', '.pfx', '.pcap', '.pcapng', '.har', '.sqlite', '.sqlite3', '.db', '.log', '.pyc', '.pdf', '.docx', '.odt', '.xlsx', '.pptx') or
                  name in ('scan_results.json', 'scan_results.csv', 'scan_results.html'))
     report = False
     if data.lstrip().startswith(b'{'):
@@ -134,7 +134,7 @@ def commits(base, head):
 
 
 def inspect(mode, base=None, head='HEAD'):
-    findings, blobs = [], {}
+    findings, blobs, views = [], {}, {}
     if mode in ('tree', 'staged'):
         for entry in git('ls-files', '--stage', '-z').split(b'\0'):
             if not entry:
@@ -162,7 +162,7 @@ def inspect(mode, base=None, head='HEAD'):
         if mode == 'staged':
             findings.extend(privacy(git('var', 'GIT_AUTHOR_IDENT'), '(prospective author)', metadata=True))
             findings.extend(privacy(git('var', 'GIT_COMMITTER_IDENT'), '(prospective committer)', metadata=True))
-        return findings, blobs
+        return findings, blobs, views
     # git log omits annotated tag messages/tagger metadata, including nested tags.
     tags = (git('for-each-ref', '--format=%(objectname)', 'refs/tags').decode().splitlines()
             if mode == 'history' else [head])
@@ -206,6 +206,11 @@ def inspect(mode, base=None, head='HEAD'):
                 continue
             seen.add(key)
             data = bounded_blob(oid.decode())
+            if b'\0' in data:
+                # Git patch output does not contain binary bodies. Scan raw views too.
+                key = 'historical-binary/' + oid.decode() + '/' + digest(path.encode()) + '.txt'
+                blobs[key] = b'\n'.join(re.findall(rb'[\x20-\x7e]{4,}', data))
+                views[key] = (path, 'blob:' + oid.decode())
             # Range mode compares inherited objects against the base, while still
             # inspecting every changed blob in intermediate outgoing commits.
             inherited = False
@@ -214,10 +219,10 @@ def inspect(mode, base=None, head='HEAD'):
                 inherited = lookup.returncode == 0 and lookup.stdout.strip() == oid
             if not inherited:
                 findings.extend(file_findings(path, data, revision))
-    return findings, blobs
+    return findings, blobs, views
 
 
-def leak_scan(mode, base=None, head='HEAD', blobs=None):
+def leak_scan(mode, base=None, head='HEAD', blobs=None, views=None):
     with tempfile.TemporaryDirectory(prefix='scanix-gate-') as temporary:
         folder = Path(temporary)
         report = folder / 'report.json'
@@ -261,13 +266,18 @@ def leak_scan(mode, base=None, head='HEAD', blobs=None):
                 data = blobs.get(path, b'')
             else:
                 data = git('show', item['Commit'] + ':' + path)
+            reference = item.get('Commit', mode) or mode
+            binary_view = bool(views and path in views)
+            if binary_view:
+                path, reference = views[path]
             if not fixture_ok(path, data, item['RuleID']):
                 findings.append({'category': 'secret-' + item['RuleID'], 'severity': 'high', 'file': safe_path(path),
-                                 'line': item['StartLine'], 'ref': item.get('Commit', mode) or mode})
+                                 'line': None if binary_view else item['StartLine'], 'ref': reference})
         return findings
 
 
 def main(argv=None):
+    global ROOT
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode', choices=('tree', 'staged', 'range', 'history', 'pre-push'))
     parser.add_argument('--base')
@@ -276,6 +286,10 @@ def main(argv=None):
     parser.add_argument('--privacy-only', action='store_true')
     args = parser.parse_args(argv)
     try:
+        repository = subprocess.run(['git', 'rev-parse', '--show-toplevel'], capture_output=True)
+        if repository.returncode:
+            raise ScanError('repository unavailable')
+        ROOT = Path(repository.stdout.decode().strip())
         if git('rev-parse', '--is-shallow-repository').strip() == b'true':
             raise ScanError('shallow repository: fetch full history first')
         ranges = [(args.mode, args.base, args.head)]
@@ -297,13 +311,13 @@ def main(argv=None):
                 ranges.append(('range', base, local))
         findings = []
         for mode, base, head in ranges:
-            found, blobs = inspect(mode, base, head)
+            found, blobs, views = inspect(mode, base, head)
             if not args.secrets_only:
                 findings += found
             if not args.privacy_only:
                 findings += leak_scan(mode, base, head, blobs)
                 if mode not in ('tree', 'staged') and blobs:
-                    findings += leak_scan('tree', blobs=blobs)
+                    findings += leak_scan('tree', blobs=blobs, views=views)
         # No raw matches, author identities, messages, snippets, or scanner stderr.
         for finding in findings:
             print(json.dumps(finding, sort_keys=True))

@@ -48,3 +48,7 @@ synthetic fixture still needs a narrowly scoped, justified exception; no directo
 allowlists. Meaningful tests must prove failure, redaction and resource/range
 coverage. Changes to gate scripts, workflow permissions, exception hashes or tools
 need careful human review. Do not merge based solely on a green badge.
+
+When updating scanner/tool pins, verify upstream release SHAs/digests and licenses,
+then rerun the negative/redaction tests. Dependabot covers pip and Actions here;
+binary scanner/cargo-audit installer pins still need maintainer review.

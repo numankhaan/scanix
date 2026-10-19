@@ -21,3 +21,8 @@ scan_results.html
 .coverage
 htmlcov/
 native/target/
+
+# Environment/credential containers also use these common names.
+*.env
+.envrc
+.git-credentials

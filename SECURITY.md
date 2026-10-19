@@ -84,7 +84,8 @@ branch). Checkouts use full history for the gates. PR ranges use event base/head
 SHAs; pushes use before/head, new branches use origin/default. Annotated/nested tag messages and tagger metadata are also scanned; tag pushes
 resolve the actual tag object instead of only its commit. Every branch commit
 is examined, not just the last; missing old objects fail. A full reachable-history
-secret scan runs on every event. Historical privacy inventory runs separately each
+secret scan runs on every event, with supplementary printable-ASCII binary views
+because Git patch output omits binary bodies. This does not decode every format. Historical privacy inventory runs separately each
 week/manually and is expected to fail until historical exposure is addressed.
 It is **not** a passing scan or an ignored credential baseline. Incremental gates
 still block any new personal information. Neither workflow uses pull_request_target.
@@ -99,7 +100,10 @@ lab still validates locally but no longer automatically publishes captures/repor
 At audit time the repository API reported GitHub secret scanning and push protection
 **enabled**. Non-provider patterns/validity checks and Dependabot security updates
 were disabled; Dependabot version-update configuration is added by this PR.
-The API reported **no rulesets** and the main protection endpoint returned not found.
+The Dependabot alert API reported disabled (403); private vulnerability reporting
+was also verified disabled.
+The API reported **no rulesets**, main `protected: false`, and the main protection
+endpoint returned not found.
 This PR does not configure branch protection or account settings.
 
 Owner setup after review/merge:
@@ -114,8 +118,9 @@ Owner setup after review/merge:
    desired. The email API was inaccessible. A GitHub-signed, account-associated
    commit verified the noreply address used for repository-local future commits;
    no global Git config was changed. Historical identities remain exposed.
-4. Configure a private vulnerability reporting channel if GitHub private reporting
-   is unavailable, and decide whether historical privacy cleanup is appropriate.
+4. Enable private vulnerability reporting in repository settings, or configure a
+   private reporting channel if unavailable. Decide whether historical privacy
+   cleanup is appropriate.
 
 ## Tools and limitations
 
