@@ -59,12 +59,26 @@ class ScannerTests(unittest.TestCase):
             refused.bind(('127.0.0.1', 0))
             open_port, closed_port = server.getsockname()[1], refused.getsockname()[1]
             refused.close()
-            config = ScanConfig('127.0.0.1', (open_port, closed_port), timeout=0.5)
+            # A short deadline tests silence, not eventual refusal. Record the
+            # native code at the previous deadline, then give the integration
+            # assertion enough time for the OS to finish its refusal handling.
+            with socket.socket() as diagnostic:
+                diagnostic.settimeout(0.5)
+                started = time.monotonic()
+                code = diagnostic.connect_ex(('127.0.0.1', closed_port))
+                print(json.dumps({'loopback_refusal_diagnostic': {
+                    'platform': sys.platform, 'timeout': 0.5, 'error_code': code,
+                    'elapsed': time.monotonic() - started}}), file=sys.stderr)
+            config = ScanConfig('127.0.0.1', (open_port, closed_port), timeout=5.0)
             report = scan_target(config)
             results = {r.port: r for r in report.results}
             self.assertEqual(report.completion_status, 'complete')
             self.assertEqual(results[open_port].state, 'open')
-            self.assertEqual(results[closed_port].state, 'closed')
+            print(json.dumps({'loopback_refusal_result': {
+                'timeout': config.timeout, 'state': results[closed_port].state,
+                'reason': results[closed_port].reason, 'error_code': results[closed_port].error_code,
+                'elapsed': results[closed_port].connection_elapsed_seconds}}), file=sys.stderr)
+            self.assertEqual(results[closed_port].state, 'closed', report.to_dict())
             self.assertEqual(results[closed_port].reason, 'connection_refused')
             self.assertIsNotNone(results[closed_port].error_code)
             self.assertEqual([r.port for r in report.results], sorted(config.ports))
