@@ -5,6 +5,7 @@ import socket
 import threading
 import time
 
+from .timing import Runtime
 from .models import ResolvedTarget, ScanConfig, ScanReport, ScanResult, State, utc_now
 from .services import get_service_name
 from .banner import grab_banner_for_port
@@ -31,10 +32,10 @@ def classify_error(code: int | None) -> tuple[State, str]:
 
 
 def new_result(config: ScanConfig, resolved: ResolvedTarget | None, port: int) -> ScanResult:
-    service = get_service_name(port)
+    service = get_service_name(port) if config.method != 'udp' else None
     return ScanResult(target=config.target, resolved_ip=resolved.ip if resolved else None,
                       address_family=resolved.family if resolved else None, port=port,
-                      scan_method=config.method, service_name=service,
+                      scan_method=config.method, protocol='udp' if config.method == 'udp' else 'tcp', service_name=service if config.method != 'udp' else None,
                       detection_source='port_table' if service else None)
 
 
@@ -53,7 +54,7 @@ def scan_single_port(config: ScanConfig, resolved: ResolvedTarget, port: int,
     result = new_result(config, resolved, port)
     start = time.monotonic()
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        with socket.socket(socket.AF_INET6 if resolved.family == 'IPv6' else socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.settimeout(config.timeout)
             code = sock.connect_ex((resolved.ip, port))
             result.state, result.reason = classify_error(code)
@@ -71,10 +72,11 @@ def scan_single_port(config: ScanConfig, resolved: ResolvedTarget, port: int,
     return result
 
 
-def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None) -> ScanReport:
+def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None, *, endpoint=None, runtime=None) -> ScanReport:
     report = ScanReport(config)
     stop = cancel_event if cancel_event is not None else threading.Event()
     resolved = None
+    runtime = runtime or Runtime(config)
     pending = {}
     executor = None
 
@@ -93,12 +95,26 @@ def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None)
 
     try:
         probe = scan_single_port
-        workers = config.concurrency
-        if config.method == 'syn':
-            from ..modules.syn_scan import syn_scan_port
-            probe, workers = syn_scan_port, 1
+        workers = min(config.concurrency, config.per_host)
+        if config.method in ('syn', 'udp'):
+            from ..modules.raw_scan import raw_scan_port
+            from ..modules.transport import PacketTransport
+            probe = lambda cfg, addr, port, event: raw_scan_port(cfg, addr, port, event, runtime)
+        else:
+            original_probe = probe
+            def probe(cfg, addr, port, event):
+                from dataclasses import replace
+                runtime.limiter.acquire(event)
+                effective = replace(cfg, timeout=runtime.timeout.value()) if cfg.adaptive else cfg
+                result = original_probe(effective, addr, port, event)
+                if result.state in ('open', 'closed') and result.connection_elapsed_seconds is not None:
+                    runtime.timeout.observe(result.connection_elapsed_seconds)
+                return result
         if not stop.is_set():
-            resolved = resolve_target(config.target)
+            resolved = endpoint or resolve_target(config.target)
+            if config.method in ('syn', 'udp'):
+                with PacketTransport(resolved.ip):
+                    pass  # fail capture/privilege setup before scheduling probes
             executor = ThreadPoolExecutor(max_workers=workers)
             ports = iter(config.ports)
             exhausted = False
@@ -128,7 +144,7 @@ def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None)
     except Exception as exc:
         report.completion_status = 'failed'
         report.issues.append({'reason': 'scan_failure', 'exception_type': type(exc).__name__,
-                              'error_code': getattr(exc, 'errno', None)})
+                              'error_code': getattr(exc, 'errno', None), 'message': str(exc)[:500]})
     finally:
         if executor:
             for future in pending:

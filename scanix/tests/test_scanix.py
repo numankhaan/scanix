@@ -293,7 +293,7 @@ class InputTests(unittest.TestCase):
         for overrides in ({'ports': ()}, {'ports': (0,)}, {'ports': (True,)},
                           {'timeout': 0}, {'timeout': float('nan')}, {'timeout': float('inf')},
                           {'timeout': 301}, {'concurrency': 0}, {'concurrency': 1025},
-                          {'target': ''}, {'target': 'a\x00b'}, {'method': 'udp'},
+                          {'target': ''}, {'target': 'a\x00b'}, {'method': 'invalid'},
                           {'method': 'syn', 'banner': True}):
             with self.subTest(overrides=overrides), self.assertRaises(ValueError):
                 ScanConfig(**({'target': 'host', 'ports': (80,)} | overrides))
@@ -382,7 +382,7 @@ class CLITests(unittest.TestCase):
             self.assertEqual(scan.call_args.args[0].method, 'connect')
 
     def test_invalid_input_sends_no_traffic(self):
-        for extra in (['--syn', '--connect'], ['--udp'], ['--timeout', 'nan'],
+        for extra in (['--syn', '--connect'], ['--udp', '--connect'], ['--timeout', 'nan'],
                       ['--timeout', '-1'], ['--concurrency', '0'], ['--ports', '4-2'],
                       ['--out-file', 'x'], ['--out', 'csv', '--out-file', '-'],
                       ['--syn', '--banner']):
@@ -394,28 +394,20 @@ class CLITests(unittest.TestCase):
             scan.assert_not_called()
             resolve.assert_not_called()
 
-    def test_udp_message(self):
-        stderr = io.StringIO()
-        with redirect_stderr(stderr), self.assertRaises(SystemExit):
-            run_cli(self.args + ['--udp'])
-        self.assertIn('UDP scanning is not implemented', stderr.getvalue())
-
-    def test_syn_selection_never_connects(self):
-        # Stub Scapy module completely: no dependency or raw socket needed in CI.
-        module = types.ModuleType('scanix.modules.syn_scan')
-        def probe(config, resolved, port, stop):
-            return new_result(config, resolved, port)
-        module.syn_scan_port = MagicMock(side_effect=probe)
+    def test_raw_selection_never_connects(self):
         from scanix.core.scanner import scan_target as real_scan
-        with patch.dict(sys.modules, {'scanix.modules.syn_scan': module}), \
-             patch('scanix.cli.scan_target', side_effect=real_scan), \
-             patch('scanix.core.scanner.resolve_target', return_value=ResolvedTarget('127.0.0.1')), \
-             patch('scanix.core.scanner.scan_single_port') as connect, \
-             redirect_stderr(io.StringIO()), redirect_stdout(io.StringIO()):
-            code = run_cli(self.args + ['--syn'])
-        self.assertEqual(code, 0)
-        connect.assert_not_called()
-        self.assertEqual(module.syn_scan_port.call_count, 3)
+        for method in ('syn', 'udp'):
+            with patch('scanix.cli.scan_target', side_effect=real_scan), \
+                 patch('scanix.core.scanner.resolve_target', return_value=ResolvedTarget('127.0.0.1')), \
+                 patch('scanix.modules.transport.PacketTransport') as transport, \
+                 patch('scanix.modules.raw_scan.raw_scan_port', side_effect=lambda c, r, p, e, rt: new_result(c, r, p)) as probe, \
+                 patch('scanix.core.scanner.scan_single_port') as connect, \
+                 redirect_stderr(io.StringIO()), redirect_stdout(io.StringIO()):
+                code = run_cli(self.args + ['--' + method])
+            self.assertEqual(code, 0)
+            connect.assert_not_called()
+            transport.assert_called_once()
+            self.assertEqual(probe.call_count, 3)
 
     def test_missing_syn_dependency(self):
         with patch.dict(sys.modules, {'scanix.modules.syn_scan': None}), \
@@ -514,7 +506,7 @@ with patch('scanix.core.scanner.resolve_target', return_value=ResolvedTarget('12
 
     def test_entrypoint_exit_code(self):
         result = subprocess.run([sys.executable, '-B', '-m', 'scanix', 'scan', '-t',
-                                 '127.0.0.1', '-p', '80', '--udp'],
+                                 '127.0.0.1', '-p', '80', '--udp', '--connect'],
                                 cwd=Path(__file__).resolve().parents[2], capture_output=True, text=True)
         self.assertEqual(result.returncode, 2)
         self.assertNotIn('Traceback', result.stderr)

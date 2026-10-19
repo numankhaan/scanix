@@ -23,7 +23,7 @@ def build_parser():
     methods.add_argument('--syn', dest='method', action='store_const', const='syn',
                          help='experimental Scapy SYN; requires privileges, limited accuracy')
     scan.set_defaults(method='connect')
-    scan.add_argument('--udp', action='store_true', help='unsupported; exits with code 2')
+    methods.add_argument('--udp', dest='method', action='store_const', const='udp', help='protocol-aware UDP; requires raw capture privileges')
     scan.add_argument('--banner', action='store_true', help='best-effort plaintext banner evidence')
     scan.add_argument('--timeout', type=float, default=1.0, help='connection timeout seconds (0, 300]')
     scan.add_argument('--concurrency', type=int, default=100, help='outstanding tasks/workers (1–1024)')
@@ -37,8 +37,6 @@ def build_parser():
 
 
 def _run_scan(parser, args):
-    if args.udp:
-        parser.error('UDP scanning is not implemented; use TCP connect scanning')
     if args.out_file and not args.out:
         parser.error('--out-file requires --out')
     if args.out_file == '-' and args.out != 'json':
@@ -49,14 +47,12 @@ def _run_scan(parser, args):
     except ValueError as exc:
         parser.error(str(exc))
     # Dependency validation precedes resolution or traffic.
-    if config.method == 'syn':
+    if config.method in ('syn', 'udp'):
         try:
-            importlib.import_module('.modules.syn_scan', __package__)
+            importlib.import_module(f'.modules.{config.method}_scan', __package__)
         except ImportError:
-            print('SYN requires the optional scapy dependency: pip install scapy', file=sys.stderr)
+            print('Raw scans require Scapy: pip install scapy', file=sys.stderr)
             return 1
-        print('Warning: experimental SYN does not meet Phase 1 TCP accuracy guarantees; '
-              'concurrency is fixed at 1.', file=sys.stderr)
     stop = threading.Event()
     previous_handler = signal.signal(signal.SIGINT, lambda *_: stop.set())
     try:
@@ -77,7 +73,7 @@ def _run_scan(parser, args):
             for result in report.results:
                 # JSON quoting prevents untrusted target text from emitting terminal controls.
                 print(f'{json.dumps(result.target, ensure_ascii=True)} '
-                      f'{result.resolved_ip or "unknown"}:{result.port}/tcp '
+                      f'{result.resolved_ip or "unknown"}:{result.port}/{result.protocol} '
                       f'{result.state} ({result.reason})')
     except (OSError, ValueError, TypeError) as exc:
         print(f'Output failed: {exc}', file=sys.stderr)
