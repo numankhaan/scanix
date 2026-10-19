@@ -17,7 +17,7 @@ MAX_BYTES = 16 * 1024 * 1024
 RUN_KEY = os.urandom(32)
 RULES = {
     'home-path': r'(?:/Users/|/home/|[A-Za-z]:\\Users\\)[A-Za-z0-9][A-Za-z0-9_.-]*',
-    'email-review': r'[A-Za-z0-9_.+%-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}',
+    'email-review': r'(?<![A-Za-z0-9_.+%-])[A-Za-z0-9_.+%-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63}',
     'authenticated-url': r'https?://[^\s/<>\x22\x27]+@[^\s/<>\x22\x27]+',
     'phone-review': r'(?i)(?:phone|mobile|telephone)\s*[:=]\s*\+?[0-9][0-9 ()-]{7,}[0-9]',
 }
@@ -94,9 +94,27 @@ def fixture_ok(path, data, rule='private-key'):
 def file_findings(path, data, ref):
     result = privacy(data, path, ref)
     name = Path(path).name.lower()
-    forbidden = (path.startswith('.security-private/') or name == '.env' or name.startswith('.env.') or
+    forbidden = (path.startswith('.security-private/') or '.env' in Path(path).parts or name == '.env' or name.startswith('.env.') or
+                 name in ('.netrc', '.pypirc', '.npmrc', 'cookies.txt', 'credentials.json', 'terraform.tfstate') or
                  Path(path).suffix.lower() in ('.key', '.p12', '.pfx', '.pcap', '.pcapng', '.har', '.sqlite', '.sqlite3', '.db', '.log', '.pyc', '.pdf', '.docx', '.odt', '.xlsx', '.pptx') or
                  name in ('scan_results.json', 'scan_results.csv', 'scan_results.html'))
+    report = False
+    if data.lstrip().startswith(b'{'):
+        try:
+            value = json.loads(data)
+            report = isinstance(value, dict) and (
+                {'configuration', 'results', 'completion_status'} <= value.keys() or
+                {'hosts', 'scope', 'completion_status'} <= value.keys())
+        except (ValueError, RecursionError):
+            # This is a narrow shape detector, not a claim to validate all JSON.
+            report = False
+    header = data.split(b'\n', 1)[0]
+    report = report or (header.startswith(b'record_type,') and b'resolved_ip' in header)
+    report = report or (data.lstrip().lower().startswith(b'<!doctype html') and
+                        b'&quot;configuration&quot;' in data and b'<th>resolved_ip</th>' in data)
+    if report:
+        result.append({'category': 'scan-report-review', 'severity': 'review',
+                       'file': safe_path(path), 'ref': ref, 'line': 1})
     if (forbidden or b'\0' in data) and not fixture_ok(path, data):
         result.append({'category': 'forbidden-file-review', 'severity': 'review', 'file': safe_path(path), 'ref': ref, 'line': 1})
     return result
@@ -268,9 +286,12 @@ def main(argv=None):
             print(json.dumps(finding, sort_keys=True))
         print(f'security gate: {len(findings)} unapproved findings')
         return 1 if findings else 0
-    except (ScanError, OSError, ValueError, KeyError) as error:
+    except (ScanError, OSError, ValueError, KeyError, TypeError, RecursionError):
         print('security gate: scanner/configuration failure; review privately', file=sys.stderr)
         return 2
+    except KeyboardInterrupt:
+        print('security gate interrupted; no clean result', file=sys.stderr)
+        return 130
 
 
 if __name__ == '__main__':

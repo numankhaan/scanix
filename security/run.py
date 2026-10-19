@@ -99,6 +99,6 @@ def main():
 if __name__ == '__main__':
     try:
         sys.exit(main())
-    except (RuntimeError, OSError, ValueError, KeyError, subprocess.TimeoutExpired):
+    except (RuntimeError, OSError, ValueError, KeyError, TypeError, AttributeError, RecursionError, subprocess.TimeoutExpired):
         print('security check failed to run; no clean result', file=sys.stderr)
         sys.exit(2)

@@ -41,7 +41,9 @@ none exists. Never use the committed test keys outside disposable loopback tests
 
 Privacy patterns flag personal home paths, nonpublic email candidates, labeled
 phone candidates, authenticated URLs, environment files, capture/report/database
-and credential containers, bytecode and unreviewed binaries/documents. IP addresses
+and credential containers, bytecode and unreviewed binaries/documents. Scanix
+JSON/CSV/HTML report shapes are flagged independently of the export filename.
+Default email regex lengths are bounded, with a long-input regression. IP addresses
 and names are **not** automatically classified as private. Reserved fixture email
 domains and GitHub's generated noreply identities have documented public purposes.
 Other public project identities require explicit review; do not blanket-allow a

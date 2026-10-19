@@ -117,3 +117,14 @@ separate history plan. Privileged macOS/BPF validation remains explicitly incomp
 TLS fixture follow-up: full local rerun **121 tests, 119 passed/two privileged
 skips**, and all 14 then-current gate tests passed. Missing test budget fixed;
 no assertions weakened. The earlier failed run remains recorded above.
+
+Additional prevention: Scanix JSON/CSV/HTML export shapes are detected regardless
+of filename, common credential containers/environment directories are flagged,
+email candidate matching is bounded and malformed scanner results fail safely.
+A one-megabyte adversarial-text regression checks scanner progress. Gates now have
+16 tests. Local hooks accept an explicit Python launcher override for Windows.
+
+TLS-floor CI at `4e3a00a`: CodeQL push `39304016664` and PR `39304056735`
+passed; Security push `39304016596` and PR `39304056684` passed. Tests push
+`39304016584` and PR `39304056633` failed on the recorded incomplete test budget.
+The subsequent fixture correction is local `9f6caee`, with the passing rerun above.

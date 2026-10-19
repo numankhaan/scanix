@@ -52,6 +52,6 @@ def main():
 if __name__ == '__main__':
     try:
         sys.exit(main())
-    except (OSError, ValueError, KeyError, TypeError):
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, RecursionError):
         print('CodeQL report redaction failed; no upload/clean result', file=sys.stderr)
         sys.exit(2)

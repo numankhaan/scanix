@@ -31,7 +31,8 @@ python -B -m unittest discover -s scanix/tests -v
 The hooks cover all worktrees sharing this Git configuration; an absolute hooksPath
 continues to locate the reviewed tools, while scanning the invoking worktree.
 Keep the hook worktree available. CI does not depend on local hook installation.
-On Windows use `python` rather than `python3` where appropriate; CI security jobs
+On Windows set `SCANIX_SECURITY_PYTHON=python` for the hooks if the interpreter
+is named `python`; use `python` in the manual commands too. CI security jobs
 run on Linux, while the regular regression matrix retains Windows/macOS coverage.
 
 Full history: `python security/check.py history --secrets-only` must pass. The

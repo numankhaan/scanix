@@ -35,9 +35,11 @@ review of main and all locally fetched history. Do not merge the security PR.
   Local 121-test run: one fixture error/two skips, not passing. Follow-up supplies
   the missing budget; no assertion removed. Uncommitted: fixture/audit/checkpoint,
   rerun passed: 121 regressions (119 pass/two privileged skips), 14 gate tests.
-  Fixture correction ready to commit. Additional report-shape prevention is
-  separately uncommitted, with tests being validated.
-- Next: validate/commit/push the TLS floor fix; inspect fresh CodeQL and all checks,
-  then update audit/checkpoint/PR with actual final results.
+  Fixture correction ready to commit. Fixture correction committed as `9f6caee`, local tests passed.
+  Additional report-shape/bounded-matching prevention remains uncommitted.
+- CodeQL push/PR on `4e3a00a` passed (`39304016664`/`39304056735`); Security
+  also passed. Tests failed from the recorded fixture error; corrected above.
+- Next: validate/commit report/prevention improvements, push with the validated
+  fixture correction, inspect all fresh CI, update PR/audit/checkpoint.
   Do not merge #8, do not resume feature work.
 - Privileged macOS/BPF validation remains incomplete. No public targets tested.

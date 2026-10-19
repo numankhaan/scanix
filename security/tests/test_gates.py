@@ -56,6 +56,23 @@ class PrivacyTests(unittest.TestCase):
             self.assertTrue(any(item['category'] == category for item in found))
             self.assertTrue(sample not in json.dumps(found), 'sample leaked')
 
+    def test_long_untrusted_text_has_bounded_email_matching(self):
+        code = "import runpy; m=runpy.run_path(" + repr(str(ROOT/'security/check.py')) + "); assert not m['privacy'](b'A'*1000000, 'synthetic.txt')"
+        try:
+            proc = subprocess.run(['python3', '-c', code], capture_output=True, timeout=10)
+        except subprocess.TimeoutExpired:
+            self.fail('privacy scan exceeded bounded input test deadline')
+        self.assertEqual(proc.returncode, 0, 'long-text privacy scan failed')
+
+    def test_reports_detected_independently_of_filename(self):
+        payload = json.dumps({'configuration': {}, 'results': [], 'completion_status': 'complete'}).encode()
+        self.assertTrue(any(x['category'] == 'scan-report-review' for x in check.file_findings('arbitrary.json', payload, 'tree')))
+        csv = b'record_type,target,resolved_ip,port\nresult,localhost,127.0.0.1,22\n'
+        self.assertTrue(any(x['category'] == 'scan-report-review' for x in check.file_findings('arbitrary.csv', csv, 'tree')))
+        html = b'<!doctype html><pre>&quot;configuration&quot;: {}</pre><th>resolved_ip</th>'
+        self.assertTrue(any(x['category'] == 'scan-report-review' for x in check.file_findings('arbitrary.html', html, 'tree')))
+        self.assertEqual(check.file_findings('database.json', b'{"schema_version":1,"probes":[]}', 'tree'), [])
+
     def test_precise_key_exceptions(self):
         path = 'scanix/tests/fixtures/tls/ca-TEST-ONLY.key'
         data = (ROOT/path).read_bytes()
