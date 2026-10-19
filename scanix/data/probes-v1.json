@@ -1,0 +1,332 @@
+{
+  "schema_version": 1,
+  "database_version": "1.0.0",
+  "license": "CC0-1.0",
+  "probes": [
+    {
+      "id": "http.tcp.v1",
+      "protocol": "http",
+      "transport": "tcp",
+      "payload_strategy": "http_head",
+      "parser_id": "http_v1",
+      "response_limit": 4096,
+      "ports": [
+        80,
+        8080,
+        8000
+      ],
+      "matchers": [
+        "http.server.v1",
+        "http.response.v1"
+      ],
+      "fallbacks": [
+        "tls.tcp.v1"
+      ]
+    },
+    {
+      "id": "tls.tcp.v1",
+      "protocol": "tls",
+      "transport": "tls",
+      "payload_strategy": "tls",
+      "parser_id": "tls_v1",
+      "response_limit": 4096,
+      "ports": [
+        443,
+        8443,
+        465,
+        993,
+        995
+      ],
+      "matchers": [
+        "tls.response.v1"
+      ],
+      "fallbacks": [
+        "http.tcp.v1"
+      ]
+    },
+    {
+      "id": "ssh.tcp.v1",
+      "protocol": "ssh",
+      "transport": "tcp",
+      "payload_strategy": "greeting",
+      "parser_id": "ssh_v1",
+      "response_limit": 4096,
+      "ports": [
+        22
+      ],
+      "matchers": [
+        "ssh.openssh.v1",
+        "ssh.response.v1"
+      ],
+      "fallbacks": []
+    },
+    {
+      "id": "ftp.tcp.v1",
+      "protocol": "ftp",
+      "transport": "tcp",
+      "payload_strategy": "ftp_feat",
+      "parser_id": "ftp_v1",
+      "response_limit": 4096,
+      "ports": [
+        21
+      ],
+      "matchers": [
+        "ftp.vsftpd.v1",
+        "ftp.response.v1"
+      ],
+      "fallbacks": [
+        "smtp.tcp.v1"
+      ]
+    },
+    {
+      "id": "smtp.tcp.v1",
+      "protocol": "smtp",
+      "transport": "tcp",
+      "payload_strategy": "smtp_ehlo",
+      "parser_id": "smtp_v1",
+      "response_limit": 4096,
+      "ports": [
+        25,
+        587
+      ],
+      "matchers": [
+        "smtp.postfix.v1",
+        "smtp.response.v1"
+      ],
+      "fallbacks": [
+        "ftp.tcp.v1"
+      ]
+    },
+    {
+      "id": "pop3.tcp.v1",
+      "protocol": "pop3",
+      "transport": "tcp",
+      "payload_strategy": "pop3_capa",
+      "parser_id": "pop3_v1",
+      "response_limit": 4096,
+      "ports": [
+        110
+      ],
+      "matchers": [
+        "pop3.dovecot.v1",
+        "pop3.response.v1"
+      ],
+      "fallbacks": []
+    },
+    {
+      "id": "imap.tcp.v1",
+      "protocol": "imap",
+      "transport": "tcp",
+      "payload_strategy": "imap_capability",
+      "parser_id": "imap_v1",
+      "response_limit": 4096,
+      "ports": [
+        143
+      ],
+      "matchers": [
+        "imap.dovecot.v1",
+        "imap.response.v1"
+      ],
+      "fallbacks": []
+    },
+    {
+      "id": "dns.udp.v1",
+      "protocol": "dns",
+      "transport": "udp",
+      "payload_strategy": "dns_minimal",
+      "parser_id": "dns_v1",
+      "response_limit": 4096,
+      "ports": [
+        53
+      ],
+      "matchers": [
+        "dns.response.v1"
+      ],
+      "fallbacks": [
+        "ntp.udp.v1"
+      ]
+    },
+    {
+      "id": "ntp.udp.v1",
+      "protocol": "ntp",
+      "transport": "udp",
+      "payload_strategy": "ntp_client",
+      "parser_id": "ntp_v1",
+      "response_limit": 4096,
+      "ports": [
+        123
+      ],
+      "matchers": [
+        "ntp.response.v1"
+      ],
+      "fallbacks": [
+        "dns.udp.v1"
+      ]
+    },
+    {
+      "id": "smtp.starttls.v1",
+      "protocol": "tls",
+      "transport": "tls",
+      "payload_strategy": "smtp_starttls",
+      "parser_id": "tls_v1",
+      "response_limit": 4096,
+      "ports": [
+        25,
+        587
+      ],
+      "matchers": [
+        "tls.response.v1"
+      ],
+      "fallbacks": []
+    },
+    {
+      "id": "pop3.starttls.v1",
+      "protocol": "tls",
+      "transport": "tls",
+      "payload_strategy": "pop3_stls",
+      "parser_id": "tls_v1",
+      "response_limit": 4096,
+      "ports": [
+        110
+      ],
+      "matchers": [
+        "tls.response.v1"
+      ],
+      "fallbacks": []
+    },
+    {
+      "id": "imap.starttls.v1",
+      "protocol": "tls",
+      "transport": "tls",
+      "payload_strategy": "imap_starttls",
+      "parser_id": "tls_v1",
+      "response_limit": 4096,
+      "ports": [
+        143
+      ],
+      "matchers": [
+        "tls.response.v1"
+      ],
+      "fallbacks": []
+    }
+  ],
+  "signatures": [
+    {
+      "id": "http.server.v1",
+      "protocol": "http",
+      "field": "server",
+      "parser_id": "http_v1",
+      "pattern": "^(?P<product>[A-Za-z][A-Za-z0-9_-]{0,63})/(?P<version>[0-9][A-Za-z0-9.+_-]{0,63})$"
+    },
+    {
+      "id": "ssh.openssh.v1",
+      "protocol": "ssh",
+      "field": "software",
+      "parser_id": "ssh_v1",
+      "product": "OpenSSH",
+      "pattern": "^OpenSSH_(?P<version>[0-9][A-Za-z0-9.+_-]{0,63})$"
+    },
+    {
+      "id": "ftp.vsftpd.v1",
+      "protocol": "ftp",
+      "field": "greeting",
+      "parser_id": "ftp_v1",
+      "product": "vsFTPd",
+      "pattern": "^220 \\(vsFTPd (?P<version>[0-9][0-9.]{0,31})\\)$"
+    },
+    {
+      "id": "smtp.postfix.v1",
+      "protocol": "smtp",
+      "field": "greeting",
+      "parser_id": "smtp_v1",
+      "product": "Postfix",
+      "pattern": "^220 [A-Za-z0-9.-]{1,128} ESMTP Postfix$"
+    },
+    {
+      "id": "pop3.dovecot.v1",
+      "protocol": "pop3",
+      "field": "greeting",
+      "parser_id": "pop3_v1",
+      "product": "Dovecot",
+      "pattern": "^\\+OK Dovecot ready\\.$"
+    },
+    {
+      "id": "imap.dovecot.v1",
+      "protocol": "imap",
+      "field": "greeting",
+      "parser_id": "imap_v1",
+      "product": "Dovecot",
+      "pattern": "^\\* OK Dovecot ready\\.$"
+    },
+    {
+      "id": "dns.response.v1",
+      "protocol": "dns",
+      "field": "wire",
+      "parser_id": "dns_v1"
+    },
+    {
+      "id": "ntp.response.v1",
+      "protocol": "ntp",
+      "field": "wire",
+      "parser_id": "ntp_v1"
+    },
+    {
+      "id": "http.response.v1",
+      "protocol": "http",
+      "field": "wire",
+      "parser_id": "http_v1"
+    },
+    {
+      "id": "ssh.response.v1",
+      "protocol": "ssh",
+      "field": "wire",
+      "parser_id": "ssh_v1"
+    },
+    {
+      "id": "ftp.response.v1",
+      "protocol": "ftp",
+      "field": "wire",
+      "parser_id": "ftp_v1"
+    },
+    {
+      "id": "smtp.response.v1",
+      "protocol": "smtp",
+      "field": "wire",
+      "parser_id": "smtp_v1"
+    },
+    {
+      "id": "pop3.response.v1",
+      "protocol": "pop3",
+      "field": "wire",
+      "parser_id": "pop3_v1"
+    },
+    {
+      "id": "imap.response.v1",
+      "protocol": "imap",
+      "field": "wire",
+      "parser_id": "imap_v1"
+    },
+    {
+      "id": "tls.response.v1",
+      "protocol": "tls",
+      "field": "wire",
+      "parser_id": "tls_v1"
+    }
+  ],
+  "sensitivity_exclusions": [
+    {
+      "ports": [
+        9100,
+        9101,
+        9102,
+        9103,
+        9104,
+        9105,
+        9106,
+        9107,
+        515
+      ],
+      "reason": "printing or spooler endpoint; active probes may print data"
+    }
+  ]
+}

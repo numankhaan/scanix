@@ -90,3 +90,16 @@ Linux validation does not establish macOS privileged backend behavior.
 See [CI_WINDOWS.md](CI_WINDOWS.md) for exact CI failure evidence and the fixes.
 Protocol/tool references: [unshare](https://www.man7.org/linux/man-pages/man1/unshare.1.html)
 and [iptables REJECT](https://www.man7.org/linux/man-pages/man8/iptables-extensions.8.html).
+
+## Unprivileged Phase 3 service lab
+
+The independent service driver uses ephemeral loopback HTTP/TLS endpoints and the
+real CLI, without raw privileges or external targets:
+
+```sh
+python -B validation/service_lab.py --output /tmp/scanix-service-evidence.json
+```
+
+See [service validation results](SERVICE_RESULTS.md) for actual local/CI outcomes,
+TLS fixtures, expected/observed states and remaining limitations. It does not replace
+the optional privileged packet-capture validation above.

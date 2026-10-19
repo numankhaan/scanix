@@ -1,0 +1,14 @@
+[
+ {"signature":"http.server.v1","protocol":"http","positive":"HTTP/1.1 200 OK\r\nServer: ExampleHTTP/2.4\r\n\r\n","negative":"HTTP/1.1 200 OK\r\nServer: no-version\r\n\r\n"},
+ {"signature":"ssh.openssh.v1","protocol":"ssh","positive":"SSH-2.0-OpenSSH_9.7\r\n","negative":"SSH-2.0-OtherSSH\r\n"},
+ {"signature":"ftp.vsftpd.v1","protocol":"ftp","positive":"220 (vsFTPd 3.0.5)\r\n","negative":"220 OtherFTP\r\n"},
+ {"signature":"smtp.postfix.v1","protocol":"smtp","positive":"220 lab.invalid ESMTP Postfix\r\n","negative":"220 lab.invalid ESMTP Other\r\n"},
+ {"signature":"pop3.dovecot.v1","protocol":"pop3","positive":"+OK Dovecot ready.\r\n","negative":"+OK other ready.\r\n"},
+ {"signature":"imap.dovecot.v1","protocol":"imap","positive":"* OK Dovecot ready.\r\n","negative":"* OK other ready.\r\n"},
+ {"signature":"http.response.v1","protocol":"http","positive":"HTTP/1.0 404 Missing\r\n\r\n","negative":"HTTP/2 200\r\n\r\n"},
+ {"signature":"ssh.response.v1","protocol":"ssh","positive":"SSH-2.0-Example\r\n","negative":"SSH-2.0-Example"},
+ {"signature":"ftp.response.v1","protocol":"ftp","positive":"220 ExampleFTP ready\r\n","negative":"220 ready\r\n"},
+ {"signature":"smtp.response.v1","protocol":"smtp","positive":"220 lab.invalid ESMTP ready\r\n","negative":"220 ready\r\n"},
+ {"signature":"pop3.response.v1","protocol":"pop3","positive":"+OK lab ready\r\n","negative":"-ERR refused\r\n"},
+ {"signature":"imap.response.v1","protocol":"imap","positive":"* OK lab ready\r\n","negative":"* NO refused\r\n"}
+]

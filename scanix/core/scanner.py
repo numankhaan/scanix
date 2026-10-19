@@ -74,7 +74,7 @@ def scan_single_port(config: ScanConfig, resolved: ResolvedTarget, port: int,
     return result
 
 
-def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None, *, endpoint=None, runtime=None, progress=None) -> ScanReport:
+def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None, *, endpoint=None, runtime=None, progress=None, originals=None) -> ScanReport:
     report = ScanReport(config)
     report.scope = {'effective_rate': config.rate or {'connect': 100, 'syn': 10, 'udp': 1}[config.method],
                     'effective_per_host': min(config.concurrency, config.per_host),
@@ -169,6 +169,19 @@ def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None,
             executor.shutdown(wait=True, cancel_futures=True)
             for future, port in pending.items():
                 record(future, port)
+        if originals:
+            for result in report.results:
+                result.original_targets = originals
+        if config.service_detect:
+            from ..service.engine import enrich_results, policy
+            from ..service.registry import load_registry
+            try:
+                report.probe_database_version = load_registry().version
+                report.scope['service_detection'] = policy(config)
+                enrich_results(report.results, config, stop, runtime)
+            except Exception as exc:
+                report.issues.append({'reason': 'enrichment_failure', 'exception_type': type(exc).__name__})
+                report.completion_status = 'failed'
         if stop.is_set():
             report.completion_status = 'interrupted'
         elif any(r.reason in ('permission_denied', 'resource_exhausted', 'worker_exception')
