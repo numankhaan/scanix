@@ -67,3 +67,10 @@ class RegistryTests(unittest.TestCase):
             ('imap','capability',b'* CAPABILITY IMAP4rev1 STARTTLS\r\na001 OK done\r\n')):
             self.assertEqual(identify(protocol,data,'fixture',command=command).confidence,'protocol')
             self.assertIsNone(identify(protocol,data[:-2],'fixture',command=command))
+
+    def test_invalid_database_shapes_and_duplicate_ids(self):
+        source=Path(__file__).parents[1]/'data'/'probes-v1.json'
+        base=json.loads(source.read_text())
+        for malformed in (None, [], {}, {**base,'schema_version':True}, {**base,'database_version':None}, {**base,'probes':[None]},
+                          {**base,'probes':base['probes']+[base['probes'][0]]}):
+            with self.subTest(value=str(malformed)[:50]),self.assertRaises(ValueError):validate(malformed)

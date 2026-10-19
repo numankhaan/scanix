@@ -21,9 +21,9 @@ TLS=Path(__file__).with_name('fixtures')/'tls'
 
 
 @contextmanager
-def lab(handler, certificate=None, names=None):
+def lab(handler, certificate=None, names=None, family=socket.AF_INET):
     """Ephemeral loopback listener only; bounded clients and timeout on every I/O."""
-    listener=socket.socket();listener.bind(('127.0.0.1',0));listener.listen(8);listener.settimeout(.05)
+    listener=socket.socket(family,socket.SOCK_STREAM);listener.bind(('::1' if family==socket.AF_INET6 else '127.0.0.1',0));listener.listen(8);listener.settimeout(.05)
     port=listener.getsockname()[1];stop=threading.Event();children=[];errors=[]
     context=None
     if certificate:
@@ -64,9 +64,9 @@ def lab(handler, certificate=None, names=None):
             raise errors[0]
 
 
-def detect(port, **options):
-    config=ScanConfig('127.0.0.1',(port,),service_detect=True,rate=10000,**options)
-    result=ScanResult('127.0.0.1','127.0.0.1','IPv4',port,state='open',original_targets=('127.0.0.1',))
+def detect(port, address='127.0.0.1', **options):
+    config=ScanConfig(address,(port,),service_detect=True,rate=10000,**options)
+    result=ScanResult(address,address,'IPv6' if ':' in address else 'IPv4',port,state='open',original_targets=(address,))
     Detector(result,config,threading.Event(),Runtime(config)).run()
     return result.service_detection
 
@@ -376,3 +376,69 @@ class ResourceAndReportTests(unittest.TestCase):
         with detector.session() as session,self.assertRaises(BudgetExceeded):session.send(b'x')
         detector.report.bytes_received=8192
         with detector.session() as session,self.assertRaises(BudgetExceeded):session.receive(1)
+
+    def test_fragmented_ssh_preamble_and_smtp_multiline(self):
+        def ssh(sock):
+            sock.sendall(b'Local lab notice\r\n');time.sleep(.02);sock.sendall(b'SSH-2.0-OpenSSH_9.7\r\n')
+        with lab(ssh) as port:
+            report=detect(port)
+        self.assertEqual(report.observations[-1].service,'ssh')
+        seen=[]
+        def smtp(sock):
+            sock.sendall(b'220-lab.invalid ESMTP Postfix\r\n');time.sleep(.02)
+            sock.sendall(b'220 ready\r\n');seen.append(sock.recv(1024));sock.sendall(b'250 HELP\r\n')
+        with lab(smtp) as port:
+            report=detect(port,service_profile='deep')
+        self.assertEqual(report.observations[-1].confidence,'protocol')
+        self.assertEqual(seen,[b'EHLO scanix.invalid\r\n'])
+
+    def test_ntp_deep_fallback_and_quick_udp_budget(self):
+        sock=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);sock.bind(('127.0.0.1',0));sock.settimeout(.05)
+        stop=threading.Event();requests=[]
+        def respond():
+            while not stop.is_set():
+                try:data,address=sock.recvfrom(512)
+                except socket.timeout:continue
+                requests.append(data)
+                if len(data)==48 and data[0]&7==3:
+                    reply=bytearray(48);reply[0]=0x24;reply[24:32]=data[40:48];sock.sendto(reply,address)
+        thread=threading.Thread(target=respond);thread.start()
+        try:
+            for profile,count,service in (('quick',1,None),('deep',2,'ntp')):
+                config=ScanConfig('127.0.0.1',(sock.getsockname()[1],),method='udp',service_detect=True,service_profile=profile,rate=10000)
+                result=ScanResult('lab','127.0.0.1','IPv4',config.ports[0],protocol='udp',state='open')
+                report=Detector(result,config,threading.Event(),Runtime(config)).run()
+                self.assertEqual(report.attempts,count)
+                self.assertEqual(report.observations[-1].service if report.observations else None,service)
+            self.assertEqual([len(r) for r in requests], [32,32,48])
+        finally:
+            stop.set();thread.join(2);sock.close()
+
+    def test_ipv6_tls_ip_san(self):
+        if not socket.has_ipv6:
+            self.skipTest('IPv6 is unavailable on this platform')
+        try:
+            check=socket.socket(socket.AF_INET6,socket.SOCK_STREAM)
+            with check:check.bind(('::1',0))
+        except OSError as exc:
+            self.skipTest('IPv6 loopback unavailable: '+str(exc))
+        names=[]
+        with lab(http,'trusted',names,family=socket.AF_INET6) as port:
+            report=detect(port,address='::1',tls_ca_file=str(TLS/'ca.pem'))
+        self.assertEqual(report.tls[0].verification,'verified')
+        self.assertEqual(report.tls[0].verification_name,'::1')
+        self.assertEqual(names,[None])
+        self.assertEqual(report.observations[-1].service,'http')
+
+    def test_tls_alone_does_not_claim_https_and_all_operations_are_paced(self):
+        class Counter:
+            count=0
+            def acquire(self,stop,*,deadline=None):self.count+=1
+        limiter=Counter()
+        def raw_tls(sock):sock.recv(1024)
+        with lab(raw_tls,'trusted') as port:
+            config=ScanConfig('127.0.0.1',(port,),service_detect=True,tls_ca_file=str(TLS/'ca.pem'))
+            result=ScanResult('127.0.0.1','127.0.0.1','IPv4',port,state='open')
+            report=Detector(result,config,threading.Event(),Runtime(config,limiter)).run()
+        self.assertEqual([o.service for o in report.observations],['tls'])
+        self.assertEqual(limiter.count,report.attempts+report.transmissions)

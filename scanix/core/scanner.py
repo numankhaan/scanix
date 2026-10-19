@@ -175,9 +175,9 @@ def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None,
         if config.service_detect:
             from ..service.engine import enrich_results, policy
             from ..service.registry import load_registry
-            report.probe_database_version = load_registry().version
-            report.scope['service_detection'] = policy(config)
             try:
+                report.probe_database_version = load_registry().version
+                report.scope['service_detection'] = policy(config)
                 enrich_results(report.results, config, stop, runtime)
             except Exception as exc:
                 report.issues.append({'reason': 'enrichment_failure', 'exception_type': type(exc).__name__})

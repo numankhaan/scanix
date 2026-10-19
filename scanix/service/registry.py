@@ -80,10 +80,10 @@ class Registry:
         return None
 
 
-def validate(data):
+def _validate(data):
     if not isinstance(data, dict):
         raise ValueError('probe database must be an object')
-    if set(data) != {'schema_version', 'database_version', 'license', 'probes', 'signatures', 'sensitivity_exclusions'} or data['schema_version'] != 1:
+    if set(data) != {'schema_version', 'database_version', 'license', 'probes', 'signatures', 'sensitivity_exclusions'} or type(data['schema_version']) is not int or data['schema_version'] != 1:
         raise ValueError('unknown probe database schema')
     if not isinstance(data['database_version'],str) or not re.fullmatch(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', data['database_version']) or data['license'] != 'CC0-1.0':
         raise ValueError('invalid probe database version/license')
@@ -133,6 +133,8 @@ def validate(data):
             raise ValueError('invalid signature parser/protocol')
         if 'product' in signature and (not isinstance(signature['product'],str) or not re.fullmatch(r'[A-Za-z0-9 ._/-]{1,64}',signature['product'])):
             raise ValueError('invalid product label')
+        if signature['parser_id'] != signature['protocol']+'_v1':
+            raise ValueError('signature parser must match protocol')
         if signature['field'] not in ('server', 'software', 'greeting', 'wire'):
             raise ValueError('unknown signature field')
         if 'pattern' in signature:
@@ -148,6 +150,13 @@ def validate(data):
         if any(type(port) is not int or not 1 <= port <= 65535 for port in item['ports']):
             raise ValueError('invalid excluded port')
     return Registry(data['database_version'], probes, signatures, tuple(exclusions), compiled)
+
+
+def validate(data):
+    try:
+        return _validate(data)
+    except (KeyError, TypeError, AttributeError) as exc:
+        raise ValueError('malformed probe database value') from exc
 
 
 @lru_cache(maxsize=1)

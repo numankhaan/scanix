@@ -54,6 +54,8 @@ def protocol_response(protocol, data, *, request=None, command=None, tls_handsha
                 return {'protocol_version':match[1],'software':match[2]}
         return None
     if protocol == 'smtp':
+        if command is None and first.startswith('220-') and (not text.endswith('\r\n') or not lines[-2].startswith('220 ')):
+            return None
         if command == 'ehlo':
             if len(lines)<2 or not lines[-2].startswith('250 ') or any(not line.startswith(('250-','250 ')) for line in lines[:-1]):
                 return None

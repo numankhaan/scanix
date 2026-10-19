@@ -6,7 +6,7 @@ import ssl
 import time
 
 from .models import DetectionReport, TLSEvidence
-from .parsers import clean, greeting_protocol, identify
+from .parsers import clean, greeting_protocol, identify, protocol_response
 from .registry import load_registry
 from .transport import BudgetExceeded, Session
 from ..core.udp_protocols import udp_payload
@@ -135,7 +135,7 @@ class Detector:
         if ':' in host:
             host = '['+host+']'
         session.send(('HEAD / HTTP/1.1\r\nHost: '+host+'\r\nConnection: close\r\nUser-Agent: Scanix/3\r\n\r\n').encode('ascii'))
-        return self.add('http', session.receive(4096), tls=tls)
+        return self.add('http', session.receive(4096, complete=lambda data: protocol_response('http', data) is not None), tls=tls)
 
     def capabilities(self, session, protocol, tls=False):
         commands = {'smtp': (b'EHLO scanix.invalid\r\n','ehlo'), 'ftp': (b'FEAT\r\n','feat'),
@@ -144,7 +144,7 @@ class Detector:
         strategy_protocol = {'smtp_ehlo':'smtp','ftp_feat':'ftp','pop3_capa':'pop3','imap_capability':'imap'}[probe['payload_strategy']]
         payload, command = commands[strategy_protocol]
         session.send(payload)
-        data = session.receive(4096)
+        data = session.receive(probe['response_limit'], complete=lambda data: protocol_response(protocol, data, command=command) is not None)
         observation = self.add(protocol, data, command=command, tls=tls)
         if not observation or not self.config.starttls or tls or protocol == 'ftp':
             return observation
@@ -168,7 +168,7 @@ class Detector:
         return self.capabilities(session, protocol, tls=True)
 
     def greet(self, session, *, tls=False):
-        data = session.receive(4096, passive=True)
+        data = session.receive(4096, passive=True, complete=lambda data: bool(greeting_protocol(data)) or (data.startswith(b'220 ') and data.endswith(b'\r\n')))
         protocol = greeting_protocol(data)
         if protocol:
             self.add(protocol, data, tls=tls)

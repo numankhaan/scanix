@@ -77,7 +77,7 @@ class Session:
             except ssl.SSLWantReadError:
                 self.wait(read=True, end=end)
 
-    def receive(self, limit, *, passive=False, datagram=False):
+    def receive(self, limit, *, passive=False, datagram=False, complete=None):
         limit = min(limit, self.budget['receive_bytes'] - self.report.bytes_received)
         if limit <= 0:
             raise BudgetExceeded('response byte budget exhausted')
@@ -91,14 +91,9 @@ class Session:
                     break
                 data.extend(part)
                 self.report.bytes_received += len(part)
-                # One datagram, or a complete protocol response. Parsers enforce framing.
-                if datagram or b'\r\n\r\n' in data or data.endswith(b'\r\n') and passive and not (data.startswith(b'220-') and b'\r\n220 ' not in data):
+                # Framing belongs to the caller's pure protocol parser.
+                if datagram or (complete(bytes(data)) if complete else data.endswith(b'\r\n')):
                     break
-                if data.endswith(b'\r\n') and (data.startswith((b'SSH-', b'220 ', b'250 ', b'+OK', b'* OK', b'* PREAUTH')) or
-                        b'\r\n250 ' in data or b'\r\n211 ' in data or data.endswith(b'\r\n.\r\n') or b'\r\na001 OK ' in data):
-                    # POP3 CAPA is multiline despite its +OK first line.
-                    if not (data.startswith(b'+OK') and not passive and not data.endswith(b'\r\n.\r\n')):
-                        break
             except (ssl.SSLWantReadError, BlockingIOError):
                 try:
                     self.wait(read=True, end=end)
