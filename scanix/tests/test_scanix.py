@@ -522,3 +522,11 @@ with patch('scanix.core.scanner.resolve_target', return_value=ResolvedTarget('12
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class UpstreamCompatibilityTests(unittest.TestCase):
+    def test_existing_banner_parser_retained_without_confirming_services(self):
+        from scanix.core.banner import parse_service_version
+        self.assertEqual(parse_service_version(22, 'SSH-2.0-OpenSSH_9.8 lab')['version'], '9.8')
+        self.assertEqual(parse_service_version(80, 'HTTP/1.0 200 OK\r\nServer: nginx/1.26.0\r\n')['product'], 'nginx')
+        self.assertIsNone(parse_service_version(65000, 'unrecognized'))
