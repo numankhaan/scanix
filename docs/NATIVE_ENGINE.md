@@ -141,7 +141,8 @@ The benchmark uses ephemeral listening loopback ports only, alternating engines,
 fresh worker processes, fixed configuration and a release binary. It records actual
 elapsed time, CPU and a clearly labeled RSS upper bound on POSIX; unavailable metrics
 are null. It is a small connection/IPC baseline including native startup, not a
-packet-throughput or accuracy benchmark. See the checkpoint for actual measured runs.
+packet-throughput or accuracy benchmark. See [measured baseline](../validation/NATIVE_BASELINE.md) for actual results;
+native was slower in these small paced loopback samples.
 
 Implementation references: [Tokio bounded channels](https://docs.rs/tokio/latest/tokio/sync/mpsc/),
 [Tokio TcpStream](https://docs.rs/tokio/latest/tokio/net/struct.TcpStream.html),

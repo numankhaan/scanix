@@ -68,3 +68,19 @@ Next: commit reviewed adapter/CLI/exports/tests/workflow/docs and benchmark driv
 run release benchmarks at that clean known SHA (32/128 ports, five samples each),
 record measured data/hardware and limitations, then push/open PR and inspect CI.
 Native stage remains unmerged. No public scans or privileged operations performed.
+
+## Measured baseline / ready to push
+
+Integration commit `50322ab61e8031525d4be16918fd6de00177ab8a` validated locally.
+At that clean SHA, release benchmark commands above ran 32 and 128 ports, five
+samples/engine/size. All expected open counts matched. Median completions/s:
+32 ports Python 409.4/native 300.6; 128 ports Python 417.2/native 307.1.
+Apple M4/16 GiB/10 logical CPUs/macOS arm64; exact measurements and boundaries in
+validation/NATIVE_BASELINE.md. Native was slower; no speed/parity claim or inferred
+bottleneck. Raw generated timing records remain outside Git.
+
+Next: commit only the aggregate baseline and these documentation updates, run
+outgoing range/full-history secret gates, push reviewed branch once, open PR against
+main (do not merge), inspect latest-head Security/CodeQL/Tests/Native workflows.
+No PR/CI yet for this new branch; main ef1c3dc core checks are passing. After push,
+record PR/run IDs and pending/final outcomes. Original UDP edit remains unchanged.
