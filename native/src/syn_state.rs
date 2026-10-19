@@ -40,6 +40,7 @@ struct Pending {
     early: Option<(Evidence, u64)>,
     reset_sent: bool,
     reset_error: Option<i32>,
+    failure: Option<i32>,
 }
 
 pub struct State {
@@ -127,6 +128,7 @@ impl State {
                     early: None,
                     reset_sent: false,
                     reset_error: None,
+                    failure: None,
                 },
             );
             self.peak = self.peak.max(self.pending.len());
@@ -157,7 +159,8 @@ impl State {
                 Phase::New => Kind::Syn,
                 Phase::Reset => Kind::Reset,
                 Phase::Waiting
-                    if p.attempts <= self.cfg.retries
+                    if p.failure.is_none()
+                        && p.attempts <= self.cfg.retries
                         && now >= p.last.unwrap() + self.timeout(id, p.attempts) =>
                 {
                     Kind::Retry
@@ -179,7 +182,6 @@ impl State {
             p.phase = Phase::ResetQueued;
         } else {
             p.phase = Phase::Queued;
-            p.attempts += 1;
         }
     }
     pub fn sent(&mut self, id: usize, kind: Kind, now: u64, error: Option<i32>) {
@@ -192,15 +194,20 @@ impl State {
             self.finish(id, now);
             return;
         }
+        p.attempts += 1; // Only transmitter acknowledgments count actual syscall attempts.
         if error.is_some() && p.evidence.is_none() {
-            p.evidence = Some(Evidence {
-                state: "error",
-                reason: "socket_error",
-                response_sequence: None,
-                icmp_code: None,
-            });
-            p.reset_error = error;
-            self.finish(id, now);
+            p.failure = error;
+            if p.first.is_none() {
+                self.finish(id, now);
+                return;
+            }
+            // A previous successful send can still receive a valid response. Stop retries,
+            // retain its bounded final window, and do not erase positive captured evidence.
+            p.last = Some(now);
+            p.phase = Phase::Waiting;
+            if let Some((evidence, received)) = p.early.take() {
+                self.apply(id, evidence, received.max(now));
+            }
             return;
         }
         p.first.get_or_insert(now);
@@ -219,7 +226,10 @@ impl State {
             return;
         }
         self.matched += 1;
-        if p.attempts == 1 && matches!(evidence.state, "open" | "closed") {
+        if p.attempts == 1
+            && p.phase == Phase::Waiting
+            && matches!(evidence.state, "open" | "closed")
+        {
             self.rtt[id / self.cfg.ports.len()]
                 .observe(now.saturating_sub(p.first.unwrap()) as f64);
         }
@@ -232,7 +242,7 @@ impl State {
     }
     pub fn receive(&mut self, bytes: &[u8], now: u64) {
         let found = self.pending.iter().find_map(|(&id, p)| {
-            if p.attempts == 0 {
+            if p.attempts == 0 && p.phase != Phase::Queued {
                 None
             } else {
                 packet::classify(p.probe, bytes).map(|e| (id, e))
@@ -240,7 +250,7 @@ impl State {
         });
         if let Some((id, evidence)) = found {
             let p = self.pending.get_mut(&id).unwrap();
-            if p.first.is_some() {
+            if p.first.is_some() && p.phase != Phase::Queued {
                 self.apply(id, evidence, now);
             } else if p.early.is_none() {
                 p.early = Some((evidence, now));
@@ -267,13 +277,15 @@ impl State {
             .iter()
             .filter_map(|(&id, p)| {
                 (p.phase == Phase::Waiting
-                    && p.attempts > self.cfg.retries
+                    && (p.failure.is_some() || p.attempts > self.cfg.retries)
                     && now >= p.last.unwrap() + self.timeout(id, p.attempts) + self.cfg.cooldown_ms)
                     .then_some(id)
             })
             .collect();
         for id in expired {
-            self.timeouts += 1;
+            if self.pending[&id].failure.is_none() {
+                self.timeouts += 1;
+            }
             self.finish(id, now);
         }
     }
@@ -281,8 +293,16 @@ impl State {
         let p = self.pending.remove(&id).unwrap();
         let matched = p.evidence.is_some_and(|e| e.state != "error");
         let evidence = p.evidence.unwrap_or(Evidence {
-            state: "unknown",
-            reason: "no_response",
+            state: if p.failure.is_some() {
+                "error"
+            } else {
+                "unknown"
+            },
+            reason: if p.failure.is_some() {
+                "socket_error"
+            } else {
+                "no_response"
+            },
             response_sequence: None,
             icmp_code: None,
         });
@@ -294,17 +314,31 @@ impl State {
         }
         self.ready.push_back(json!({"type":"result","id":id,"target_index":host,"ip":p.probe.target,
             "port":p.probe.port,"state":evidence.state,"reason":evidence.reason,
-            "error_code":if evidence.state=="error" {p.reset_error} else {None},
+            "error_code":if evidence.state=="error" {p.failure} else {None},
             "elapsed_seconds":now.saturating_sub(p.first.unwrap_or(now)) as f64/1000.,"attempts":p.attempts,
             "evidence":{"matched_response":matched,"icmp_code":evidence.icmp_code,
-                "reset_sent":p.reset_sent,"reset_error_code":if evidence.state!="error" {p.reset_error} else {None}}}));
+                "reset_sent":p.reset_sent,"send_error_code":p.failure,"reset_error_code":if evidence.state!="error" {p.reset_error} else {None}}}));
         self.completed += 1;
     }
     pub fn cancel(&mut self, now: u64) {
+        let early: Vec<_> = self
+            .pending
+            .iter_mut()
+            .filter_map(|(&id, p)| {
+                if p.first.is_some() {
+                    p.early.take().map(|(e, at)| (id, e, at))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for (id, evidence, at) in early {
+            self.apply(id, evidence, at);
+        }
         let matched: Vec<_> = self
             .pending
             .iter()
-            .filter_map(|(&id, p)| p.evidence.map(|_| id))
+            .filter_map(|(&id, p)| (p.evidence.is_some() || p.failure.is_some()).then_some(id))
             .collect();
         for id in matched {
             self.finish(id, now);
@@ -465,5 +499,38 @@ mod tests {
         s.receive(&response(job), 1201);
         assert_eq!(s.late, 1);
         assert!(s.pop().is_none());
+    }
+    #[test]
+    fn queued_retry_is_not_an_actual_attempt_on_cancel() {
+        let mut s = state();
+        s.insert(1, 40000);
+        let job = s.job(0).unwrap();
+        s.queued(job);
+        s.sent(job.id, job.kind, 0, None);
+        let retry = s.job(1000).unwrap();
+        s.queued(retry);
+        s.receive(&response(job), 1001);
+        assert!(s.pop().is_none());
+        s.cancel(1002);
+        let row = s.pop().unwrap();
+        assert_eq!(row["state"], "open");
+        assert_eq!(row["attempts"], 1);
+    }
+    #[test]
+    fn failed_retry_does_not_erase_previous_probe_response() {
+        let mut s = state();
+        s.insert(1, 40000);
+        let job = s.job(0).unwrap();
+        s.queued(job);
+        s.sent(job.id, job.kind, 0, None);
+        let retry = s.job(1000).unwrap();
+        s.queued(retry);
+        s.sent(retry.id, retry.kind, 1000, Some(13));
+        assert!(s.pop().is_none());
+        s.receive(&response(job), 1001);
+        s.cancel(1002);
+        let row = s.pop().unwrap();
+        assert_eq!(row["state"], "open");
+        assert_eq!(row["attempts"], 2);
     }
 }

@@ -188,7 +188,8 @@ class NativeSynWireTests(unittest.TestCase):
         report=self.scan(row,{'syn_sent':2,'retries_sent':1})
         self.assertEqual(report.completion_status,'complete',report.issues);self.assertEqual(report.results[0].attempts,2)
     def test_false_evidence_and_raw_metrics_fail_closed(self):
-        cases=[(self.row(attempts=0),{}),(self.row(evidence={'matched_response':False,'reset_sent':True}),{}),
+        cases=[(self.row(attempts=0),{}),
+               (self.row('unknown','no_response',evidence={'matched_response':False,'reset_sent':False}),{}),(self.row(evidence={'matched_response':False,'reset_sent':True}),{}),
                (self.row(),{'capture_drops':'synthetic-private-marker'}),(self.row(),{'capture_drops':1}),
                (self.row(),{'syn_sent':True}),(self.row('open','no_response'),{}),
                (self.row('filtered','icmp_administratively_prohibited',evidence={'matched_response':True,'icmp_code':1,'reset_sent':False}),{})]
@@ -196,6 +197,21 @@ class NativeSynWireTests(unittest.TestCase):
             with self.subTest(kind='invalid evidence'):
                 report=self.scan(row,metrics);self.assertEqual(report.completion_status,'failed')
                 self.assertNotIn('synthetic-private-marker',json.dumps(report.to_dict()))
+    def test_setup_cancellation_preserves_scope_without_requiring_capture_metrics(self):
+        hello={**HELLO,'capabilities':['connect','syn_ipv4']}
+        done={**DONE,'status':'interrupted','requested':0,'completed':0,'attempted':0,
+              'peak_outstanding':0,'reason':'cancelled_during_setup'}
+        config=ScanConfig('127.0.0.1',(443,),engine='native',method='syn')
+        with patch('scanix.native.adapter.sys.platform','linux'),fake_engine([hello,done],code=130):
+            report=scan_native(config,ScopePlan(['127.0.0.1']),binary='fixture')
+        self.assertEqual(report.completion_status,'interrupted');self.assertFalse(report.issues)
+        self.assertEqual(report.requested_probes,1);self.assertFalse(report.results)
+    def test_retry_failure_preserves_observed_open(self):
+        row=self.row(attempts=2,evidence={'matched_response':True,'icmp_code':None,'reset_sent':True,'send_error_code':13})
+        report=self.scan(row,{'status':'failed','reason':'transmission_failure','send_errors':1},code=3)
+        self.assertEqual(report.completion_status,'failed');self.assertEqual(report.results[0].state,'open')
+        self.assertEqual(report.results[0].evidence['send_error_code'],13)
+
     def test_capture_loss_retains_positive_port(self):
         report=self.scan(self.row(),{'status':'failed','reason':'capture_loss','capture_drops':1},code=3)
         self.assertEqual(report.completion_status,'failed');self.assertEqual(report.results[0].state,'open')

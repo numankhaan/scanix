@@ -196,6 +196,12 @@ pub async fn scan(
             sent.error,
         );
     }
+    while let Ok(event) = received_rx.try_recv() {
+        match event {
+            Received::Packet(bytes) => state.receive(&bytes, start.elapsed().as_millis() as u64),
+            Received::Failure => failure = Some("receiver_failure"),
+        }
+    }
     state.cancel(start.elapsed().as_millis() as u64);
     while let Some(row) = state.pop() {
         emit(writer, row).await?;

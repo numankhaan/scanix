@@ -348,7 +348,9 @@ impl Backend {
                 at,
                 error: result.err().map(|error| error.raw_os_error().unwrap_or(0)),
             };
-            tokio::select! { biased; _=stop.changed()=>break, result=events.send(event)=>{if result.is_err(){break;}} }
+            if events.send(event).await.is_err() {
+                break;
+            }
         }
     }
 }

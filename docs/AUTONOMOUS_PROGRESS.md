@@ -74,3 +74,26 @@ Next: commit reviewed implementation, push to existing draft #12 after verifying
 remote head, inspect CI; implement and dispatch controlled native SYN namespace lab
 with independent capture validation, measurements and cancellation/exclusion cases.
 Fix actual failures before ready/review/merge. Then post-merge CI and Phase 4C.
+
+
+## Concurrency review follow-up
+
+Implementation `05422a9d03ccba6a5de97e7be3d29dcc9b88075e` and packet commit pushed to
+existing draft #12. A reviewed race could count queued retries as sent and drop
+buffered replies on cancellation; fixed with transmitter-ack attempt accounting,
+queue draining, bounded previous-probe response windows after retry errors, and
+per-result send-error evidence. Synthetic startup cancellation accepts genuinely
+unavailable capture metrics without inventing zero. New regression assertions remain
+strict: 19 Rust tests passed, Linux cross-Clippy passed, 16 wire tests passed before
+two additional SYN regressions; all six SYN wire tests then passed.
+
+Prepared but not executed: validation/native_syn_lab.py, guarded invocation from
+privileged_lab.py, SHA-pinned optional workflow build/dispatch. Lab uses silent-first
+18000 and open/closed/admin-filtered peer ports, CIDR exclusions, actual pacing/reset
+captures, cancellation, Python agreement and honest aggregate resource boundaries.
+Raw capture/report artifacts must never be uploaded.
+
+Next: commit concurrency fix (intended state/driver/wire/adapter/tests/checkpoint),
+then validate/commit lab changes, push, dispatch existing privileged workflow at the
+exact head after checking GitHub, inspect lab and ordinary CI. Do not mark ready or
+merge until the independent packet ground truth passes. Later roadmap stages wait.

@@ -224,12 +224,13 @@ def _run(config, targets, stop, report, binary, progress):
                         or data['reset_sent'] and state!='open'
                         or data.get('icmp_code') is not None and not _integer(data['icmp_code'],0,255)
                         or data.get('reset_error_code') is not None and not _integer(data['reset_error_code'],-2**31,2**31-1)
+                        or data.get('send_error_code') is not None and not _integer(data['send_error_code'],-2**31,2**31-1)
                         or data['reset_sent'] and data.get('reset_error_code') is not None
                         or reason=='icmp_administratively_prohibited' and data.get('icmp_code') not in (9,10,13)
                         or reason=='icmp_unreachable_or_path_error' and data.get('icmp_code') is None
                         or reason not in ('icmp_administratively_prohibited','icmp_unreachable_or_path_error') and data.get('icmp_code') is not None):
                         raise ValueError('invalid SYN classification evidence')
-                    evidence={key:data.get(key) for key in ('matched_response','icmp_code','reset_sent','reset_error_code')}
+                    evidence={key:data.get(key) for key in ('matched_response','icmp_code','reset_sent','reset_error_code','send_error_code')}
                 from ..core.models import ResolvedTarget
                 endpoint=targets[target_index]
                 result=new_result(config,ResolvedTarget(endpoint.ip,endpoint.family),port)
@@ -259,7 +260,7 @@ def _run(config, targets, stop, report, binary, progress):
                     bounds={'syn_sent':requested*(config.retries+1),'retries_sent':requested*config.retries,
                             'resets_sent':requested,'send_errors':requested*(config.retries+2),
                             'queue_drops':2**64-1,'capture_drops':2**64-1}
-                    if any(key not in frame or (not _integer(frame[key],0,maximum)
+                    if any((key not in frame and not setup_cancel) or (key in frame and not _integer(frame[key],0,maximum)
                            and not (key=='capture_drops' and frame[key] is None)) for key,maximum in bounds.items()):
                         raise ValueError('invalid SYN transmission/drop metrics')
                     optional={'peak_per_host':config.per_host,'received_packets':2**64-1,
@@ -268,7 +269,8 @@ def _run(config, targets, stop, report, binary, progress):
                               'timeouts':requested,'cooldown_ms':1000,'receive_cooldown_ms':10000}
                     if any(key in frame and not _integer(frame[key],0,maximum) for key,maximum in optional.items()):
                         raise ValueError('invalid SYN coverage metrics')
-                    if status=='complete' and any(frame.get(key) for key in ('send_errors','queue_drops','capture_drops')):
+                    if status=='complete' and (any(frame.get(key) for key in ('send_errors','queue_drops','capture_drops'))
+                        or any(row.evidence.get('send_error_code') is not None for row in report.results)):
                         raise ValueError('capture/transmission loss contradicts complete status')
                 done=frame;done_at=time.monotonic()
             else:
