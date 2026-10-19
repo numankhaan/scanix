@@ -8,3 +8,16 @@ scan_results.csv
 scan_results.html
 .env
 .env.*
+# Local security findings/patterns stay outside Git; ignore is not history removal.
+.security-private/
+*.pcap
+*.pcapng
+*.har
+*.p12
+*.pfx
+*.sqlite
+*.sqlite3
+*.log
+.coverage
+htmlcov/
+native/target/

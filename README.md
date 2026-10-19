@@ -19,7 +19,7 @@ python -m scanix discover --help
 ```
 
 TCP connect, TCP discovery, exports and offline preview use the standard library.
-Scapy (`>=2.6,<3`, tested locally with 2.6.1 and 2.8.0) is required for raw scans, raw discovery
+Scapy (`==2.8.0`, pinned for reproducible dependency audits) is required for raw scans, raw discovery
 and synthetic packet tests. Raw I/O supports Linux and macOS with a working Scapy
 capture backend and appropriate raw-socket/BPF privileges (usually root). Windows
 supports connect/TCP discovery; raw methods fail explicitly. Capture is opened
@@ -314,3 +314,12 @@ uses endpoint matching only; random source ports reduce but cannot eliminate sta
 or spoofed replies. Capture loss, firewall policy, ICMP suppression and service
 behavior can leave ports inconclusive. Packet correlation is evidence, not
 cryptographic authentication. Backend-generated warnings may appear on stderr.
+
+## Security and contribution checks
+
+Read [SECURITY.md](SECURITY.md) before contributing or reporting an exposure.
+Install the [local gates](CONTRIBUTING.md), use a verified GitHub noreply identity,
+and keep real reports/captures and private detection patterns outside Git.
+CSV now prefixes formula-like text cells with an apostrophe for spreadsheet safety;
+JSON preserves the original evidence. Security checks reduce risk; passing checks
+cannot guarantee security or privacy. The feature roadmap is paused for this audit.

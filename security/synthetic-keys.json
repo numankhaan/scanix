@@ -1,0 +1,10 @@
+[
+  {
+    "file": "scanix/tests/fixtures/tls/ca-TEST-ONLY.key",
+    "sha256": "92fe3c48a9360218856ae88ea8d702da297047b06b73aff8063f8bf424c57305"
+  },
+  {
+    "file": "scanix/tests/fixtures/tls/server-TEST-ONLY.key",
+    "sha256": "5c1fef32930381e711db2d51fd219a8ed9be85d3e2c500845eb6676807601b8d"
+  }
+]

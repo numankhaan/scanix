@@ -1,0 +1,3 @@
+# Keep upstream rules. Exceptions are content-addressed and reviewed by check.py.
+[extend]
+useDefault = true
