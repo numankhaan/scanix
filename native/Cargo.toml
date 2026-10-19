@@ -1,0 +1,18 @@
+[package]
+name = "scanix-engine"
+version = "0.4.0"
+edition = "2021"
+rust-version = "1.85"
+publish = false
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt", "net", "time", "sync", "macros", "signal"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[dev-dependencies]
+tokio = { version = "1", features = ["test-util"] }

@@ -37,3 +37,14 @@ PR, inspect all latest-head CI. Keep this checkpoint current at each milestone.
 Private audit/evidence pointer: `/tmp/scanix-security-session`. Never commit raw
 findings. Privileged macOS/BPF remains incomplete. No public network scan allowed.
 Do not merge this PR. Preserve old branches and all unrelated edits.
+
+## Native engine milestone
+
+Reused and reviewed engine: `cargo fmt --manifest-path native/Cargo.toml`,
+`cargo test --locked --manifest-path native/Cargo.toml` (8 passed),
+`cargo clippy --locked --manifest-path native/Cargo.toml --all-targets -- -D warnings`
+and release build passed. Twelve adapter wire tests also passed, including explicit
+16-level JSON nesting rejection; an earlier development test exposed differing
+Python parser depth behavior and was fixed with an explicit bound, not an assertion
+change. Native source is ready for its focused commit. Adapter/CLI/tests/docs/workflow
+remain intended uncommitted work awaiting full regressions and release baseline.
