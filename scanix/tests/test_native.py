@@ -18,7 +18,7 @@ from scanix.core.models import ScanConfig
 from scanix.core.targets import ScopePlan
 from scanix.native.adapter import scan_native,_decode
 
-HELLO={'type':'hello','protocol':2,'engine':'scanix-rust','engine_version':'0.4.1','capabilities':['connect']}
+HELLO={'type':'hello','protocol':3,'engine':'scanix-rust','engine_version':'0.4.2','capabilities':['connect']}
 ROW={'type':'result','id':0,'target_index':0,'ip':'127.0.0.1','port':443,
      'state':'open','reason':'connection_succeeded','error_code':None,'elapsed_seconds':.001}
 DONE={'type':'done','status':'complete','requested':1,'completed':1,'attempted':1,'peak_outstanding':1,'elapsed_seconds':.01,'reason':None}
@@ -56,11 +56,61 @@ def fake_engine(frames, *, code=0, delay=0, raw=None, stderr=''):
 class NativeWireTests(unittest.TestCase):
     def config(self,**kw):return ScanConfig('127.0.0.1',(443,),engine='native',**kw)
     def scan(self,**kw):return scan_native(self.config(),ScopePlan(['127.0.0.1']),binary='fixture',**kw)
+    def test_selected_ids_stream_without_retaining_results(self):
+        from scanix.native.selection import Selection
+        cfg=ScanConfig('127.0.0.1',(80,443),engine='native')
+        row={**ROW,'id':1}
+        selection=Selection(2,1,2)
+        observed=[]
+        with fake_engine([HELLO,{'type':'ready','requested':1},row,DONE]) as sent:
+            report=scan_native(cfg,ScopePlan(['127.0.0.1']),binary='fixture',selection=selection,
+                               on_result=observed.append,retain=False)
+        self.assertEqual(report.completion_status,'complete')
+        self.assertFalse(report.results);self.assertEqual(len(observed),1)
+        self.assertEqual(report.to_dict()['completed_ports'],1)
+        self.assertFalse(report.to_dict()['incomplete'])
+        self.assertEqual(json.loads(sent[0])['shard_index'],1)
+        # An unselected, otherwise valid response cannot be exported.
+        with fake_engine([HELLO,{'type':'ready','requested':1},{**ROW,'port':80},DONE]):
+            report=scan_native(cfg,ScopePlan(['127.0.0.1']),binary='fixture',selection=selection,retain=False)
+        self.assertEqual(report.completion_status,'failed');self.assertEqual(report.completed_probes,0)
+
+    def test_inline_exporters_reject_nonretained_summaries_without_writing_files(self):
+        from scanix.output.save_json import save_json
+        from scanix.output.save_csv import save_csv
+        from scanix.output.save_html import save_html
+        with fake_engine([HELLO,{'type':'ready','requested':1},ROW,DONE]):
+            report=scan_native(self.config(),ScopePlan(['127.0.0.1']),binary='fixture',retain=False)
+        with tempfile.TemporaryDirectory() as folder:
+            for name,save in [('json',save_json),('csv',save_csv),('html',save_html)]:
+                path=Path(folder)/('synthetic.'+name)
+                with self.assertRaises(ValueError):save(report,path)
+                self.assertFalse(path.exists())
+
+    def test_nonretained_permission_failure_keeps_failed_semantics(self):
+        row={**ROW,'state':'error','reason':'permission_denied','error_code':13}
+        with fake_engine([HELLO,{'type':'ready','requested':1},row,DONE]):
+            report=scan_native(self.config(),ScopePlan(['127.0.0.1']),binary='fixture',retain=False)
+        self.assertEqual(report.completion_status,'failed');self.assertEqual(report.completed_probes,1)
+        self.assertFalse(report.results)
+
+    def test_resume_registration_is_bounded_and_completed_ids_rejected(self):
+        from scanix.native.selection import Selection
+        selected=Selection(1,completed=bytes([1]))
+        done={**DONE,'requested':0,'completed':0,'attempted':0,'peak_outstanding':0}
+        with fake_engine([HELLO,{'type':'ready','requested':0},done]) as sent:
+            report=scan_native(self.config(),ScopePlan(['127.0.0.1']),binary='fixture',selection=selected,retain=False)
+        self.assertEqual(report.completion_status,'complete')
+        self.assertIn({'type':'completed','ids':[0]},[json.loads(frame) for frame in sent])
+        with fake_engine([HELLO,{'type':'ready','requested':0},ROW,done]):
+            report=scan_native(self.config(),ScopePlan(['127.0.0.1']),binary='fixture',selection=selected,retain=False)
+        self.assertEqual(report.completion_status,'failed')
+
     def test_valid_stream_and_export_metadata(self):
         with fake_engine([HELLO,{'type':'ready','requested':1},ROW,DONE]):report=self.scan()
         self.assertEqual(report.completion_status,'complete');self.assertEqual(report.results[0].state,'open')
         self.assertEqual(report.implementation['engine'],'native')
-        self.assertEqual(report.implementation['engine_version'],'0.4.1')
+        self.assertEqual(report.implementation['engine_version'],'0.4.2')
         self.assertEqual(report.to_dict()['schema_version'],4)
         self.assertEqual(report.results[0].original_targets,('127.0.0.1',))
         self.assertFalse(report.to_dict()['incomplete'])

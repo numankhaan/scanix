@@ -1,7 +1,7 @@
 # Phase 4B: native asynchronous SYN discovery
 
-Status: implementation in PR #12. Linux namespace ground truth/capture passed 25
-checks at d181e1b. Latest-head CI and final review are still required before merge. Python remains the default; the native connect engine remains available.
+Status: PR #12 merged at 66f0455e6d69c0807de04e84f9c391dbd07776c5. Linux namespace
+ground truth/capture passed 25 checks at d181e1b; latest-head and post-merge CI passed. Python remains the default; the native connect engine remains available.
 
 ## Starting point
 
@@ -43,23 +43,21 @@ resume, distributed scanning, or public-network testing in this increment.
 
 ## Acceptance checklist
 
-- [ ] Synthetic packet fixtures cover positive/negative correlation, ICMP, malformed and
+- [x] Synthetic packet fixtures cover positive/negative correlation, ICMP, malformed and
       truncated packets, duplicate/out-of-order replies and outbound self-matching.
-- [ ] Deterministic timing tests cover pacing, retries, cooldown, cancellation, deadlines,
+- [x] Deterministic timing tests cover pacing, retries, cooldown, cancellation, deadlines,
       receiver backpressure and bounded outstanding state.
-- [ ] CLI, protocol, schema/export and explicit unsupported-platform/method tests pass.
-- [ ] Isolated Linux network namespace lab validates known open, closed, filtered and
+- [x] CLI, protocol, schema/export and explicit unsupported-platform/method tests pass.
+- [x] Isolated Linux network namespace lab validates known open, closed, filtered and
       silent states; offline captures independently confirm probes and observations.
-- [ ] Tests demonstrate independent sending and receiving without per-probe blocking.
-- [ ] All existing security, MSRV, native connect and Python regression gates pass.
-- [ ] Measurements record hardware, topology, configuration, correctness, packet loss,
+- [x] Tests demonstrate independent sending and receiving without per-probe blocking.
+- [x] All existing security, MSRV, native connect and Python regression gates pass.
+- [x] Measurements record hardware, topology, configuration, correctness, packet loss,
       throughput, CPU and memory; no performance/parity claim without evidence.
-- [ ] README, native boundary, roadmap and persistent checkpoint describe actual support.
+- [x] README, native boundary, roadmap and persistent checkpoint describe actual support.
 
-## Resume sequence
+## Completion
 
-Inspect current main and PR status before implementing. Continue on this branch or a
-clearly linked implementation branch. Read AGENTS.md if present. Implement pure packet
-fixtures and classification first, then bounded Linux transport, orchestration, Python
-integration and controlled lab validation. Use focused commits; retain draft status until
-implementation and evidence exist. Do not merge this design draft as completed Phase 4B.
+All scoped acceptance passed before merge; see NATIVE_SYN_RESULTS.md and PR #12.
+Continue Phase 4C using AUTONOMOUS_PROGRESS.md. Native IPv6 SYN and privileged macOS/BPF
+remain explicitly unsupported/incomplete, not inferred from Linux success.

@@ -135,6 +135,38 @@ def validate(output, binary, parent_netns):
           and int(p[TCP].flags) == 2 for p in cancel_packets))
     check('cancel-coverage-bounded', interrupted.implementation.get('metrics', {}).get('attempted', 0) <= 2)
 
+    # Durable continuation must skip completed SYN work on the wire, not only in reports.
+    from scanix.native.session import scan_session
+    continuation_stop=threading.Event()
+    checkpoint=output/'native-resume.sqlite'
+    partial_file=output/'native-partial.ndjson'
+    partial,partial_packets=captured('native-resume-partial',lambda:scan_session(
+        config,plan,checkpoint,partial_file,binary=binary,stop=continuation_stop,
+        progress=lambda done,total:continuation_stop.set()))
+    prior={item['id']:item['record'] for item in map(json.loads,partial_file.read_text().splitlines())
+           if item['type']=='result'}
+    check('durable-syn-cancel-is-partial',partial.completion_status=='interrupted' and 0<len(prior)<4)
+    resumed_file=output/'native-resumed.ndjson'
+    resumed,resumed_packets=captured('native-resumed',lambda:scan_session(
+        config,plan,checkpoint,resumed_file,binary=binary,resume=True))
+    final={item['id']:item['record'] for item in map(json.loads,resumed_file.read_text().splitlines())
+           if item['type']=='result'}
+    check('durable-syn-resume-completes-coverage',resumed.completion_status=='complete'
+          and resumed.completed_probes==4 and len(final)==4 and not resumed.results)
+    check('durable-syn-resume-preserves-states',all(expected.get(row['port'])==(row['state'],row['reason'])
+          for row in final.values()))
+    completed_ports={row['port'] for row in prior.values()}
+    resumed_syn=[p for p in resumed_packets if IP in p and TCP in p and p[IP].src==V4[0]
+                 and int(p[TCP].flags)==2]
+    check('durable-syn-skips-completed-ports-on-wire',bool(resumed_syn)
+          and all(p[IP].dst==V4[1] and p[TCP].dport in ports and p[TCP].dport not in completed_ports
+                  for p in resumed_syn))
+    restored,restored_packets=captured('native-complete-resume',lambda:scan_session(
+        config,plan,checkpoint,output/'native-restored.ndjson',binary=binary,resume=True))
+    check('completed-syn-resume-no-probes',restored.completion_status=='complete'
+          and restored.implementation.get('session_skipped')=='no_remaining_ports'
+          and not any(IP in p and TCP in p and p[IP].src==V4[0] and int(p[TCP].flags)==2 for p in restored_packets))
+
     result['status'] = 'passed' if result['checks'] and all(v['passed'] for v in result['checks']) else 'failed'
     record(output / 'native-syn-results.json', result)
     # Category/counts only; raw reports and captures remain in the ephemeral private directory.

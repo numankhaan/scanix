@@ -39,6 +39,7 @@ class ScanConfig:
     engine: str = 'python'
     engine_timeout: float = 3600.0
     syn_cooldown: float = 0.2
+    checkpoint_batch: int = 16
 
     def __post_init__(self):
         if not isinstance(self.target, str) or not self.target.strip() or '\x00' in self.target:
@@ -73,6 +74,8 @@ class ScanConfig:
             raise ValueError('--tls-insecure and --tls-ca-file are mutually exclusive')
         if self.service_detect and self.banner:
             raise ValueError('use --service-detect or legacy --banner, not both')
+        if type(self.checkpoint_batch) is not int or not 1 <= self.checkpoint_batch <= 64:
+            raise ValueError('checkpoint batch must be within 1–64')
         if self.engine not in ('python','native'):
             raise ValueError('unknown scan engine')
         if not math.isfinite(self.engine_timeout) or not .1 <= self.engine_timeout <= 86400:
@@ -134,6 +137,7 @@ class ScanReport:
     completion_status: Literal["complete", "failed", "interrupted"] = "complete"
     issues: list[dict] = field(default_factory=list)
 
+    completed_probes: int | None = None
     requested_probes: int | None = None
     scope: dict = field(default_factory=dict)
     discovery: list[dict] = field(default_factory=list)
@@ -143,7 +147,7 @@ class ScanReport:
         data['configuration']['ports'] = list(self.configuration.ports)
         for result in data['results']:
             result['original_targets'] = list(result['original_targets'])
-        data['completed_ports'] = len(self.results)
+        data['completed_ports'] = self.completed_probes if self.completed_probes is not None else len(self.results)
         data['requested_ports'] = (self.requested_probes if self.requested_probes is not None else len(self.configuration.ports))
-        data['incomplete'] = self.completion_status != 'complete' or len(self.results) < data['requested_ports']
+        data['incomplete'] = self.completion_status != 'complete' or data['completed_ports'] < data['requested_ports']
         return data

@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::io::{self, BufRead, Read};
 use std::net::IpAddr;
 
-pub const VERSION: u32 = 2;
+pub const VERSION: u32 = 3;
 pub const MAX_FRAME: usize = 65536;
 pub const MAX_TARGETS: usize = 65536;
 pub const MAX_PORTS: usize = 4096;
@@ -14,6 +14,7 @@ pub const MAX_RESULTS: usize = 1_000_000;
 pub enum Command {
     Start(Config),
     Target { ip: IpAddr },
+    Completed { ids: Vec<usize> },
     Run,
     Cancel,
 }
@@ -36,9 +37,24 @@ pub struct Config {
     pub max_targets: usize,
     pub max_results: usize,
     pub session_timeout_ms: u64,
+    #[serde(default)]
+    pub shard_index: usize,
+    #[serde(default = "one")]
+    pub shard_count: usize,
+    #[serde(skip)]
+    pub completed: Vec<bool>,
+}
+
+fn one() -> usize {
+    1
 }
 
 impl Config {
+    pub fn selected(&self, id: usize) -> bool {
+        id % self.shard_count == self.shard_index
+            && !self.completed.get(id).copied().unwrap_or(false)
+    }
+
     pub fn validate(&self) -> Result<(), &'static str> {
         if self.protocol != VERSION {
             return Err("incompatible_protocol");
@@ -59,6 +75,10 @@ impl Config {
             || self.max_timeout_ms > 300_000
         {
             return Err("invalid_timeout");
+        }
+        if self.shard_count == 0 || self.shard_count > 1024 || self.shard_index >= self.shard_count
+        {
+            return Err("invalid_shard");
         }
         if self.retries > 5
             || self.cooldown_ms > 1000
@@ -89,7 +109,15 @@ impl Config {
         if count > self.max_results {
             return Err("scope_exceeds_result_limit");
         }
-        Ok(count)
+        if self
+            .completed
+            .iter()
+            .enumerate()
+            .any(|(id, done)| *done && (id >= count || id % self.shard_count != self.shard_index))
+        {
+            return Err("invalid_completed_scope");
+        }
+        Ok((0..count).filter(|id| self.selected(*id)).count())
     }
 }
 
@@ -113,7 +141,7 @@ pub fn read_frame<R: BufRead>(reader: &mut R) -> io::Result<Option<Command>> {
     if let Some(object) = value.as_object() {
         let expected = match object.get("type").and_then(|v| v.as_str()) {
             Some("run" | "cancel") => Some(1),
-            Some("target") => Some(2),
+            Some("target" | "completed") => Some(2),
             _ => None,
         };
         if expected.is_some_and(|count| object.len() != count) {
@@ -149,7 +177,38 @@ pub mod tests {
             max_targets: 4096,
             max_results: MAX_RESULTS,
             session_timeout_ms: 60_000,
+            shard_index: 0,
+            shard_count: 1,
+            completed: Vec::new(),
         }
+    }
+    #[test]
+    fn shard_resume_partitions_are_disjoint_and_complete() {
+        let ip = "127.0.0.1".parse().unwrap();
+        let mut coverage = vec![0; 17];
+        for shard in 0..7 {
+            let mut c = config();
+            c.ports = (1..=17).collect();
+            c.shard_count = 7;
+            c.shard_index = shard;
+            for (id, count) in coverage.iter_mut().enumerate() {
+                if c.selected(id) {
+                    *count += 1;
+                }
+            }
+            let before = c.requested(&[ip]).unwrap();
+            c.completed = vec![false; 17];
+            c.completed[shard] = true;
+            assert_eq!(c.requested(&[ip]).unwrap(), before - 1);
+            assert!(!c.selected(shard));
+        }
+        assert_eq!(coverage, vec![1; 17]);
+        let mut c = config();
+        c.shard_count = 0;
+        assert_eq!(c.validate(), Err("invalid_shard"));
+        c.shard_count = 1;
+        c.completed = vec![false, false, true];
+        assert!(c.requested(&[ip]).is_err());
     }
     #[test]
     fn strict_frames() {

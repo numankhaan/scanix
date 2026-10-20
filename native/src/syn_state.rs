@@ -46,6 +46,7 @@ struct Pending {
 pub struct State {
     cfg: Arc<Config>,
     targets: Vec<Ipv4Addr>,
+    requested: usize,
     sources: Vec<Ipv4Addr>,
     cursor: usize,
     ports: Vec<usize>,
@@ -67,12 +68,22 @@ impl State {
     pub fn new(cfg: Arc<Config>, targets: Vec<Ipv4Addr>, sources: Vec<Ipv4Addr>) -> Self {
         let count = targets.len();
         let rtt = (0..count).map(|_| Adaptive::new(&cfg)).collect();
+        let ports = (0..count)
+            .map(|host| {
+                (0..cfg.ports.len())
+                    .find(|port| cfg.selected(host * cfg.ports.len() + port))
+                    .unwrap_or(cfg.ports.len())
+            })
+            .collect();
         Self {
-            cfg,
+            cfg: cfg.clone(),
+            requested: (0..targets.len() * cfg.ports.len())
+                .filter(|id| cfg.selected(*id))
+                .count(),
             targets,
             sources,
             cursor: 0,
-            ports: vec![0; count],
+            ports,
             active: vec![0; count],
             rtt,
             pending: HashMap::new(),
@@ -88,10 +99,13 @@ impl State {
             timeouts: 0,
         }
     }
+    fn next_port(&self, host: usize) -> Option<usize> {
+        (self.ports[host] < self.cfg.ports.len()).then_some(self.ports[host])
+    }
     pub fn can_insert(&self) -> bool {
         self.pending.len() + self.ready.len() < self.cfg.concurrency
-            && self.ports.iter().enumerate().any(|(host, port)| {
-                *port < self.cfg.ports.len() && self.active[host] < self.cfg.per_host
+            && self.ports.iter().enumerate().any(|(host, _)| {
+                self.active[host] < self.cfg.per_host && self.next_port(host).is_some()
             })
     }
     pub fn insert(&mut self, sequence: u32, sport: u16) -> bool {
@@ -105,8 +119,13 @@ impl State {
             if self.ports[host] == self.cfg.ports.len() || self.active[host] >= self.cfg.per_host {
                 continue;
             }
-            let port = self.ports[host];
-            self.ports[host] += 1;
+            let Some(port) = self.next_port(host) else {
+                continue;
+            };
+            // Advance each full-scope port at most once, including completed/sharded tails.
+            self.ports[host] = (port + 1..self.cfg.ports.len())
+                .find(|next| self.cfg.selected(host * self.cfg.ports.len() + next))
+                .unwrap_or(self.cfg.ports.len());
             self.active[host] += 1;
             let id = host * self.cfg.ports.len() + port;
             let probe = Probe {
@@ -349,7 +368,7 @@ impl State {
         self.ready.pop_front()
     }
     pub fn complete(&self) -> bool {
-        self.completed == self.targets.len() * self.cfg.ports.len()
+        self.completed == self.requested
     }
 }
 
@@ -385,6 +404,53 @@ mod tests {
         b[28..32].copy_from_slice(&p.sequence.wrapping_add(1).to_be_bytes());
         b[33] = 0x12;
         b
+    }
+    #[test]
+    fn exhausted_completed_hosts_cache_their_terminal_cursor() {
+        let mut cfg = crate::protocol::tests::config();
+        cfg.ports = (1..=32).collect();
+        cfg.shard_index = 15;
+        cfg.shard_count = 16;
+        cfg.completed = vec![false; 64];
+        for id in [15, 31, 47] {
+            cfg.completed[id] = true;
+        }
+        let mut s = State::new(
+            Arc::new(cfg),
+            vec![Ipv4Addr::LOCALHOST; 2],
+            vec![Ipv4Addr::LOCALHOST; 2],
+        );
+        assert_eq!(s.ports, vec![32, 31]);
+        for _ in 0..1000 {
+            assert!(s.can_insert());
+            assert_eq!(s.ports, vec![32, 31]);
+        }
+        assert!(s.insert(1, 40000));
+        assert_eq!(s.ports, vec![32, 32]);
+        assert!(!s.can_insert());
+        assert_eq!(s.job(0).unwrap().id, 63);
+    }
+    #[test]
+    fn shard_and_completed_ids_never_enter_pending_state() {
+        let mut cfg = crate::protocol::tests::config();
+        cfg.shard_count = 2;
+        cfg.shard_index = 1;
+        cfg.completed = vec![false, true];
+        let mut s = State::new(
+            Arc::new(cfg),
+            vec![Ipv4Addr::LOCALHOST; 2],
+            vec![Ipv4Addr::LOCALHOST; 2],
+        );
+        assert!(!s.complete());
+        assert!(s.insert(42, 40000));
+        let job = s.job(0).unwrap();
+        assert_eq!(job.id, 3);
+        assert!(!s.insert(43, 40001));
+        assert!(!s.can_insert());
+        s.queued(job);
+        s.sent(job.id, job.kind, 0, Some(1));
+        assert!(s.pop().is_some());
+        assert!(s.complete());
     }
     #[test]
     fn bounded_round_robin_and_independent_jobs() {

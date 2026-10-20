@@ -26,3 +26,15 @@ native/target/
 *.env
 .envrc
 .git-credentials
+
+# Private continuation/output state (ignore never removes already tracked files).
+*.sqlite-journal
+*.sqlite3-journal
+*.sqlite-wal
+*.sqlite3-wal
+*.sqlite-shm
+*.sqlite3-shm
+*.ndjson
+*.db-journal
+*.db-wal
+*.db-shm

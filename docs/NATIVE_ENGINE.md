@@ -48,7 +48,7 @@ selected by wire messages.
 
 Sequence:
 
-1. Child `hello`: protocol=2, engine=scanix-rust, engine_version=0.4.1,
+1. Child `hello`: protocol=3, engine=scanix-rust, engine_version=0.4.2,
    capabilities=[connect] (plus syn_ipv4 on Linux), limits. A client must validate protocol and capability before transmitting scope/start.
 2. Parent `start`: protocol, method, sorted unique ports; timeout_ms,
    min_timeout_ms/max_timeout_ms/adaptive; concurrency/per_host/rate;
@@ -165,3 +165,18 @@ Nineteen security-gate tests, Bandit, workflow policy/actionlint, pip-audit and
 cargo-audit/fmt/Clippy passed. Cross-platform native claims depend on PR CI;
 local validation is macOS arm64 only. Measured baseline results are recorded
 separately, not inferred from these test outcomes.
+
+## Phase 4C selection contract
+
+Wire protocol 3 adds `shard_index` (zero-based), `shard_count` (1–1024) and
+`completed` setup frames with at most 4,096 IDs each. Work ID is target index ×
+port count + sorted port index. Shards partition IDs by modulo. All registered
+completed IDs must be unique, in scope and in the selected shard. Both native
+schedulers exclude them before creating work. Ready/done counts describe remaining
+selected work, while result IDs retain the full-scope identity. Incompatible engines
+fail before receiving scope; there is no engine fallback.
+
+The Python adapter supports a bounded result callback and explicit non-retention.
+Its duplicate bitmap is at most one million bytes; scope is still bounded separately.
+Durable storage and CLI integration are implemented; see [continuation semantics](CONTINUATION.md)
+and [source-specific measurements](../validation/CONTINUATION_RESULTS.md).

@@ -1,5 +1,5 @@
 import csv
-from .common import atomic_text, CSV_FIELDS, METADATA_FIELDS, scalar
+from .common import inline_payload, atomic_text, CSV_FIELDS, METADATA_FIELDS, scalar
 
 
 def spreadsheet_safe(value):
@@ -11,7 +11,7 @@ def spreadsheet_safe(value):
 
 def save_csv(data, filename='scan_results.csv'):
     """A metadata row followed by result rows; nested values are JSON cells."""
-    payload = data.to_dict()
+    payload = inline_payload(data)
     with atomic_text(filename) as stream:
         writer = csv.DictWriter(stream, fieldnames=CSV_FIELDS)
         writer.writeheader()

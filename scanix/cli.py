@@ -53,7 +53,7 @@ def selected_discovery(value):
 
 def build_parser():
     parser = argparse.ArgumentParser(prog='scanix', description='Scanix bounded IPv4/IPv6 network reconnaissance')
-    parser.add_argument('--version', action='version', version='Scanix Phase 4B (development)')
+    parser.add_argument('--version', action='version', version='Scanix Phase 4C (development)')
     sub = parser.add_subparsers(dest='command', required=True)
     scan = sub.add_parser('scan', help='TCP connect, raw SYN or protocol-aware UDP scan')
     scan.add_argument('-t', '--target', action='append', default=[], help='IP, hostname or CIDR; repeatable')
@@ -79,6 +79,11 @@ def build_parser():
     scan.add_argument('--native-binary', help='trusted native executable path; otherwise SCANIX_NATIVE_ENGINE or PATH')
     scan.add_argument('--syn-cooldown', type=float, default=.2, help='native SYN final receive cooldown seconds (0–1)')
     scan.add_argument('--engine-timeout', type=float, default=3600, help='native session budget seconds, 0.1–86400')
+    scan.add_argument('--checkpoint', help='private native resume SQLite file; requires --stream-file')
+    scan.add_argument('--checkpoint-batch', type=int, default=16, help='durable result commit batch 1–64; default 16, 1 commits each result')
+    scan.add_argument('--resume', action='store_true', help='continue exact checkpoint configuration and resolved scope')
+    scan.add_argument('--stream-file', help='new private NDJSON output; bounded native result retention, requires --checkpoint')
+    scan.add_argument('--shard', default='0/1', help='native deterministic zero-based INDEX/COUNT, count 1–1024')
     scan.add_argument('--banner', action='store_true', help='best-effort plaintext banner evidence')
     scan.add_argument('--timeout', type=float, default=1.0, help='connection timeout seconds (0, 300]')
     scan.add_argument('--concurrency', type=int, default=100, help='outstanding tasks/workers (1–1024)')
@@ -116,6 +121,17 @@ def _run_scan(parser, args):
             raise ValueError('provide --target or --target-file')
         if args.resolve_preview and not args.preview:
             raise ValueError('--resolve-preview requires --preview')
+        from .native.selection import Selection
+        if not __import__('re').fullmatch(r'[0-9]{1,4}/[0-9]{1,4}',args.shard):
+            raise ValueError('--shard requires zero-based INDEX/COUNT')
+        shard=tuple(map(int,args.shard.split('/')))
+        Selection(0,*shard)
+        if (args.checkpoint or args.stream_file or args.resume or shard!=(0,1)) and args.engine!='native':
+            raise ValueError('checkpoint, resume, streaming and sharding require --engine native')
+        if bool(args.checkpoint)!=bool(args.stream_file) or args.resume and not args.checkpoint:
+            raise ValueError('--checkpoint and --stream-file are required together; --resume requires both')
+        if args.stream_file and (args.out or args.out_file):
+            raise ValueError('--stream-file cannot be combined with aggregate --out/--out-file')
         methods = () if args.skip_discovery else selected_discovery(args.discovery)
         if args.engine=='native' and methods:
             raise ValueError('native foundation does not support discovery gates; select --discovery none')
@@ -131,7 +147,8 @@ def _run_scan(parser, args):
                             service_timeout=args.service_timeout, service_workers=args.service_workers,
                             tls_insecure=args.tls_insecure, tls_ca_file=args.tls_ca_file, sni=args.sni,
                             starttls=args.starttls, allow_excluded_probes=args.allow_excluded_probes,
-                            engine=args.engine,engine_timeout=args.engine_timeout,syn_cooldown=args.syn_cooldown)
+                            engine=args.engine,engine_timeout=args.engine_timeout,syn_cooldown=args.syn_cooldown,
+                            checkpoint_batch=args.checkpoint_batch)
     except ValueError as exc:
         parser.error(str(exc))
     # Validate CLI/config before DNS, sockets or capture. Offline preview requires no Scapy.
@@ -162,6 +179,12 @@ def _run_scan(parser, args):
         data['service_detection'] = policy(config)
         from .native.adapter import preview
         data['implementation'] = preview(config)
+        data['continuation']={'enabled':bool(args.checkpoint),'resume':args.resume,'validated':False,
+                              'shard_index':shard[0],'shard_count':shard[1],
+                              'selected_pairs':None if data['effective_target_count'] is None else
+                              Selection(data['effective_target_count']*len(config.ports),*shard).requested,
+                              'result_retention':'stream' if args.stream_file else 'aggregate',
+                              'checkpoint_batch':config.checkpoint_batch if args.checkpoint else None}
         json.dump(data, sys.stdout, indent=2)
         print()
         return 0
@@ -183,7 +206,20 @@ def _run_scan(parser, args):
         if args.engine=='native':
             from .native.adapter import scan_native
             progress=(lambda done,total: print(f'Progress: {done}/{total} completed port results',file=sys.stderr)) if args.progress else None
-            report=scan_native(config,plan,stop,binary=args.native_binary,progress=progress)
+            if args.checkpoint:
+                from .native.session import scan_session
+                try:
+                    report=scan_session(config,plan,args.checkpoint,args.stream_file,resume=args.resume,
+                                        shard=shard,binary=args.native_binary,stop=stop,progress=progress)
+                except Exception as exc:
+                    # Local paths and scanner data must not leak through exception strings.
+                    print('Native checkpoint/stream failed: '+type(exc).__name__+
+                          '; inspect private files and configuration; no clean result',file=sys.stderr)
+                    return 130 if stop.is_set() else 1
+            else:
+                from .native.selection import Selection
+                selection=Selection(plan.count()*len(config.ports),*shard) if shard!=(0,1) else None
+                report=scan_native(config,plan,stop,binary=args.native_binary,progress=progress,selection=selection)
         elif plan is None:
             if args.progress:
                 report = scan_target(config, stop, progress=lambda done, total: print(
@@ -199,7 +235,9 @@ def _run_scan(parser, args):
         signal.signal(signal.SIGINT, previous_handler)
     code = {'complete': 0, 'failed': 1, 'interrupted': 130}[report.completion_status]
     try:
-        if args.out_file == '-':
+        if args.stream_file:
+            pass  # Result/coverage frames were emitted incrementally to the selected private file.
+        elif args.out_file == '-':
             json.dump(report.to_dict(), sys.stdout, indent=2, ensure_ascii=False, allow_nan=False)
             print()
         elif args.out:
@@ -220,7 +258,7 @@ def _run_scan(parser, args):
     except (OSError, ValueError, TypeError) as exc:
         print(f'Output failed: {exc}', file=sys.stderr)
         return 1
-    print(f"Scan {report.completion_status}: {len(report.results)}/{report.to_dict()['requested_ports']} "
+    print(f"Scan {report.completion_status}: {report.to_dict()['completed_ports']}/{report.to_dict()['requested_ports']} "
           'port results.', file=sys.stderr)
     for issue in report.issues:
         print('Scan issue: ' + json.dumps(issue, ensure_ascii=True), file=sys.stderr)

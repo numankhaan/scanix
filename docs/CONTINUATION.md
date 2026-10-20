@@ -1,0 +1,141 @@
+# Durable native continuation and streaming (Phase 4C)
+
+Python remains the default. Checkpoints/shards currently apply to the explicitly
+selected native connect or Linux IPv4 SYN engine. Existing aggregate JSON/CSV/HTML
+exports continue to work without the new options. They retain results in memory.
+
+## Interface and compatibility
+
+Build the engine with `cargo build --release --locked --manifest-path native/Cargo.toml`.
+The adapter and binary must both support wire protocol 3 (engine 0.4.2). There is no
+fallback to an old binary or the Python engine. Report schema stays 4, with optional
+`completed_probes` for nonretained results and implementation continuation metadata.
+Checkpoint format and NDJSON stream format are independently versioned at 1.
+SQLite 3.31 or newer with working local file locks/rollback journaling is required;
+unsupported capabilities fail explicitly. No extra Python dependency is introduced.
+
+For an authorized loopback endpoint (choose an existing local listener):
+
+```sh
+python -m scanix scan -t 127.0.0.1 -p 19000 --engine native --native-binary native/target/release/scanix-engine --checkpoint private.sqlite --stream-file first.ndjson
+python -m scanix scan -t 127.0.0.1 -p 19000 --engine native --native-binary native/target/release/scanix-engine --checkpoint private.sqlite --stream-file resumed.ndjson --resume
+```
+
+Both paths are explicit, private local artifacts and must not already exist for a
+new scan. Resume requires an existing checkpoint and a **new** stream file; it never
+overwrites the previous partial stream. Choose a trusted, owner-controlled parent
+directory. POSIX files are created mode 0600; resume rejects symlinks, nonregular
+files, other owners and group/other permissions. Windows inherits directory ACLs;
+use an owner-private directory. Ignore rules are prevention, not removal of tracked
+files or history. Never upload real results/checkpoints to public PRs or CI artifacts.
+
+Standard JSON/CSV/HTML exporters reject a nonretained summary before writing any file,
+including Python API calls; they cannot emit an apparently complete empty result set.
+`ScanReport.to_dict()` remains available as explicit summary metadata.
+
+`--checkpoint` and `--stream-file` are required together; aggregate `--out` is mutually
+exclusive. Add `--preview` to see continuation/shard/enrichment policy without opening
+a checkpoint, hashing/running a binary, resolving DNS (unless explicitly requested),
+or sending probes. Preview does not assert checkpoint compatibility.
+
+## Durable work and crash semantics
+
+The manifest hashes every configuration field, input/exclusion/family/DNS policy,
+resolved numeric target and original hostname association, ordering, shard, report/
+wire/format version, exact trusted binary bytes, production Python source/probe database
+bytes and explicit CA bundle contents. Source/CA/engine hashing has bounded file-size
+budgets; unsupported layouts fail rather than skipping compatibility. Changes to the
+system default trust store are not snapshotted; TLS verification evidence describes
+the observation time. Resume re-resolves the explicit
+scope and rejects any difference **before traffic**. Changed DNS answers/order or a
+rebuilt/upgraded binary therefore require a new checkpoint; no automatic migration
+or widened scope. A checkpoint is local unauthenticated evidence, not a signature or
+proof against a malicious person who can edit the file.
+
+SQLite FULL synchronous rollback-journal commits persist bounded batches before any
+result in a batch is emitted. The default is 16; `--checkpoint-batch 1` commits each
+result and `--checkpoint-batch 64` is the maximum. Batch size is part of compatibility.
+A normal completion or interrupt flushes the final partial batch. A monotonic .25s
+flush target also protects sparse results; the adapter checks it at most every .05s
+while polling, excluding actual blocking I/O/flush time. SQLite stays on its owning
+thread. This is a scheduling target, not a hard disk-latency guarantee. Exclusive locking rejects concurrent writers and is released by the
+OS after a crash. Fixed schema validation rejects extra views/triggers; SQL is fixed
+and parameterized, extensions are not enabled. Per-record digests detect accidental
+record corruption; they do not authenticate data. No pickle/code is loaded. Standard
+SQLite/filesystem durability assumptions apply, not a guarantee against broken disks,
+network filesystems or lying flush implementations. Regular tests exercise abrupt
+process exit, not power-loss hardware fault injection.
+
+A result becomes durably completed only when its batch commits. After a crash, one application batch, bounded adapter/native queues, OS pipe data
+and in-flight probes may not yet be committed. The batch limit is not a bound on all
+network work that may be repeated. Unfinished probes may already
+have reached the network; after interruption/crash they may be sent again. Semantics
+are **at least once for unfinished work**, not exactly-once transmission. A normal
+interrupt preserves completed rows; resume skips those IDs in both native schedulers.
+After a crash or missing engine completion frame, old process-wide send/drop/resource
+metrics can be unknown and remain explicitly unknown, rather than zero. Known capture/
+transmission loss is sticky in the checkpoint and prevents a clean completion; use a
+fresh checkpoint for a new observation. Positive evidence remains preserved.
+
+A completed checkpoint can be re-exported without launching an engine. Each header includes configuration and bounded scope-policy counts plus the exact
+scope fingerprint; expanded input/exclusion lists are supplied by the caller and are
+not duplicated into an oversized frame. Each invocation first streams restored rows, then new rows, then optional enrichment updates and a final
+summary. Result frames are **upserts by stable work ID**; enrichment may repeat an ID.
+Latest frame wins. A missing final summary, malformed/truncated final line or a summary
+with `incomplete: true` must be treated as partial. The durable checkpoint is authoritative
+if streaming fails after a commit. Resume creates a full new stream, so a consumer need
+not combine two files. File exports contain private unauthenticated network evidence.
+
+## Scheduling and bounds
+
+Work ID = resolved target index × sorted selected-port count + port index. Scheduling
+is deterministic for the same resolved scope/configuration. `--shard 0/3`, `1/3`, and
+`2/3` partition IDs by modulo; the index is zero-based and count is 1–1024. Exclusions
+are applied before IDs are assigned. Shards share no completed work or rate coordinator:
+configure each process's rate so their combined traffic stays within your authorization.
+Changing shard count/index is incompatible with an existing checkpoint.
+
+Scope remains bounded to 65,536 targets, 4,096 ports and one million full-scope pairs.
+Completed/duplicate bitmaps are at most one million bytes each, plus the bounded target
+and port scope. Streaming retains zero result objects in `report.results` (this metric excludes I/O
+queues and the application batch) and at most one configured batch
+of pending observations (1–64); restored records are read individually. SQLite cache
+is 2 MiB, records are at most 64 KiB and a
+new 4 KiB-page checkpoint is capped at 1 GiB. Disk exhaustion or scanner/storage failure
+is an error, never a clean scan. These are bounds, not measured total process RSS.
+
+A resumed port session waits one conservative rate interval before new sends; it fails
+explicitly if that guard cannot fit the remaining session budget. The port session budget
+is reduced by Python fingerprint/setup/replay/guard time. Native preflight retains its
+separate 30s watchdog; cancellation/watchdog drain grace remains.
+Blocking filesystem flushes depend on the OS/storage. The engine retains its bounded
+queues, per-host limits, pacing and retry semantics. Slower storage can backpressure the
+engine; a bounded engine output timeout fails explicitly and retains committed records.
+
+Service detection remains a subsequent stage after classification, using existing
+protocol/exclusion/TLS/rate/timeout policies. Streaming enrichment currently runs one
+endpoint at a time, within configured concurrency/per-host maxima and the remaining
+session budget. Completed evidence is durably updated; failed enrichment cannot change
+port state. Interrupted/not-attempted enrichment may be retried on resume. Stream consumers
+must process updates. Classification rate and application/TLS transmission rate remain
+distinct domains; kernel traffic is not counted as explicit raw packet sends.
+
+## Validation status
+
+Working implementation has deterministic/local loopback and isolated Linux SYN
+continuation coverage. See [actual measurements](../validation/CONTINUATION_RESULTS.md)
+and the persistent checkpoint for exact source/CI outcomes. Do not treat compilation or unit fixtures as
+privileged network validation. Phase 4B's existing optional isolated Linux lab remains;
+privileged macOS/BPF remains incomplete. Measurements will be recorded separately; no
+Nmap/Masscan parity or high-speed claim follows from this feature.
+
+`storage_commit_seconds`/`storage_commits` measure classification-result transactions,
+excluding initial manifest, metadata, replay, enrichment-update and final export flush
+costs. Wall timings include those costs within their stated benchmark boundaries.
+
+Native metrics describe the current invocation, not reconstructed cumulative sends.
+Restored rows retain their original evidence/timestamp; unfinished prior transmissions
+may be repeated and are not added to a later row's attempt count. Previous stream files
+retain earlier session metrics; a new stream is self-contained for cumulative results,
+not a complete per-session history. Service evidence remains unauthenticated and its
+observation time is bounded by the port timestamp and relevant session completion.

@@ -1,88 +1,110 @@
 # Autonomous roadmap checkpoint
 
-## Current stage: Phase 4B — final review/CI before ready and merge
+## Current stage: Phase 4C — final PR checks/review
 
-Owner authorizes autonomous stage PRs and merges after completion, latest required
-checks, current base and resolved review blockers. No routine merge confirmation.
-No force-push, bypass, branch deletion, public scans, history rewrite or release publishing.
+Owner authorizes autonomous stage implementation, focused commits, push, PR review
+and merge after completion/current base/passing required checks/no review blockers.
+No force push, bypass, branch deletion, public scans, history rewrite or public release.
 
-- Main: `3e57881a8e03e3d4b5b0a58835714cb3a652d483`, Phase 4A #11 merged.
-  Post-merge CodeQL 39338314167, Tests 39338314100, Native 39338314108,
-  Security 39338314099 all passed; declared Rust 1.85 minimum tested.
-- Completed stages: 1–3, security #8 and 4A #11. Remaining: 4B final merge, 4C,
-  5A plugins, 5B remote OS evidence, 5C optional SQLite history, 6 release validation.
-- Branch/worktree: `phase4b/native-syn-design`, sibling `scanix-phase4b`.
-  PR: https://github.com/numankhaan/scanix/pull/12 (base main; still draft).
-  Current HEAD: `git rev-parse HEAD`. Latest fully runtime-tested head:
-  `d181e1b1eee2ea1cd71c8bb8f9db112576bac67d`.
-- Commits: `e0d0842` packet fixtures, `05422a9` SYN/protocol-2 integration,
-  `59f61a4` retry/cancellation evidence fix, `d181e1b` controlled lab/resource metrics.
-  This final follow-up adds Linux-only IPC tests and measured/support documentation.
-  Production runtime is unchanged from the live-tested head (test code/comments only).
-- All old branches preserved. Original unrelated UDP edit verified unchanged; never
-  stage it. Main required security/CodeQL/regression ruleset remains active. Historical
-  privacy cleanup still awaits owner decision; no new allowlist or rewrite.
+- Main: `66f0455e6d69c0807de04e84f9c391dbd07776c5`, Phase 4B #12 merged.
+  Post-merge Security 39343940342, CodeQL 39343940329, Native 39343940313 and
+  Tests 39343940358 all passed. Branches retained, strict security/regression rules intact.
+- Completed: phases 1–3, security #8, 4A #11, 4B #12. Remaining: 4C merge,
+  5A informational plugins, 5B remote OS evidence, 5C SQLite history, 6 release validation.
+- Worktree: sibling `scanix-phase4c`; branch `phase4c/durable-streaming` from main.
+  PR https://github.com/numankhaan/scanix/pull/13 (base main; draft until final acceptance).
+  Recorded implemented HEAD: `10df427316d9c630ba75f60dae55794a628a9a9a`.
+  This final docs/gate-envelope follow-up is subsequent; inspect `git rev-parse HEAD`.
+- Commits: 0d29468 protocol/selection, 90d3f37 durable streaming, cfc3eed Windows/
+  CodeQL fixtures, 75ce1ed batching, fbbee23 sparse flush, c41a46f compatibility/schema,
+  e117a76 cached terminal cursors, 6612372 artifact prevention, 10df427 inline-export guard.
+- Original unrelated UDP edit remains in original worktree, never stage it. Expected
+  SHA-256: 880894f38bc74007b1ad0d94609964f136667fe8be865e7466cb37535056893c.
+  Historical privacy cleanup still awaits owner decision; no new allowlist/rewrite.
 
-## Acceptance and actual implementation
+## Acceptance and implemented behavior
 
-Linux numeric IPv4 native SYN: independent paced transmitter/receivers, source/route/
-privilege/capture preflight, strict TCP/quoted-ICMP correlation and reset cleanup,
-bounded global/per-host work, retries, windows/cooldown/session and actual send/drop
-metrics. Cancellation preserves positive/error evidence without counting unsent retries.
-Protocol 2/engine 0.4.1, report schema 4; Python default/connect and exporters retained;
-service enrichment remains separate. Native IPv6 SYN/UDP/discovery unsupported explicitly.
-Rust streams, Python export aggregation remains bounded to the pair ceiling (4C later).
+Protocol 3/engine 0.4.2, report schema 4, checkpoint/NDJSON format 1. Python default
+and aggregate workflows retained. Native connect (IPv4/IPv6) and Linux IPv4 SYN support
+exact compatible continuation, target-major IDs/modulo shards and engine-enforced
+completed skips. Hashes cover config, resolved associations/order/exclusions, native
+binary, production Python/probe bytes and explicit CA content. No fallback or migration.
 
-## Actual validation and exact commands
+Private SQLite FULL/exclusive-writer fixed-schema checkpoints, at most 64-record batches
+(default16), .25s sparse flush target, commit before emission, cancellation/final flush;
+crash replay is at least once for uncommitted/in-flight/queued work. Unknown old counters
+stay unknown; known loss is sticky. Bounded NDJSON upserts/replay; zero retained report
+result objects. Inline JSON/CSV/HTML writers reject nonretained summaries before writing.
+Separate paced/limited enrichment preserves port states. Source/record/file/queue limits
+and actual supported/unsupported methods are documented in docs/CONTINUATION.md.
 
-- `cargo test --locked --manifest-path native/Cargo.toml`: 19 passed locally before
-  this test-only follow-up; Linux/non-Linux counts will differ with two new IPC tests.
-- `cargo fmt --manifest-path native/Cargo.toml --check`, strict Clippy and release
-  build passed. Linux aarch64 cross-Clippy passed using rustup stable compiler;
-  cross-build is not execution. New IPC tests compile, awaiting Linux CI execution.
-- `python -B validation/native_ci.py`: initial 143 run, 140 pass/three macOS skips.
-  At d181e1b CI: 145/job; native Linux 143 pass/two skips, macOS 142/three,
-  Windows 141/four. Ordinary jobs 137/eight, Windows 136/nine (six native cases
-  explicitly unavailable, plus privileged/POSIX cases). No skipped case counted pass.
-- Six SYN wire tests passed locally, including invalid evidence, drop metrics,
-  setup cancellation and retry-failure preservation. 19 security-gate tests passed.
-- d181e1b all push/PR workflows passed, logs checked:
-  Security 39342280858/39342285880; CodeQL 39342280892/39342285865;
-  Tests 39342280871/39342286055; Native/MSRV 39342280864/39342285903.
-  Security had three zero-finding gates and 19 tests. Historical privacy jobs skipped
-  on push/PR, not passed; their separate historical inventory remains unresolved.
-- `gh workflow run privileged-lab.yml --ref phase4b/native-syn-design` dispatched
-  exactly once at d181e1b. Run **39342284692 passed**: 25 native SYN checks plus
-  existing Phase 2 namespace/capture/loopback regression. No public traffic.
-- `python -m scanix scan -t 127.0.0.1 -p 19000 --engine native --syn --rate 20
-  --retries 1 --syn-cooldown .2 --preview`: verified offline policy/CLI, no child.
-- Local macOS privileged-lab preflight exited 2/unavailable, not pass. Privileged
-  macOS/BPF remains incomplete; native SYN explicitly supports Linux only.
+Security extension is additive: forbid NDJSON/SQLite sidecars, recognize renamed stream
+headers; synthetic negative/redaction tests, no exception/permission/severity weakening.
 
-## Measured Linux evidence
+## Actual validation
 
-Source d181e1b, 4-core x86_64 GitHub Ubuntu runner, ~15.6 GiB RAM, isolated veth
-namespaces/no external default route. All four expected states and Python agreement
-passed. Five SYN sends (one retry), one reset, four attempted/completed pairs,
-three matched replies, one timeout, kernel/userspace/capture drops zero. Minimum
-captured explicit gap .050554 s at ceiling 20/s. Native session 1.602965 s,
-CPU .014989 s; getrusage RSS high-water 93,597,696 bytes is an upper bound that may
-include the pre-exec Python image, not isolated Rust workload memory. Single small
-correctness case dominated by silence/cooldown, not throughput/scalability/parity.
-Actual topology, counts, capture digests and resource boundaries:
-validation/NATIVE_SYN_RESULTS.md. Raw captures stayed private/ephemeral, no upload.
+- Local `python -B validation/native_ci.py`: **169 run, 166 passed, three skips**
+  (two optional privileged cases and Linux-only native SYN preflight on macOS).
+  Real loopback: cancel/resume, unchanged completed-connection counts, shard union,
+  completed replay without child, CLI, service-state preservation, stream write failure.
+  Deterministic: batch deadlines/atomicity, crash, schema collisions, scope/config/
+  binary/Python/registry/CA compatibility, bounded bitmaps, output rejection.
+- `cargo test --locked --manifest-path native/Cargo.toml`: **22 passed locally**.
+  fmt, release build, strict Clippy and Linux aarch64 cross-Clippy passed; cross-build
+  is not execution. Source 6612372 CI: Linux/MSRV **24**, macOS/Windows **22** Rust.
+- Security tests **20 passed**, Bandit zero findings, workflow policy/actionlint,
+  tree/staged/outgoing secret/privacy gates passed. Final envelope test aligns valid
+  stream headers with the complete bounded frame size; do not count tests not run.
+- At 66123724901cf85848a433bb2795b992c4a46ebd all eight push/PR workflows passed:
+  Security 39400797219/39400802966; CodeQL 39400797180/39400802968;
+  Tests 39400797179/39400803028; Native/MSRV 39400797147/39400803142.
+  Python 168/job: native Linux166/two skips, macOS165/three, Windows164/four;
+  ordinary Linux/macOS153/15, Windows152/16. Skips are not passes.
+  Subsequent inline-export test adds one; final-head CI must be checked separately.
+  Historical privacy jobs are separately skipped on push/PR, not resolved/passed.
+- Earlier 90d3f37 Windows failures were test connection leaks (WinError32 cleanup).
+  Explicit fixture closure fixed them. CodeQL permissive synthetic fixture was replaced
+  with mocked unsafe metadata plus no-open assertion; no suppression/assertion weakening.
+- Isolated privileged Linux run **39400801059** at 6612372 passed **33 native checks**
+  plus retained Phase 2 lab/optional loopback coverage. Captures prove resume skips
+  completed SYN ports and completed replay sends no probes. Six captures, measured
+  drops zero, all expected states. Earlier fbbee23 run39399173545 also passed.
+  The exporter/gate/docs follow-up changes no packet/scheduler/checkpoint algorithm.
+- Source6612372 clean loopback baseline, 128 listeners, three workers/mode/batch:
+  stream batch1 median2.208202s (128 commits/2.011454s); batch16 .523470s
+  (eight/.124700s). Aggregate .412–.415s, still faster. Zero retained report rows,
+  small-case traced/RSS overhead higher; no large-scan memory/speed or parity claim.
+  Exact hardware, boundaries, CPU/RSS, captures and reproduction:
+  validation/CONTINUATION_RESULTS.md. Raw artifacts stayed private; none uploaded.
+- Actual CLI help and README shard preview verified; checkpoint CLI exercised with
+  controlled local listeners. `--preview` performs no checkpoint/hash/child/probe activity.
 
 ## Precise next action
 
-Commit intended final Linux IPC tests/docs/checkpoint; push after GitHub head/base
-check. Inspect all latest-head Security/CodeQL/Tests/Native/MSRV jobs and run the new
-nonprivileged Linux IPC tests in CI. Fix actual failures. Live runtime remains the
-already tested d181e1b; final diff must show only test/documentation follow-up.
-Review final PR diff/reviews/required checks, mark ready only when acceptance passes,
-merge #12 normally at exact reviewed SHA without deleting branch, then verify main
-and post-merge CI. Update checkpoint on a new Phase 4C branch and continue roadmap.
+Commit/push intended final docs and stream-gate envelope test. Inspect all latest-head
+Security/CodeQL/Tests/Native/MSRV outcomes; queued/running is not pass. Update PR #13
+body with final head/results. Review whole diff, effective required checks, current base,
+reviews/threads and server branch-retention setting. Ready/merge only when complete and
+all latest checks pass; no bypass/delete. Verify main/post-merge CI, then branch Phase5A
+from updated main and replace this checkpoint with its concrete acceptance/next action.
 
-Current uncommitted files: intended Linux IPC tests and measured/support docs only.
-Private evidence pointer: `/tmp/scanix-security-session`. On any resume inspect
-Git/GitHub before repeating push/dispatch/ready/merge. Historical cleanup and
-privileged macOS/BPF remain explicitly unresolved. No new external blocker for 4B.
+Current uncommitted files: final README/roadmap/native/continuation/measurement/checkpoint
+docs and targeted security header-envelope test only. No raw reports/captures staged.
+Private evidence pointer: `/tmp/scanix-security-session`. Reconcile Git/GitHub before
+repeating any push, dispatch, ready or merge. Privileged macOS/BPF remains incomplete;
+native IPv6 SYN/UDP/discovery unsupported. No new external blocker for Phase4C.
+
+## Final-head reconciliation
+
+955a861a81b77b0883a0d92ac7a6328519157ffe was pushed; all eight latest-head workflows
+passed (Security39402955006/39402960791, CodeQL39402954978/39402960727,
+Tests39402955374/39402960825, Native39402955391/39402961189). Native Python169/job,
+Rust Linux/MSRV24/non-Linux22; security20 tests. Main is still66f0455; required nine
+contexts/strict base verified, no branch deletion, one resolved review thread/no blockers.
+Final review found the resume guard skipped sessions with zero completed rows despite
+possible previous sends. Fixed guard for every resumed nonempty session; deterministic
+wait/decreased-budget regression added. Local native170 run,167 passed/three skips.
+Commit/push this focused fix, inspect replacement latest checks, update PR body, merge
+normally only when green, then verify main/post-merge and continue Phase5A. Prior final
+commit/push operations succeeded; do not repeat them. No scanning algorithm/data scope
+or measured baseline claim changed; the new case is a pre-send pacing edge condition.

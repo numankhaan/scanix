@@ -1,4 +1,4 @@
-"""Protocol-2 subprocess adapter. Trusted executable, untrusted bounded wire input."""
+"""Protocol-3 subprocess adapter. Trusted executable, untrusted bounded wire input."""
 from concurrent.futures import CancelledError
 import ipaddress
 from itertools import islice
@@ -17,7 +17,7 @@ from ..core.models import ScanReport, utc_now
 from ..core.scanner import new_result
 from ..core.timing import Runtime
 
-PROTOCOL = 2
+PROTOCOL = 3
 MAX_FRAME = 65536
 QUEUE = 32
 MAX_PORTS = 4096
@@ -69,7 +69,7 @@ def _integer(value, minimum=0, maximum=1_000_000):
     return type(value) is int and minimum <= value <= maximum
 
 
-def _run(config, targets, stop, report, binary, progress):
+def _run(config, targets, stop, report, binary, progress, selection=None, on_result=None, retain=True, on_tick=None):
     command = binary or os.environ.get('SCANIX_NATIVE_ENGINE') or shutil.which('scanix-engine')
     if not command:
         raise FileNotFoundError('native engine executable not configured')
@@ -132,11 +132,20 @@ def _run(config, targets, stop, report, binary, progress):
                   'concurrency':config.concurrency,'per_host':config.per_host,
                   'rate':config.rate or {'connect':100,'syn':10}[config.method],
                   'retries':config.retries,'cooldown_ms':math.ceil(config.syn_cooldown*1000),'max_targets':65536,'max_results':1_000_000,
-                  'session_timeout_ms':math.ceil(config.engine_timeout*1000)})
+                  'session_timeout_ms':math.ceil(config.engine_timeout*1000),
+                  **({'shard_index':selection.index,'shard_count':selection.count} if selection else {})})
             for target in targets:
                 if stop.is_set():
                     send({'type':'cancel'});return
                 send({'type':'target','ip':target.ip})
+            if selection:
+                batch=[]
+                for index, completed in enumerate(selection.completed):
+                    if completed:
+                        batch.append(index)
+                        if len(batch)==4096:
+                            send({'type':'completed','ids':batch});batch=[]
+                if batch:send({'type':'completed','ids':batch})
             send({'type':'run'})
         except (OSError,ValueError) as exc:
             put(('write_fault',type(exc).__name__))
@@ -147,13 +156,17 @@ def _run(config, targets, stop, report, binary, progress):
         except (OSError,ValueError):
             pass
 
-    started=time.monotonic();ready=False;hello=False;done=None;seen=set();fatal=False
-    requested=len(targets)*len(config.ports);cancelled_at=None;done_at=None
+    started=time.monotonic();ready=False;hello=False;done=None;fatal=False;completed_count=0;send_error=False;fatal_result_error=False
+    full_count=len(targets)*len(config.ports)
+    requested=selection.remaining if selection else full_count
+    seen=bytearray(full_count)
+    cancelled_at=None;done_at=None
     try:
         for function in (read,drain,write):
             thread=threading.Thread(target=function,daemon=True)
             threads.append(thread);thread.start()
         while True:
+            if on_tick:on_tick()
             now=time.monotonic()
             if stop.is_set() and cancelled_at is None:
                 cancelled_at=now
@@ -197,7 +210,8 @@ def _run(config, targets, stop, report, binary, progress):
                 ready=True;started=time.monotonic()
             elif kind=='result':
                 index=frame.get('id');target_index=frame.get('target_index');port=frame.get('port')
-                if (fatal or not ready or not _integer(index,0,requested-1) or index in seen
+                if (fatal or not ready or not _integer(index,0,full_count-1) or seen[index]
+                    or selection is not None and not selection.selected(index)
                     or not _integer(target_index,0,len(targets)-1) or not _integer(port,1,65535)
                     or index//len(config.ports)!=target_index or config.ports[index%len(config.ports)]!=port
                     or not isinstance(frame.get('ip'),str)
@@ -240,14 +254,18 @@ def _run(config, targets, stop, report, binary, progress):
                 result.evidence={'engine':'native','wire_protocol':PROTOCOL,'work_id':index,**evidence}
                 result.attempts=attempts
                 if config.method=='syn':result.probe_type='syn'
-                report.results.append(result);seen.add(index)
+                if on_result:on_result(result)
+                if retain:report.results.append(result)
+                send_error |= result.evidence.get('send_error_code') is not None
+                fatal_result_error |= result.reason in ('permission_denied','resource_exhausted')
+                seen[index]=1;completed_count+=1;report.completed_probes=completed_count
                 if progress:
-                    progress(len(seen),requested)
+                    progress(completed_count,requested)
             elif kind=='done':
                 status=frame.get('status');completed=frame.get('completed');attempted=frame.get('attempted')
                 count=frame.get('requested');peak=frame.get('peak_outstanding')
                 setup_cancel=status=='interrupted' and not ready and completed==0
-                if (status not in ('complete','interrupted','failed') or not _integer(completed) or completed!=len(seen)
+                if (status not in ('complete','interrupted','failed') or not _integer(completed) or completed!=completed_count
                     or not _integer(attempted,completed,requested) or not _integer(count,0,requested)
                     or not setup_cancel and count!=requested
                     or status=='complete' and (not ready or completed!=requested or attempted!=requested)
@@ -273,7 +291,7 @@ def _run(config, targets, stop, report, binary, progress):
                         or frame.get('native_peak_rss_bytes') is not None and not _integer(frame['native_peak_rss_bytes'],0,2**64-1)):
                         raise ValueError('invalid native process resource metrics')
                     if status=='complete' and (any(frame.get(key) for key in ('send_errors','queue_drops','capture_drops'))
-                        or any(row.evidence.get('send_error_code') is not None for row in report.results)):
+                        or send_error):
                         raise ValueError('capture/transmission loss contradicts complete status')
                 done=frame;done_at=time.monotonic()
             else:
@@ -296,7 +314,7 @@ def _run(config, targets, stop, report, binary, progress):
             expected={'complete':0,'interrupted':130,'failed':3}[done['status']]
             if process.returncode!=expected or fatal and done['status']!='failed':
                 raise ValueError('native exit status contradicts protocol')
-        if any(r.reason in ('permission_denied','resource_exhausted') for r in report.results):
+        if fatal_result_error:
             report.completion_status='failed'
     finally:
         finished.set()
@@ -315,23 +333,31 @@ def _run(config, targets, stop, report, binary, progress):
             report.issues.append({'reason':'native_stderr','bytes_drained':stderr_bytes})
 
 
-def scan_native(config, plan, stop=None, *, binary=None, progress=None):
+def scan_native(config, plan, stop=None, *, binary=None, progress=None, selection=None, on_result=None, retain=True, on_tick=None):
     if config.engine!='native':
         raise ValueError('native adapter requires an explicit native configuration')
     stop=stop or threading.Event()
     report=ScanReport(config,implementation={'engine':'native','wire_protocol':PROTOCOL,'engine_version':None})
     targets=list(islice(plan,65537))
-    report.requested_probes=len(targets)*len(config.ports)
+    report.requested_probes=selection.remaining if selection else len(targets)*len(config.ports)
+    if not retain:report.completed_probes=0
     report.scope=plan.preview(config.ports,config.method,limit=0)
     report.scope['implementation']=preview(config)
+    if selection is not None:
+        report.implementation['selection']={'shard_index':selection.index,'shard_count':selection.count,
+                                            'full_scope_pairs':selection.total,'restored_results':selection.done}
     try:
-        if len(config.ports)>MAX_PORTS or len(targets)>65536 or report.requested_probes>1_000_000:
+        if not retain and config.service_detect:
+            raise ValueError('streaming enrichment must run separately from port classification')
+        if selection is not None and selection.total!=len(targets)*len(config.ports):
+            raise ValueError('selection scope mismatch')
+        if len(config.ports)>MAX_PORTS or len(targets)>65536 or len(targets)*len(config.ports)>1_000_000:
             raise ValueError('native scope limit exceeded')
         if config.method=='syn' and (sys.platform!='linux' or any(target.family!='IPv4' for target in targets)):
             report.issues.append({'reason':'native_syn_requires_linux_ipv4'})
             raise NotImplementedError('unsupported SYN platform or address family')
         if not stop.is_set():
-            _run(config,targets,stop,report,binary,progress)
+            _run(config,targets,stop,report,binary,progress,selection,on_result,retain,on_tick)
         if config.service_detect:
             from ..service.engine import enrich_results,policy
             from ..service.registry import load_registry

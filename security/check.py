@@ -96,7 +96,7 @@ def file_findings(path, data, ref):
     name = Path(path).name.lower()
     forbidden = (path.startswith('.security-private/') or '.env' in Path(path).parts or name == '.env' or name.startswith('.env.') or
                  name in ('.envrc', '.git-credentials', '.netrc', '.pypirc', '.npmrc', 'cookies.txt', 'credentials.json', 'terraform.tfstate') or
-                 Path(path).suffix.lower() in ('.env', '.key', '.p12', '.pfx', '.pcap', '.pcapng', '.har', '.sqlite', '.sqlite3', '.db', '.log', '.pyc', '.pdf', '.docx', '.odt', '.xlsx', '.pptx') or
+                 Path(path).suffix.lower() in ('.env', '.key', '.p12', '.pfx', '.pcap', '.pcapng', '.har', '.sqlite', '.sqlite3', '.db', '.ndjson', '.sqlite-journal', '.sqlite3-journal', '.db-journal', '.sqlite-wal', '.sqlite3-wal', '.db-wal', '.sqlite-shm', '.sqlite3-shm', '.db-shm', '.log', '.pyc', '.pdf', '.docx', '.odt', '.xlsx', '.pptx') or
                  name in ('scan_results.json', 'scan_results.csv', 'scan_results.html'))
     report = False
     if data.lstrip().startswith(b'{'):
@@ -109,6 +109,13 @@ def file_findings(path, data, ref):
             # This is a narrow shape detector, not a claim to validate all JSON.
             report = False
     header = data.split(b'\n', 1)[0]
+    if len(header)<=66560 and header.lstrip().startswith(b'{'):
+        try:
+            first=json.loads(header)
+            report = report or (isinstance(first,dict) and first.get('type')=='header' and
+                               {'configuration','stream_version','report_schema'} <= first.keys())
+        except (ValueError,RecursionError):
+            pass
     report = report or (header.startswith(b'record_type,') and b'resolved_ip' in header)
     report = report or (data.lstrip().lower().startswith(b'<!doctype html') and
                         b'&quot;configuration&quot;' in data and b'<th>resolved_ip</th>' in data)

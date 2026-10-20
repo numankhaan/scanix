@@ -81,6 +81,17 @@ class PrivacyTests(unittest.TestCase):
             self.assertTrue(any(x['category'] == 'forbidden-file-review' for x in check.file_findings(name, b'SYNTHETIC=true', 'tree')))
         self.assertEqual(check.file_findings('database.json', b'{"schema_version":1,"probes":[]}', 'tree'), [])
 
+    def test_continuation_artifacts_are_blocked_even_when_stream_is_renamed(self):
+        for suffix in ('ndjson','sqlite-journal','sqlite3-wal','db-shm'):
+            found=check.file_findings('synthetic.'+suffix,b'synthetic fixture','tree')
+            self.assertTrue(any(x['category']=='forbidden-file-review' for x in found))
+        header={'type':'header','configuration':{},'stream_version':1,'report_schema':4}
+        header['synthetic_padding']='x'*65536
+        payload=(json.dumps(header)+'\n'+json.dumps({'type':'result','id':0})+'\n').encode()
+        self.assertTrue(any(x['category']=='scan-report-review' for x in
+                            check.file_findings('renamed.txt',payload,'tree')))
+        self.assertEqual(check.file_findings('safe.txt',b'{malformed}\n{}\n','tree'),[])
+
     def test_precise_key_exceptions(self):
         path = 'scanix/tests/fixtures/tls/ca-TEST-ONLY.key'
         data = (ROOT/path).read_bytes()
