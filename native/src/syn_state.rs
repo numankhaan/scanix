@@ -68,6 +68,13 @@ impl State {
     pub fn new(cfg: Arc<Config>, targets: Vec<Ipv4Addr>, sources: Vec<Ipv4Addr>) -> Self {
         let count = targets.len();
         let rtt = (0..count).map(|_| Adaptive::new(&cfg)).collect();
+        let ports = (0..count)
+            .map(|host| {
+                (0..cfg.ports.len())
+                    .find(|port| cfg.selected(host * cfg.ports.len() + port))
+                    .unwrap_or(cfg.ports.len())
+            })
+            .collect();
         Self {
             cfg: cfg.clone(),
             requested: (0..targets.len() * cfg.ports.len())
@@ -76,7 +83,7 @@ impl State {
             targets,
             sources,
             cursor: 0,
-            ports: vec![0; count],
+            ports,
             active: vec![0; count],
             rtt,
             pending: HashMap::new(),
@@ -93,8 +100,7 @@ impl State {
         }
     }
     fn next_port(&self, host: usize) -> Option<usize> {
-        (self.ports[host]..self.cfg.ports.len())
-            .find(|port| self.cfg.selected(host * self.cfg.ports.len() + port))
+        (self.ports[host] < self.cfg.ports.len()).then_some(self.ports[host])
     }
     pub fn can_insert(&self) -> bool {
         self.pending.len() + self.ready.len() < self.cfg.concurrency
@@ -116,7 +122,10 @@ impl State {
             let Some(port) = self.next_port(host) else {
                 continue;
             };
-            self.ports[host] = port + 1;
+            // Advance each full-scope port at most once, including completed/sharded tails.
+            self.ports[host] = (port + 1..self.cfg.ports.len())
+                .find(|next| self.cfg.selected(host * self.cfg.ports.len() + next))
+                .unwrap_or(self.cfg.ports.len());
             self.active[host] += 1;
             let id = host * self.cfg.ports.len() + port;
             let probe = Probe {
@@ -395,6 +404,31 @@ mod tests {
         b[28..32].copy_from_slice(&p.sequence.wrapping_add(1).to_be_bytes());
         b[33] = 0x12;
         b
+    }
+    #[test]
+    fn exhausted_completed_hosts_cache_their_terminal_cursor() {
+        let mut cfg = crate::protocol::tests::config();
+        cfg.ports = (1..=32).collect();
+        cfg.shard_index = 15;
+        cfg.shard_count = 16;
+        cfg.completed = vec![false; 64];
+        for id in [15, 31, 47] {
+            cfg.completed[id] = true;
+        }
+        let mut s = State::new(
+            Arc::new(cfg),
+            vec![Ipv4Addr::LOCALHOST; 2],
+            vec![Ipv4Addr::LOCALHOST; 2],
+        );
+        assert_eq!(s.ports, vec![32, 31]);
+        for _ in 0..1000 {
+            assert!(s.can_insert());
+            assert_eq!(s.ports, vec![32, 31]);
+        }
+        assert!(s.insert(1, 40000));
+        assert_eq!(s.ports, vec![32, 32]);
+        assert!(!s.can_insert());
+        assert_eq!(s.job(0).unwrap().id, 63);
     }
     #[test]
     fn shard_and_completed_ids_never_enter_pending_state() {

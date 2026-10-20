@@ -62,9 +62,9 @@ SQLite/filesystem durability assumptions apply, not a guarantee against broken d
 network filesystems or lying flush implementations. Regular tests exercise abrupt
 process exit, not power-loss hardware fault injection.
 
-A result becomes durably completed only when its batch commits. After a crash, up to
-one batch of received observations may not yet be committed, in addition to outstanding
-probes. Unfinished probes may already
+A result becomes durably completed only when its batch commits. After a crash, one application batch, bounded adapter/native queues, OS pipe data
+and in-flight probes may not yet be committed. The batch limit is not a bound on all
+network work that may be repeated. Unfinished probes may already
 have reached the network; after interruption/crash they may be sent again. Semantics
 are **at least once for unfinished work**, not exactly-once transmission. A normal
 interrupt preserves completed rows; resume skips those IDs in both native schedulers.
@@ -93,7 +93,8 @@ Changing shard count/index is incompatible with an existing checkpoint.
 
 Scope remains bounded to 65,536 targets, 4,096 ports and one million full-scope pairs.
 Completed/duplicate bitmaps are at most one million bytes each, plus the bounded target
-and port scope. Streaming retains zero result objects in the report and at most one configured batch
+and port scope. Streaming retains zero result objects in `report.results` (this metric excludes I/O
+queues and the application batch) and at most one configured batch
 of pending observations (1–64); restored records are read individually. SQLite cache
 is 2 MiB, records are at most 64 KiB and a
 new 4 KiB-page checkpoint is capped at 1 GiB. Disk exhaustion or scanner/storage failure
@@ -121,3 +122,7 @@ checkpoint for actual commands/outcomes. Do not treat compilation or unit fixtur
 privileged network validation. Phase 4B's existing optional isolated Linux lab remains;
 privileged macOS/BPF remains incomplete. Measurements will be recorded separately; no
 Nmap/Masscan parity or high-speed claim follows from this feature.
+
+`storage_commit_seconds`/`storage_commits` measure classification-result transactions,
+excluding initial manifest, metadata, replay, enrichment-update and final export flush
+costs. Wall timings include those costs within their stated benchmark boundaries.
