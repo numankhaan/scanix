@@ -1,0 +1,14 @@
+# Preserve complete upstream notices byte-for-byte on every platform.
+/LICENSE -text
+/native/LICENSE -text
+/third_party/licenses/* -text
+# Keep checksum-bound dependency/metadata policy stable on Windows checkouts.
+/native/Cargo.lock text eol=lf
+/native/Cargo.toml text eol=lf
+/pyproject.toml text eol=lf
+/requirements.txt text eol=lf
+/validation/requirements.txt text eol=lf
+# These two authentic upstream files contain trailing spaces; retain their hashes.
+# This affects Git whitespace diagnostics only, not secret/privacy/static scanners.
+/third_party/licenses/BSD-2-Clause.txt whitespace=-blank-at-eol
+/third_party/licenses/rust-1.91.1-COPYRIGHT-library.html whitespace=-blank-at-eol

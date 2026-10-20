@@ -63,5 +63,7 @@ Release validation uses `python -B validation/parser_corpus.py --cases 128` and
 `validation/requirements.txt`. Builds/installs stay local; no upload is authorized.
 See [signature maintenance](docs/SIGNATURE_MAINTENANCE.md),
 [candidate support/upgrade policy](docs/RELEASE_CANDIDATE.md) and
-[dependency license inventory](docs/DEPENDENCY_LICENSES.md). Project license remains
-owner-pending. Do not add a license claim or copy a third-party database by inference.
+[dependency license inventory](docs/DEPENDENCY_LICENSES.md). Project code is GPL-2.0-only; original CC0 data and dependency licenses remain.
+Confirm rights and compatible terms for contributions; do not infer ownership from
+a Git identity, strip notices, or copy unreviewed third-party code/databases.
+See [licensing/provenance/source-delivery rules](docs/LICENSING.md).

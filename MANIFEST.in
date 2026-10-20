@@ -1,5 +1,8 @@
 include README.md ROADMAP.md SECURITY.md CONTRIBUTING.md requirements.txt
-include native/Cargo.toml native/Cargo.lock
+include native/Cargo.toml native/Cargo.lock native/LICENSE
+include LICENSE THIRD_PARTY_NOTICES.md third_party/licenses.json
+recursive-include third_party/licenses *
+recursive-include validation *.py requirements.txt
 recursive-include native/src *.rs
 recursive-include docs *.md
 prune scanix/tests

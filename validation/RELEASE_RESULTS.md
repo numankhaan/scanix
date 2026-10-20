@@ -1,6 +1,6 @@
 # Phase 6 candidate validation record
 
-Candidate1.0.0rc1; prepared locally without publishing. Code source **8940b35ba6e5ecc03a9557f6a3b818d802063191**. This is the local pre-push validation snapshot; current CI outcomes are recorded in PR #17 and the progress checkpoint. Local passes below are not CI outcomes. Keep the PR draft pending the remaining CI job and licensing decision. Privileged macOS raw/BPF operation is experimental and unverified; tested unprivileged macOS functionality is retained.
+Candidate1.0.0rc1; prepared locally without publishing. Code source **8940b35ba6e5ecc03a9557f6a3b818d802063191**. This is the local pre-push validation snapshot; current CI outcomes are recorded in PR #17 and the progress checkpoint. Local passes below are not CI outcomes. GPL-2.0-only is now selected/applied within the scope documented in docs/LICENSING.md; current-base final-head checks/review remain necessary. Privileged macOS raw/BPF operation is experimental and unverified; tested unprivileged macOS functionality is retained.
 
 ## Actual local execution
 
@@ -35,7 +35,43 @@ Native connect/stream batching throughput/CPU/RSS measurements remain tied to so
 
 ## Incomplete acceptance and privacy
 
-- Project LICENSE absent; owner decision requested, no invented license. Optional Scapy GPL-2.0-only and locked Rust license inventory reviewed in docs/DEPENDENCY_LICENSES.md. Public distribution/license compliance still pending.
+- GPL-2.0-only applied after available provenance/dependency review; original CC0 data retained. Actual crate archives/notices checked, corresponding-source/build rules documented. Python/OpenSSL runtime bundles are not cleared; see docs/LICENSING.md. No invented copyright holders or public package/release.
 - `sudo -n true` failed locally: privileged macOS/BPF validation unavailable. LinuxVM evidence does not substitute. Broader network/OS/TLS interoperability remains unverified as earlier docs state.
 - Historical privacy cleanup remains owner-pending. Full reachable-history secret scans remain enforced; scheduled historical privacy inventory is distinct from new-change gates. No history rewrite, new broad allowlist, credential revocation or public release performed.
 - Current candidate push/PR status is maintained in PR #17. Do not infer supported privileged macOS operation from unprivileged CI. No merge, license addition or publication is authorized now; no raw logs, histories, local install artifacts or captures are published.
+
+## GPL-2.0-only follow-up validation
+
+Owner-authorized project grant, existing CC0 data retained; no holder/year invented.
+Available Git/GitHub provenance and published dependency license sources reviewed as
+recorded in docs/LICENSING.md. All22 primary crate archive checksums matched Cargo.lock,
+selected full MIT notices matched archive/cache; Unicode and actual Rust1.91.1 library
+notices retained. Upstream Rust library metadata confirms MIT/Apache alternatives,
+BSD2 and Unicode portions; no Apache-only selection for bundled native components.
+Four focused licensing/package tests passed (including missing/tampered notices,
+incompatible selection, omitted Unicode, wrong metadata and unexpected wheel artifacts).
+Final package smoke passed9 checks:complete GPL/notices/License-Expression, source build
+scripts/license files and52 runtime members; installed unprivileged behavior retained.
+Twenty security tests passed, Bandit0, final actionlint/policy0; no new exception.
+Native source package includesLICENSE; locked release build passed. A private source
+copy with22 vendored dependencies built successfully with `cargo build --release --frozen`
+without network. Native linkage inspection found no OpenSSL. Nothing was uploaded.
+Python TLS uses OpenSSL3.6.1/Apache2, which is not GPL2-compatible; current wheel does
+not bundle that runtime and native does not link it. Frozen/runtime-bundled forms are
+not cleared and require separate review. No OpenSSL exception or third-party relicense.
+No production packet/scheduling change:prior labs/performance retain exact source;
+no benchmark/privileged rerun. Final updated-head CI will be recorded in PR/checkpoint,
+not inferred from these local checks. Public packages/releases remain unauthorized.
+
+Consolidated import review also checked optional Colorama0.4.6 (BSD3), primary
+published-wheel checksum/license verified; complete authentic notice retained. No
+new runtime dependency added; standard-library fallback unchanged. Total notices30.
+
+Windows-style checkout validation used `git -c core.autocrlf=true checkout-index`
+in a private source copy. License policy and all9 package checks passed there after
+explicit LF/binary-text attributes preserved upstream/checksum-bound bytes. The
+initial simulation caught native Cargo metadata CRLF conversion before push; fixed
+by explicit LF policy, no assertion weakened. Two upstream notice files retain
+authentic trailing spaces with only per-file Git whitespace diagnostics adjusted.
+No secret/privacy/static gate exception. This is a checkout simulation, not Windows
+execution; actual Windows remains in required final-head CI.

@@ -1,6 +1,7 @@
 """Private local sdist/wheel, installation and reinstall checks. Never uploads artifacts."""
 from contextlib import ExitStack
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from email.parser import BytesParser
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -15,7 +16,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def wheel_inventory(names):
+def wheel_inventory(names, license_files=()):
     """Only runtime Python/registry data and ordinary wheel metadata are permitted."""
     runtime = set()
     for name in names:
@@ -29,7 +30,8 @@ def wheel_inventory(names):
                 raise ValueError('unexpected runtime artifact')
             runtime.add(name)
         elif path.parts[0].endswith('.dist-info'):
-            if len(path.parts) != 2 or path.name not in ('METADATA','WHEEL','RECORD','entry_points.txt','top_level.txt'):
+            legal = len(path.parts) >= 3 and path.parts[1] == 'licenses' and '/'.join(path.parts[2:]) in license_files
+            if not legal and (len(path.parts) != 2 or path.name not in ('METADATA','WHEEL','RECORD','entry_points.txt','top_level.txt')):
                 raise ValueError('unexpected distribution metadata')
         else:
             raise ValueError('unexpected wheel package')
@@ -62,6 +64,8 @@ class Handler(BaseHTTPRequestHandler):
 
 def run():
     from scanix import __version__
+    from validation.licensing import license_files, EXPRESSION
+    legal_files = license_files()
     with tempfile.TemporaryDirectory(prefix='scanix-package-') as folder:
         private = Path(folder); artifacts = private / 'artifacts'
         execute([sys.executable, '-B', '-m', 'build', '--no-isolation', '--outdir', str(artifacts), str(ROOT)], cwd=private)
@@ -69,7 +73,7 @@ def run():
         if len(wheels) != 1 or len(sources) != 1:
             raise ValueError('missing or ambiguous distribution')
         with zipfile.ZipFile(wheels[0]) as archive:
-            names = archive.namelist(); runtime = wheel_inventory(names)
+            names = archive.namelist(); runtime = wheel_inventory(names, legal_files)
             if len(names) != len(set(names)):
                 raise ValueError('duplicate wheel members')
             expected = {p.relative_to(ROOT).as_posix() for p in (ROOT/'scanix').rglob('*.py')
@@ -77,7 +81,21 @@ def run():
             expected.update(p.relative_to(ROOT).as_posix() for p in (ROOT/'scanix/data').glob('*.json'))
             if runtime != expected:
                 raise ValueError('installed runtime/database inventory differs from source')
+            metadata_name = next(n for n in names if n.endswith('.dist-info/METADATA'))
+            metadata = BytesParser().parsebytes(archive.read(metadata_name))
+            if metadata['License-Expression'] != EXPRESSION or set(metadata.get_all('License-File', [])) != legal_files:
+                raise ValueError('wheel license metadata is incomplete')
+            prefix = metadata_name.rsplit('/', 1)[0] + '/licenses/'
+            for filename in legal_files:
+                if archive.read(prefix+filename) != (ROOT/filename).read_bytes():
+                    raise ValueError('wheel license/notice content differs from source')
         with tarfile.open(sources[0], 'r:gz') as archive:
+            members = archive.getnames()
+            prefix = members[0].split('/')[0]+'/'
+            for filename in legal_files | {'native/LICENSE', 'third_party/licenses.json', 'validation/requirements.txt',
+                                           'validation/licensing.py', 'validation/package_smoke.py'}:
+                if archive.extractfile(prefix+filename).read() != (ROOT/filename).read_bytes():
+                    raise ValueError('corresponding source license/build files missing or changed')
             for member in archive.getmembers():
                 path = PurePosixPath(member.name)
                 if (path.is_absolute() or '..' in path.parts or member.issym() or member.islnk() or
@@ -123,7 +141,7 @@ assert len(PLUGINS) == 4
         if not before or before != after:
             raise ValueError('reinstall changed persisted history')
         return {'version': __version__, 'runtime_members': len(runtime),
-                'checks': ['sdist_to_wheel','inventory_no_keys_tests_or_captures','isolated_install',
+                'checks': ['sdist_to_wheel','license_metadata_notices_and_source','inventory_no_keys_tests_or_captures','isolated_install',
                            'cli_version','bundled_databases','ipv6_preview','ipv4_loopback_plugin_history',
                            'same_candidate_reinstall_history_preserved'],
                 'limitations': 'No prior published wheel exists; not a cross-version upgrade or native binary installation test.'}

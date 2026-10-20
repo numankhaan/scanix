@@ -8,7 +8,8 @@ It does not claim Nmap accuracy or Masscan throughput. Scan only authorized syst
 ## Release-candidate status
 
 Candidate `1.0.0rc1` adds local package/install validation. No package or release has
-been published. Project licensing is undecided; privileged macOS raw/BPF operation
+been published. Original project code is GPL-2.0-only; existing CC0 data and third-party terms are retained.
+See [licensing and corresponding-source obligations](docs/LICENSING.md). Privileged macOS raw/BPF operation
 is experimental and unverified. Tested unprivileged macOS functionality is retained;
 see [candidate support, installation and upgrade boundaries](docs/RELEASE_CANDIDATE.md)
 and [actual validation results](validation/RELEASE_RESULTS.md).

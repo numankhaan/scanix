@@ -4,6 +4,7 @@ version = "0.4.2"
 edition = "2021"
 rust-version = "1.85"
 publish = false
+license = "GPL-2.0-only"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

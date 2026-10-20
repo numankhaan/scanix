@@ -43,8 +43,8 @@ one constrained Linux-compatible IPv4 profile, not general OS/version identifica
 
 Do not copy Nmap, p0f or other signature databases without reviewing their license
 and obtaining any necessary permission. Original fixtures and database provenance
-must be reviewable. Project license selection remains owner-pending; see
-DEPENDENCY_LICENSES.md. Add only narrowly justified synthetic-key exceptions; no
+must be reviewable. Project code is GPL-2.0-only; original data retains CC0-1.0. See
+LICENSING.md and DEPENDENCY_LICENSES.md. Add only narrowly justified synthetic-key exceptions; no
 fixture-directory allowlist. Database/code changes invalidate exact native checkpoint
 implementation fingerprints, so preserve exports and start a fresh incompatible scan.
 History records version provenance but does not migrate unknown schemas silently.

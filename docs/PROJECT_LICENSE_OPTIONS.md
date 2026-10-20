@@ -1,8 +1,8 @@
-# Project license options — decision pending
+# Project license options — decision record
 
-This comparison grants no license. No project LICENSE or package/native license
-field has been added. PR #17 stays draft pending its remaining CI job and the
-owner's licensing decision; no merge or publication is authorized now.
+The owner selected GPL-2.0-only after this comparison, subject to provenance and
+dependency checks. See [the applied scope and corresponding-source rules](LICENSING.md).
+The alternatives below preserve the decision context; they do not relicense dependencies.
 
 | Option | Main tradeoff | Scapy and native distribution |
 | --- | --- | --- |
@@ -31,7 +31,7 @@ copyleft distribution including the current raw integration, or a separately
 licensed native component if that distribution boundary is established. Apache-2.0
 and GPL-3.0-only introduce extra compatibility concerns with current Scapy. Confirm
 rights to license existing contributions and the intended Python/raw/native
-distribution before selecting terms. No option is selected here.
+distribution before selecting terms. The selected option is GPL-2.0-only within the reviewed distribution scope.
 
 Primary sources: [MIT](https://opensource.org/license/mit),
 [BSD-2-Clause](https://opensource.org/license/bsd-2-clause),

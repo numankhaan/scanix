@@ -1,21 +1,21 @@
 # Dependency and source license inventory
 
-Local inventory at the Phase6 candidate. Project license selection is pending the owner; no project license is inferred from dependencies or the original CC0 data. Do not publish this candidate until resolved.
+GPL-2.0-only was selected by the owner after the available provenance and dependency review. Original CC0 data and upstream dependency terms are retained. See [scope, provenance and corresponding source](LICENSING.md), root THIRD_PARTY_NOTICES.md and the checksum-bound third_party/licenses.json inventory. Publication is not authorized.
 
 See the [concise project-license comparison](PROJECT_LICENSE_OPTIONS.md) for
-permissive/copyleft options and the separate Python/raw/native distribution questions.
+the earlier decision comparison; GPL-2.0-only is now selected.
 
 ## Runtime and build boundary
 
 - Python standard library follows its interpreter distribution license. No third-party dependency is needed for connect, TLS, plugins or local history.
-- Optional Scapy2.8.0: GPL-2.0-only, verified installed distribution metadata and the [upstream tag license](https://github.com/secdev/scapy/blob/v2.8.0/LICENSE). The Python raw extra and test requirements pin this version. Review distribution/linking obligations when selecting the project license; do not assume a permissive project license overrides them.
+- Optional Scapy2.8.0: GPL-2.0-only, verified installed distribution metadata and the [upstream tag license](https://github.com/secdev/scapy/blob/v2.8.0/LICENSE). The Python raw extra and test requirements pin this version. The chosen project GPL version aligns with Scapy; preserve its notices/source when redistributing it.
 - Rust dependencies are separately built into the opt-in native executable. Locked dependency metadata below includes platform-specific packages, not all of which link on every target. Retain applicable license texts/notices when distributing binaries.
 - Original probe/OS JSON databases declare CC0-1.0; fixtures are original synthetic material. No Nmap or other third-party signature database is imported.
 - Local packaging uses build1.6.1 and setuptools84.2.0 (MIT), packaging26.3 (Apache-2.0 OR BSD-2-Clause), pyproject_hooks1.3.3 (MIT), tomli2.5.0 (MIT) and colorama0.4.6 (BSD-3-Clause), installed/audited on every validation host even when the frontend does not need them. Pins are in validation/requirements.txt and covered by dependency audits/Dependabot. Transitive build requirements may still vary on older interpreter patch versions.
 
 ## Locked Rust inventory
 
-Obtained with `cargo metadata --locked --offline --format-version 1 --manifest-path native/Cargo.toml`. Source URLs and expressions are supplied by upstream crate metadata; they are an inventory, not an automated compliance determination.
+Obtained with `cargo metadata --locked --offline --format-version 1 --manifest-path native/Cargo.toml`. Source URLs and expressions are supplied by upstream crate metadata; selected MIT alternatives and any additional Unicode terms are recorded in third_party/licenses.json. The archive/license hashes were checked against Cargo.lock and actual published package archives; this is not an automated legal determination.
 
 | Package | Version | Declared license |
 | --- | --- | --- |
@@ -42,6 +42,6 @@ Obtained with `cargo metadata --locked --offline --format-version 1 --manifest-p
 | windows-sys | 0.61.2 | MIT OR Apache-2.0 |
 | zmij | 1.0.23 | MIT |
 
-The native project itself has no selected license yet. Toolchain, platform SDK and operating-system notices are additional distribution considerations. cargo-audit checks advisories, not license compliance. Review changed lockfiles, upstream license files and any new dependency before approving a release.
+The native project crate is GPL-2.0-only; MIT alternatives are selected for all22 dependencies, with Unicode-3.0 also retained for unicode-ident. Complete authentic selected notices are included. Toolchain, platform SDK and operating-system notices are additional distribution considerations. cargo-audit checks advisories, not license compliance. Review changed lockfiles, upstream license files and any new dependency before approving a release.
 
 Primary references: [Cargo metadata](https://doc.rust-lang.org/cargo/commands/cargo-metadata.html), [Python package metadata](https://packaging.python.org/en/latest/guides/writing-pyproject-toml/) and [setuptools data files](https://setuptools.pypa.io/en/latest/userguide/datafiles.html).

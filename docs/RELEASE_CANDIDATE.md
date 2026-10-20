@@ -1,7 +1,7 @@
 # Phase 6 release-candidate validation
 
 Candidate: **1.0.0rc1**, prepared locally, not published. This is a draft validation
-candidate, not approval to release. Project licensing is undecided. Privileged
+candidate, not approval to release. Original code is GPL-2.0-only; original CC0 data and third-party terms are retained. Privileged
 macOS raw/BPF operation is experimental and unverified, not a supported privileged
 mode; tested unprivileged macOS functionality is retained. Passing checks do not guarantee security,
 privacy, interoperability or scan accuracy on arbitrary networks.
@@ -75,7 +75,7 @@ are not exhaustive or coverage-guided fuzzing and measure no branch-coverage per
 
 See SIGNATURE_MAINTENANCE.md for provenance, original fixtures, positive/negative
 coverage, version changes, evidence rules and contribution checks. Dependency/license
-inventory is separate in DEPENDENCY_LICENSES.md; license acceptance remains pending.
+inventory is separate in DEPENDENCY_LICENSES.md; license scope/source obligations are documented in LICENSING.md.
 
 ## Validation record and release blockers
 
@@ -86,12 +86,13 @@ documentation-only revisions do not justify repeating benchmarks. CI status belo
 to the exact final candidate head and is recorded separately from local tests.
 
 Before readiness: the remaining candidate CI job must pass and owner
-licensing/redistribution decisions must be resolved; keep PR #17 draft until both.
+licensing/redistribution review must be complete. The owner selected GPL-2.0-only,
+subject to the recorded scope/provenance checks.
 The owner has narrowed macOS raw/BPF claims to experimental and unverified;
 claiming supported privileged operation would require actual validation evidence.
 Require current-base final-head regression/native/security/CodeQL success and resolve
 reviews. Historical privacy cleanup remains independently owner-pending. Do not
 rewrite history or silently accept historical findings. Package/release publication
-requires separate authorization even after a candidate PR is accepted. No merge,
-license addition or publication is authorized by the current documentation request.
-See [project-license comparison](PROJECT_LICENSE_OPTIONS.md); it selects no license.
+requires separate authorization even after a candidate PR is accepted. Normal readiness/merge is authorized only after current-base final-head checks and
+review acceptance; package/release publication remains unauthorized.
+See [project-license comparison](PROJECT_LICENSE_OPTIONS.md); the current choice and compatibility scope are in LICENSING.md.
