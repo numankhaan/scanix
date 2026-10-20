@@ -316,6 +316,24 @@ class ResumeLoopbackTests(unittest.TestCase):
         self.assertEqual(len(latest),4)
         self.assertTrue(all(row['state']=='open' and row['service_detection'] for row in latest.values()))
 
+    def test_actual_plugins_stream_and_completed_resume_without_workers(self):
+        from scanix.native.session import scan_session
+        from unittest.mock import patch
+        cfg=replace(self.config,plugins=('ssh',),plugin_timeout=.2,engine_timeout=10)
+        output=Path(self.tmp.name)/'plugins.ndjson'
+        report=scan_session(cfg,self.plan,self.db,output)
+        self.assertEqual(report.completion_status,'complete',report.issues)
+        rows=[x for x in map(json.loads,output.read_text().splitlines()) if x['type']=='result']
+        latest={entry['id']:entry['record'] for entry in rows}
+        self.assertEqual(len(latest),4)
+        self.assertTrue(all(r['state']=='open' and r['plugin_results'] for r in latest.values()))
+        self.assertEqual(report.plugin_api_version,1)
+        with patch('subprocess.Popen',side_effect=AssertionError('repeated worker')):
+            resumed=scan_session(cfg,self.plan,self.db,Path(self.tmp.name)/'plugins-resumed.ndjson',resume=True)
+        self.assertEqual(resumed.completed_probes,4)
+        with self.assertRaises(ValueError):
+            scan_session(replace(cfg,plugins=('http',)),self.plan,self.db,Path(self.tmp.name)/'plugins-changed.ndjson',resume=True)
+
 
 class ContinuationCLITests(unittest.TestCase):
     def test_preview_is_offline_and_does_not_read_or_create_checkpoint(self):

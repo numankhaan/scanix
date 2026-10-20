@@ -1,4 +1,4 @@
-"""Typed schema-4 reports; unknown evidence remains None (JSON null)."""
+"""Typed schema-5 reports; unknown evidence remains None (JSON null)."""
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 import math
@@ -40,6 +40,9 @@ class ScanConfig:
     engine_timeout: float = 3600.0
     syn_cooldown: float = 0.2
     checkpoint_batch: int = 16
+    plugins: tuple[str, ...] = ()
+    plugin_timeout: float = 2.0
+    allow_intrusive_plugins: bool = False
 
     def __post_init__(self):
         if not isinstance(self.target, str) or not self.target.strip() or '\x00' in self.target:
@@ -74,6 +77,12 @@ class ScanConfig:
             raise ValueError('--tls-insecure and --tls-ca-file are mutually exclusive')
         if self.service_detect and self.banner:
             raise ValueError('use --service-detect or legacy --banner, not both')
+        from ..plugins.registry import select
+        object.__setattr__(self, 'plugins', select(self.plugins))
+        if not math.isfinite(self.plugin_timeout) or not .1 <= self.plugin_timeout <= 10:
+            raise ValueError('plugin timeout must be within 0.1–10 seconds')
+        if type(self.allow_intrusive_plugins) is not bool:
+            raise ValueError('intrusive plugin opt-in must be boolean')
         if type(self.checkpoint_batch) is not int or not 1 <= self.checkpoint_batch <= 64:
             raise ValueError('checkpoint batch must be within 1–64')
         if self.engine not in ('python','native'):
@@ -123,13 +132,16 @@ class ScanResult:
     attempts: int = 1
     original_targets: tuple[str, ...] = ()
     service_detection: DetectionReport | None = None
+    plugin_results: list[dict] = field(default_factory=list)
 
 
 @dataclass
 class ScanReport:
     configuration: ScanConfig
     results: list[ScanResult] = field(default_factory=list)
-    schema_version: int = 4
+    schema_version: int = 5
+    plugin_api_version: int | None = None
+    plugin_registry_version: str | None = None
     implementation: dict = field(default_factory=lambda: {'engine':'python','engine_version':'phase4b','wire_protocol':None})
     probe_database_version: str | None = None
     started_at: str = field(default_factory=utc_now)
@@ -145,6 +157,7 @@ class ScanReport:
     def to_dict(self) -> dict:
         data = asdict(self)
         data['configuration']['ports'] = list(self.configuration.ports)
+        data['configuration']['plugins'] = list(self.configuration.plugins)
         for result in data['results']:
             result['original_targets'] = list(result['original_targets'])
         data['completed_ports'] = self.completed_probes if self.completed_probes is not None else len(self.results)

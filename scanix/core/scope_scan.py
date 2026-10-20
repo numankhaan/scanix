@@ -18,6 +18,9 @@ def scan_scope(config, plan, stop=None, *, discovery_methods=(), discovery_ports
     report.scope = plan.preview(config.ports, config.method, discovery_methods, limit=0)
     if config.service_detect:
         report.scope['service_detection'] = policy(config)
+    if config.plugins:
+        from ..plugins.engine import annotate
+        annotate(report)
     rate = config.rate or {'connect': 100, 'syn': 10, 'udp': 1}[config.method]
     report.scope['effective_rate'] = rate
     report.scope['effective_per_host'] = min(config.concurrency, config.per_host)

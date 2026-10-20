@@ -50,7 +50,7 @@ def implementation_digest():
 def manifest(config, plan, targets, binary, index, count):
     """Hash resolved associations, inputs/exclusions, policy and implementation bytes."""
     engine_digest=file_digest(binary)
-    identity = {'format': FORMAT, 'schema': 4, 'wire': 3,
+    identity = {'format': FORMAT, 'schema': 5, 'wire': 3,
                 'engine_sha256':engine_digest,'python_implementation_sha256':implementation_digest(),
                 'configuration': asdict(config),
                 'custom_ca_sha256':file_digest(config.tls_ca_file,16*1024*1024) if config.tls_ca_file else None,
@@ -254,7 +254,7 @@ class ResultStream:
     def __init__(self, filename, header):
         self.stream = os.fdopen(private_create(filename), 'w', encoding='utf-8')
         try:
-            self.write({'type': 'header', 'stream_version': 1, 'report_schema': 4, **header})
+            self.write({'type': 'header', 'stream_version': 1, 'report_schema': 5, **header})
         except BaseException:
             self.stream.close()
             raise

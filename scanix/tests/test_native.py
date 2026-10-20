@@ -111,7 +111,7 @@ class NativeWireTests(unittest.TestCase):
         self.assertEqual(report.completion_status,'complete');self.assertEqual(report.results[0].state,'open')
         self.assertEqual(report.implementation['engine'],'native')
         self.assertEqual(report.implementation['engine_version'],'0.4.2')
-        self.assertEqual(report.to_dict()['schema_version'],4)
+        self.assertEqual(report.to_dict()['schema_version'],5)
         self.assertEqual(report.results[0].original_targets,('127.0.0.1',))
         self.assertFalse(report.to_dict()['incomplete'])
 

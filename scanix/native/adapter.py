@@ -347,7 +347,7 @@ def scan_native(config, plan, stop=None, *, binary=None, progress=None, selectio
         report.implementation['selection']={'shard_index':selection.index,'shard_count':selection.count,
                                             'full_scope_pairs':selection.total,'restored_results':selection.done}
     try:
-        if not retain and config.service_detect:
+        if not retain and (config.service_detect or config.plugins):
             raise ValueError('streaming enrichment must run separately from port classification')
         if selection is not None and selection.total!=len(targets)*len(config.ports):
             raise ValueError('selection scope mismatch')
@@ -367,6 +367,13 @@ def scan_native(config, plan, stop=None, *, binary=None, progress=None, selectio
             # Conservative one-interval guard between child starts and Python enrichment.
             runtime.limiter.acquire(stop)
             enrich_results(report.results,config,stop,runtime)
+        if config.plugins:
+            from ..plugins.engine import annotate, enrich_results as enrich_plugins
+            annotate(report)
+            if not config.service_detect:
+                runtime=Runtime(config)
+                runtime.limiter.acquire(stop)
+            enrich_plugins(report.results,config,stop,runtime)
     except CancelledError:
         stop.set()
     except Exception as exc:
