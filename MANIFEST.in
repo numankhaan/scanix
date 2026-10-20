@@ -1,4 +1,4 @@
-include README.md ROADMAP.md SECURITY.md CONTRIBUTING.md requirements.txt
+include README.md ROADMAP.md SECURITY.md CONTRIBUTING.md CHANGELOG.md requirements.txt
 include native/Cargo.toml native/Cargo.lock native/LICENSE
 include LICENSE THIRD_PARTY_NOTICES.md third_party/licenses.json
 recursive-include third_party/licenses *

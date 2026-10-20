@@ -75,3 +75,46 @@ by explicit LF policy, no assertion weakened. Two upstream notice files retain
 authentic trailing spaces with only per-file Git whitespace diagnostics adjusted.
 No secret/privacy/static gate exception. This is a checkout simulation, not Windows
 execution; actual Windows remains in required final-head CI.
+
+## First annotated candidate preparation
+
+Base main `09b51052e395730ca264611efadbc1b6dcf2e324` passed all four post-merge
+core workflows (CodeQL39490752269, Tests39490749867, Native39490749882,
+Security39490749826). Existing remote tags are v0.1.0/v0.2.0; no RC tag existed
+when preparation started. Python/package/CLI remain1.0.0rc1; independently versioned
+native0.4.2/wire3 remains unchanged. Added the consolidated changelog and ensured
+it is present byte-for-byte in source archives; added an explicit built-wheel
+METADATA Version comparison to package/CLI version.
+
+On the release-readiness revision, trusted Python3.14.3/macOS unprivileged:
+
+- `python -B -m unittest scanix.tests.test_licensing scanix.tests.test_release_validation.ReleaseCorpusTests.test_distribution_rejects_private_or_unexpected_members`:4 passed.
+- `python -B validation/licensing.py`:22 locked crates/30 notice files passed
+  integrity/selection checks. Primary archive and offline native source-build
+  evidence from the unchanged PR17 licensing revision is reused, not rerun.
+- `python -B validation/package_smoke.py`:all9 checks passed,52 runtime files,
+  version1.0.0rc1. Offline sdist-to-wheel rebuild, exact legal metadata/notices and
+  changelog bytes, private virtualenv installation outside checkout, IPv6 preview,
+  owned IPv4 HTTP/plugin/history and same-candidate reinstall/history retention.
+  No published predecessor exists for cross-version upgrade testing.
+
+Historical privacy inventory was reviewed privately, including old tag metadata;
+known historical personal identity/path findings remain unresolved. New release
+changes add no raw reports, personal values, captures or credentials. The proposed
+tag points only into existing public main ancestry, with verified noreply tagger
+metadata; it does not remove historical exposure. Outgoing/tag gates and exact-head
+CI must pass before their respective pushes. No history is rewritten or allowlisted.
+
+No runtime packet/scheduler or performance code changed: earlier exact-source labs
+and benchmarks above remain the evidence, with no new macOS raw validation or speed
+claim. Privileged macOS operation stays experimental/unverified; package/binary/
+GitHub Release publication is not authorized. A Git tag is the only publication
+authorized by this preparation. Final PR/tag/CI outcomes belong to the checkpoint
+and PR, not an invented prospective result.
+
+Additional focused Bandit review of validation/package_smoke.py returned two existing
+LOW advisories, B404(import subprocess) and B603(subprocess.run at execute). Manual
+review: internal command lists/owned temporary paths, no shell,180s timeout, bounded
+test workflow and private captured diagnostics. No injection defect identified; no
+suppression added. This is not a zero-finding result and is separate from the
+unchanged runtime Bandit CI scope.

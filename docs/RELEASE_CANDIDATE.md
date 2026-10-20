@@ -1,7 +1,9 @@
 # Phase 6 release-candidate validation
 
-Candidate: **1.0.0rc1**, prepared locally, not published. This is a draft validation
-candidate, not approval to release. Original code is GPL-2.0-only; original CC0 data and third-party terms are retained. Privileged
+Candidate: **1.0.0rc1**, matching the Python package and CLI. The native engine is
+independently versioned at **0.4.2**, wire protocol **3**. See [changelog](../CHANGELOG.md).
+The owner authorized an annotated `v1.0.0rc1` Git tag after readiness checks; package,
+binary and GitHub Release publication remain unauthorized. Original code is GPL-2.0-only; original CC0 data and third-party terms are retained. Privileged
 macOS raw/BPF operation is experimental and unverified, not a supported privileged
 mode; tested unprivileged macOS functionality is retained. Passing checks do not guarantee security,
 privacy, interoperability or scan accuracy on arbitrary networks.
@@ -41,7 +43,7 @@ The package/CLI version now agrees. Existing exact native checkpoint compatibili
 includes Python implementation contents: a changed candidate needs fresh continuation
 files, not an unsafe compatibility bypass. History supports only the initial empty
 migration; unknown/future layouts fail. Preserve private exports/backups before any
-upgrade. No destructive migration, public publishing or release tagging is performed.
+upgrade. No destructive migration or package/binary/GitHub Release publication occurs.
 
 ## Platform and privilege matrix
 
@@ -85,9 +87,10 @@ measured source. Unchanged packet/scheduling code does not justify repeating lab
 documentation-only revisions do not justify repeating benchmarks. CI status belongs
 to the exact final candidate head and is recorded separately from local tests.
 
-Before readiness: the remaining candidate CI job must pass and owner
-licensing/redistribution review must be complete. The owner selected GPL-2.0-only,
-subject to the recorded scope/provenance checks.
+PR #17 merged as `09b51052e395730ca264611efadbc1b6dcf2e324`: all eight final-head
+and four post-merge core workflows passed. The owner selected GPL-2.0-only,
+and the recorded scope/provenance/notice checks passed. Python/OpenSSL runtime
+bundles remain outside the cleared distribution scope; see LICENSING.md.
 The owner has narrowed macOS raw/BPF claims to experimental and unverified;
 claiming supported privileged operation would require actual validation evidence.
 Require current-base final-head regression/native/security/CodeQL success and resolve
