@@ -1,7 +1,7 @@
 # Scanix
 
 Scanix is a bounded network reconnaissance tool. Python is the default engine;
-Phase 4A introduces an opt-in Rust TCP-connect engine and a versioned subprocess
+Rust provides opt-in TCP-connect and Linux IPv4 SYN engines through a versioned subprocess
 boundary alongside existing SYN/UDP, IPv6, discovery and TLS-aware service detection.
 It does not claim Nmap accuracy or Masscan throughput. Scan only authorized systems.
 
@@ -89,12 +89,35 @@ Use the `.exe` binary on Windows. Python remains the default and no fallback occ
 Rust implements bounded asynchronous **connect** scanning; Phase 4B adds validated Linux
 IPv4 SYN. Native UDP/discovery remain unsupported. `--service-detect` reuses the separate bounded Python enrichment
 stage. Native `--banner` and discovery gates are explicit unsupported combinations.
-The protocol is version 2; reports are schema 4. See [contract, bounds, build and
+The protocol is version 3 (engine 0.4.2); reports are schema 4. See [contract, bounds, build and
 benchmark instructions](docs/NATIVE_ENGINE.md) and [autonomous checkpoint](docs/AUTONOMOUS_PROGRESS.md).
 
-Phase 4B adds a Linux-only native IPv4 SYN path using wire protocol 2;
+Phase 4B adds a Linux-only native IPv4 SYN path;
 25 isolated namespace/capture checks passed (see validation/NATIVE_SYN_RESULTS.md). Existing Python scanning remains default.
 See [native SYN bounds, states and validation status](docs/NATIVE_SYN.md).
+
+## Native resume, streaming and shards
+
+```sh
+python -m scanix scan -t 127.0.0.1 -p 19000 --engine native --native-binary native/target/release/scanix-engine --checkpoint private.sqlite --stream-file first.ndjson
+python -m scanix scan -t 127.0.0.1 -p 19000 --engine native --native-binary native/target/release/scanix-engine --checkpoint private.sqlite --stream-file resumed.ndjson --resume
+python -m scanix scan -t 127.0.0.0/30 -p 22,80 --engine native --shard 1/3 --preview
+```
+
+Choose an existing trusted owner-private directory; both new paths must not exist.
+Resume requires identical configuration, resolved scope/associations, shard and engine/
+Python/probe database/explicit CA contents, and a new stream filename. Native streaming
+retains bounded batches instead of all results. Default commit batch is 16; use
+`--checkpoint-batch 1` for per-observation commits (1–64 supported). Completed IDs are
+skipped by the engine; unfinished work can be probed again after a crash. NDJSON uses
+stable-ID upserts and a final coverage summary; absent summary means partial output.
+Files contain private unauthenticated scan data and must not be committed/uploaded.
+Shards are zero-based modulo partitions with independent per-process rate limits.
+
+Python stays the default, existing aggregate exports stay available, and service
+identification remains a separate bounded stage. See [compatibility, crash/replay,
+privacy and resource semantics](docs/CONTINUATION.md) and [actual controlled measurements](validation/CONTINUATION_RESULTS.md).
+This is working native connect/SYN continuation, not an unimplemented resume scaffold.
 
 ## Service identification
 

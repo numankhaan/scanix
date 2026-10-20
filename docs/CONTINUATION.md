@@ -29,6 +29,10 @@ files, other owners and group/other permissions. Windows inherits directory ACLs
 use an owner-private directory. Ignore rules are prevention, not removal of tracked
 files or history. Never upload real results/checkpoints to public PRs or CI artifacts.
 
+Standard JSON/CSV/HTML exporters reject a nonretained summary before writing any file,
+including Python API calls; they cannot emit an apparently complete empty result set.
+`ScanReport.to_dict()` remains available as explicit summary metadata.
+
 `--checkpoint` and `--stream-file` are required together; aggregate `--out` is mutually
 exclusive. Add `--preview` to see continuation/shard/enrichment policy without opening
 a checkpoint, hashing/running a binary, resolving DNS (unless explicitly requested),
@@ -101,8 +105,9 @@ new 4 KiB-page checkpoint is capped at 1 GiB. Disk exhaustion or scanner/storage
 is an error, never a clean scan. These are bounds, not measured total process RSS.
 
 A resumed port session waits one conservative rate interval before new sends; it fails
-explicitly if that guard cannot fit the remaining session budget. Native session budgets
-are reduced by setup/replay/guard time; normal cancellation/watchdog drain grace remains.
+explicitly if that guard cannot fit the remaining session budget. The port session budget
+is reduced by Python fingerprint/setup/replay/guard time. Native preflight retains its
+separate 30s watchdog; cancellation/watchdog drain grace remains.
 Blocking filesystem flushes depend on the OS/storage. The engine retains its bounded
 queues, per-host limits, pacing and retry semantics. Slower storage can backpressure the
 engine; a bounded engine output timeout fails explicitly and retains committed records.
@@ -117,8 +122,9 @@ distinct domains; kernel traffic is not counted as explicit raw packet sends.
 
 ## Validation status
 
-Implementation and deterministic/local loopback tests are in progress. See the persistent
-checkpoint for actual commands/outcomes. Do not treat compilation or unit fixtures as
+Working implementation has deterministic/local loopback and isolated Linux SYN
+continuation coverage. See [actual measurements](../validation/CONTINUATION_RESULTS.md)
+and the persistent checkpoint for exact source/CI outcomes. Do not treat compilation or unit fixtures as
 privileged network validation. Phase 4B's existing optional isolated Linux lab remains;
 privileged macOS/BPF remains incomplete. Measurements will be recorded separately; no
 Nmap/Masscan parity or high-speed claim follows from this feature.
@@ -126,3 +132,10 @@ Nmap/Masscan parity or high-speed claim follows from this feature.
 `storage_commit_seconds`/`storage_commits` measure classification-result transactions,
 excluding initial manifest, metadata, replay, enrichment-update and final export flush
 costs. Wall timings include those costs within their stated benchmark boundaries.
+
+Native metrics describe the current invocation, not reconstructed cumulative sends.
+Restored rows retain their original evidence/timestamp; unfinished prior transmissions
+may be repeated and are not added to a later row's attempt count. Previous stream files
+retain earlier session metrics; a new stream is self-contained for cumulative results,
+not a complete per-session history. Service evidence remains unauthenticated and its
+observation time is bounded by the port timestamp and relevant session completion.

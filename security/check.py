@@ -109,7 +109,7 @@ def file_findings(path, data, ref):
             # This is a narrow shape detector, not a claim to validate all JSON.
             report = False
     header = data.split(b'\n', 1)[0]
-    if len(header)<=65536 and header.lstrip().startswith(b'{'):
+    if len(header)<=66560 and header.lstrip().startswith(b'{'):
         try:
             first=json.loads(header)
             report = report or (isinstance(first,dict) and first.get('type')=='header' and

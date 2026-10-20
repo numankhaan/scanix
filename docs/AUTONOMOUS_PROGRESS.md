@@ -1,117 +1,95 @@
 # Autonomous roadmap checkpoint
 
-## Current stage: Phase 4C — implementation
+## Current stage: Phase 4C — final PR checks/review
 
-Autonomous implementation/PR/merge authorized after completion, current base and passing
-required checks. No force push, bypass, branch deletion, public scans, rewritten history
-or public release/package publishing. Preserve security gates and unrelated UDP edit.
+Owner authorizes autonomous stage implementation, focused commits, push, PR review
+and merge after completion/current base/passing required checks/no review blockers.
+No force push, bypass, branch deletion, public scans, history rewrite or public release.
 
 - Main: `66f0455e6d69c0807de04e84f9c391dbd07776c5`, Phase 4B #12 merged.
-- Phase 4B PR: https://github.com/numankhaan/scanix/pull/12; reviewed head
-  `58a618e926cbee73a638f808414dd72a0d525e4d`. Latest push/PR Security, CodeQL,
-  seven regression jobs and native/MSRV all passed before merge. Linux Rust 21,
-  other platforms 19; Python 145/job with explicit platform/privileged skips.
-- Phase 4B Linux namespace/capture run 39342284692 passed all 25 native checks
-  at runtime source d181e1b; final head only added tests/comments/docs. Measurements
-  and limits: validation/NATIVE_SYN_RESULTS.md. Privileged macOS/BPF incomplete.
-- Main post-merge CI: Security 39343940342, CodeQL 39343940329,
-  Native 39343940313, Tests 39343940358 all passed after merge (verified separately).
+  Post-merge Security 39343940342, CodeQL 39343940329, Native 39343940313 and
+  Tests 39343940358 all passed. Branches retained, strict security/regression rules intact.
+- Completed: phases 1–3, security #8, 4A #11, 4B #12. Remaining: 4C merge,
+  5A informational plugins, 5B remote OS evidence, 5C SQLite history, 6 release validation.
 - Worktree: sibling `scanix-phase4c`; branch `phase4c/durable-streaming` from main.
-  HEAD initially 66f0455. No Phase 4C PR yet. All prior branches retained.
-- Completed: phases 1–3, security #8, 4A #11, 4B #12. Remaining 4C, 5A/B/C, 6.
-- Original unrelated UDP edit hash verified unchanged; do not stage it. Historical
-  privacy cleanup awaits owner decision; no allowlist/rewrite. Main nine required
-  security/CodeQL/regression contexts remain enabled with strict base updating.
+  PR https://github.com/numankhaan/scanix/pull/13 (base main; draft until final acceptance).
+  Recorded implemented HEAD: `10df427316d9c630ba75f60dae55794a628a9a9a`.
+  This final docs/gate-envelope follow-up is subsequent; inspect `git rev-parse HEAD`.
+- Commits: 0d29468 protocol/selection, 90d3f37 durable streaming, cfc3eed Windows/
+  CodeQL fixtures, 75ce1ed batching, fbbee23 sparse flush, c41a46f compatibility/schema,
+  e117a76 cached terminal cursors, 6612372 artifact prevention, 10df427 inline-export guard.
+- Original unrelated UDP edit remains in original worktree, never stage it. Expected
+  SHA-256: 880894f38bc74007b1ad0d94609964f136667fe8be865e7466cb37535056893c.
+  Historical privacy cleanup still awaits owner decision; no new allowlist/rewrite.
 
-## Phase 4C acceptance and plan
+## Acceptance and implemented behavior
 
-1. Versioned private durable checkpoint with exact configuration/resolved-scope/
-   implementation compatibility, fail before traffic on mismatch, single writer,
-   crash-safe completed records and explicit at-least-once unfinished-probe semantics.
-2. Bounded streaming result path without retaining every result; preserve aggregate
-   exports/default Python behavior. Explicitly separate service enrichment.
-3. Stable target-major work IDs, deterministic optional shards, completed-work skips
-   enforced by the engine, coverage/duplicate/cancellation tests.
-4. Actual coverage/loss/throughput and CPU/RSS limits; reproducible isolated loopback
-   resume/stream baseline; optimize only measured problems, no parity claims.
-5. Meaningful Python/Rust/local and latest CI validation, reviewed separate PR, merge
-   only when acceptance is met and required checks pass; verify main and continue.
+Protocol 3/engine 0.4.2, report schema 4, checkpoint/NDJSON format 1. Python default
+and aggregate workflows retained. Native connect (IPv4/IPv6) and Linux IPv4 SYN support
+exact compatible continuation, target-major IDs/modulo shards and engine-enforced
+completed skips. Hashes cover config, resolved associations/order/exclusions, native
+binary, production Python/probe bytes and explicit CA content. No fallback or migration.
+
+Private SQLite FULL/exclusive-writer fixed-schema checkpoints, at most 64-record batches
+(default16), .25s sparse flush target, commit before emission, cancellation/final flush;
+crash replay is at least once for uncommitted/in-flight/queued work. Unknown old counters
+stay unknown; known loss is sticky. Bounded NDJSON upserts/replay; zero retained report
+result objects. Inline JSON/CSV/HTML writers reject nonretained summaries before writing.
+Separate paced/limited enrichment preserves port states. Source/record/file/queue limits
+and actual supported/unsupported methods are documented in docs/CONTINUATION.md.
+
+Security extension is additive: forbid NDJSON/SQLite sidecars, recognize renamed stream
+headers; synthetic negative/redaction tests, no exception/permission/severity weakening.
+
+## Actual validation
+
+- Local `python -B validation/native_ci.py`: **169 run, 166 passed, three skips**
+  (two optional privileged cases and Linux-only native SYN preflight on macOS).
+  Real loopback: cancel/resume, unchanged completed-connection counts, shard union,
+  completed replay without child, CLI, service-state preservation, stream write failure.
+  Deterministic: batch deadlines/atomicity, crash, schema collisions, scope/config/
+  binary/Python/registry/CA compatibility, bounded bitmaps, output rejection.
+- `cargo test --locked --manifest-path native/Cargo.toml`: **22 passed locally**.
+  fmt, release build, strict Clippy and Linux aarch64 cross-Clippy passed; cross-build
+  is not execution. Source 6612372 CI: Linux/MSRV **24**, macOS/Windows **22** Rust.
+- Security tests **20 passed**, Bandit zero findings, workflow policy/actionlint,
+  tree/staged/outgoing secret/privacy gates passed. Final envelope test aligns valid
+  stream headers with the complete bounded frame size; do not count tests not run.
+- At 66123724901cf85848a433bb2795b992c4a46ebd all eight push/PR workflows passed:
+  Security 39400797219/39400802966; CodeQL 39400797180/39400802968;
+  Tests 39400797179/39400803028; Native/MSRV 39400797147/39400803142.
+  Python 168/job: native Linux166/two skips, macOS165/three, Windows164/four;
+  ordinary Linux/macOS153/15, Windows152/16. Skips are not passes.
+  Subsequent inline-export test adds one; final-head CI must be checked separately.
+  Historical privacy jobs are separately skipped on push/PR, not resolved/passed.
+- Earlier 90d3f37 Windows failures were test connection leaks (WinError32 cleanup).
+  Explicit fixture closure fixed them. CodeQL permissive synthetic fixture was replaced
+  with mocked unsafe metadata plus no-open assertion; no suppression/assertion weakening.
+- Isolated privileged Linux run **39400801059** at 6612372 passed **33 native checks**
+  plus retained Phase 2 lab/optional loopback coverage. Captures prove resume skips
+  completed SYN ports and completed replay sends no probes. Six captures, measured
+  drops zero, all expected states. Earlier fbbee23 run39399173545 also passed.
+  The exporter/gate/docs follow-up changes no packet/scheduler/checkpoint algorithm.
+- Source6612372 clean loopback baseline, 128 listeners, three workers/mode/batch:
+  stream batch1 median2.208202s (128 commits/2.011454s); batch16 .523470s
+  (eight/.124700s). Aggregate .412–.415s, still faster. Zero retained report rows,
+  small-case traced/RSS overhead higher; no large-scan memory/speed or parity claim.
+  Exact hardware, boundaries, CPU/RSS, captures and reproduction:
+  validation/CONTINUATION_RESULTS.md. Raw artifacts stayed private; none uploaded.
+- Actual CLI help and README shard preview verified; checkpoint CLI exercised with
+  controlled local listeners. `--preview` performs no checkpoint/hash/child/probe activity.
 
 ## Precise next action
 
-First increment implemented: protocol 3/engine 0.4.2, deterministic shard/completed-ID
-selection enforced by both schedulers, bounded callback/non-retention and duplicate
-bitmap. Local Rust 21 passed; Python native fixtures 26 run, 20 pass/six real-engine
-skips. Private checkpoint tests plus native fixtures: 33 run, 27 pass/six skips.
-Checkpoint storage is uncommitted pending CLI/integration/robustness validation.
-Next: finish CLI resume/streaming and separate enrichment, real native loopback tests,
-controlled measurements, full regression/security validation, then PR.
-Reconcile post-merge Phase 4B checks. Current uncommitted work includes the checkpoint storage module and its synthetic tests,
-kept separate from the validated selection increment.
-Private audit/lab evidence pointer: `/tmp/scanix-security-session`; never publish raw
-reports/captures or personal metadata. No new Phase 4C external blocker identified.
+Commit/push intended final docs and stream-gate envelope test. Inspect all latest-head
+Security/CodeQL/Tests/Native/MSRV outcomes; queued/running is not pass. Update PR #13
+body with final head/results. Review whole diff, effective required checks, current base,
+reviews/threads and server branch-retention setting. Ready/merge only when complete and
+all latest checks pass; no bypass/delete. Verify main/post-merge CI, then branch Phase5A
+from updated main and replace this checkpoint with its concrete acceptance/next action.
 
-## Durable storage/CLI milestone
-
-Implemented private format-1 SQLite single-writer FULL per-result commits, exact
-scope/configuration/binary compatibility, bounded NDJSON upsert/replay/export, native
-checkpoint/resume/shard CLI and offline policy, separate bounded service stage.
-Known transmission/capture loss persists; crash/missing counters remain unknown.
-Local `python -B validation/native_ci.py`: 163 run, 160 passed, three documented
-macOS privileged/POSIX skips. Rust 21 passed; release build, strict Clippy and Linux
-aarch64 cross-Clippy passed (cross-build is not execution). Bandit: zero findings;
-tree gate passed. Crash, real cancellation/resume, unchanged completed-connection
-counts, shard union, stream-write failure, CLI and service-state preservation covered.
-
-Next: commit/push validated durable increment, open draft Phase 4C PR; execute extended
-isolated Linux SYN continuation/capture lab on the pushed SHA, run reproducible loopback
-aggregate/stream benchmark and document actual measurements. Inspect latest-head CI.
-No Phase 4C performance or privileged validation has passed yet. Benchmark script and
-extended lab are intended project changes, never raw outputs. Raw evidence remains
-outside Git. Current HEAD before this milestone: 0d29468 selection/protocol commit.
-
-## Measured optimization and CI triage
-
-Draft PR https://github.com/numankhaan/scanix/pull/13 targets main. Pushed implementation
-90d3f37535c2631fc218e3b37fd4d6e21b398ffc; local fixture fix cfc3eed follows it.
-At 90d3f37, Windows regression/native CI failed temporary-file cleanup (unclosed test
-SQLite connections; transaction contexts do not close them). CodeQL blocked a deliberately
-permissive synthetic fixture chmod. Fixed explicit fixture closure and mocked unsafe
-metadata with assertion that SQLite is never opened; no gate suppression/weakening.
-Other OS/regression and native/MSRV jobs passed. Replacement latest-head CI is pending.
-
-Clean-source 90d3f37 baseline, 128 IPv4 loopback listeners, three fresh workers/mode:
-aggregate median .479394 s, durable per-record median 2.125346 s; commits 1.975667 s.
-This established flush overhead, not a native packet bottleneck. Added bounded batches
-(default 16, configurable 1–64), atomic commits before emission, final partial-batch flush
-on normal completion/cancellation and documented at-least-once crash replay. Batch1 is
-available for per-observation commits. Atomicity/failure tests added. Latest local native
-regression 165 run, 162 passed, three explicit skips; Bandit zero findings.
-
-Next: commit/push bounded-batch increment, inspect replacement Windows/CodeQL/security/
-MSRV CI, dispatch extended isolated SYN resume lab once on pushed SHA, measure batch1
-versus16 at the same clean source, document actual results, finish README/ROADMAP and
-final PR review. Do not ready/merge before those acceptance items pass. Uncommitted files
-are intended batching/CLI/storage/test/docs/benchmark changes only; no raw audit data.
-
-## Controlled validation and compatibility hardening
-
-At fbbee23942da25ff8d02b4cc38ad999d2ee7fcf5, isolated Linux run 39399173545
-passed all 33 native SYN checks, including resume skips verified on captures and a
-completed checkpoint emitting no probes. Six private captures, all measured drops zero.
-No raw evidence uploaded. CodeQL/regression/native/MSRV passed on this head; Security
-runs 39399120200/39399115301 were still running at inspection, not counted passed.
-
-Clean-source same-head benchmarks (three fresh workers/mode, 128 loopback listeners):
-batch1 stream median 2.121314s, 128 commits/1.972343s; batch16 .581271s,
-eight commits/.125628s. Aggregate .484–.486s median; batch16 still slower. Streaming
-retained zero report rows; small-case peak traced memory was higher from fixed overhead.
-No large-scan speed/memory or raw-packet performance claim. Full measurements private.
-
-Final review adds bounded source/probe database/custom CA content fingerprints and
-strict schema object type/name validation (same-name triggers cannot hide in a map).
-Local native regression 168 run, 165 passed/three explicit skips; Bandit zero findings.
-Next: commit/push this final runtime hardening; repeat isolated lab on the new runtime
-SHA, measure final clean source if needed, finalize measurement/README/ROADMAP docs,
-inspect all latest-head CI and review blockers, then ready/merge #13 only if complete.
-Current uncommitted files: intended compatibility/schema/timing tests and docs only.
+Current uncommitted files: final README/roadmap/native/continuation/measurement/checkpoint
+docs and targeted security header-envelope test only. No raw reports/captures staged.
+Private evidence pointer: `/tmp/scanix-security-session`. Reconcile Git/GitHub before
+repeating any push, dispatch, ready or merge. Privileged macOS/BPF remains incomplete;
+native IPv6 SYN/UDP/discovery unsupported. No new external blocker for Phase4C.

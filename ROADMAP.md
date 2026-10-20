@@ -43,12 +43,16 @@ See [policy](SECURITY.md), [audit](docs/SECURITY_AUDIT.md) and
   deterministic tests and a measured loopback baseline. Python remains the default.
   Native raw SYN, UDP, discovery and durable resume are not implemented here.
 
+- **Phase 4B (merged through #12):** Linux IPv4 native SYN packet/state/I/O
+  and protocol-2 integration; 25 isolated Linux ground-truth/capture checks passed.
+  See docs/NATIVE_SYN.md; latest-head and post-merge CI passed.
+
 ## Planned
 
-- **Phase 4B (PR #12, awaiting final CI/review):** Linux IPv4 native SYN packet/state/I/O
-  and protocol-2 integration; 25 isolated Linux ground-truth/capture checks passed.
-  See docs/NATIVE_SYN.md. Do not mark ready/merge until acceptance passes.
-- **Phase 4C:** durable resume, streaming, deterministic sharding and measured performance.
+- **Phase 4C (PR #13, final review/CI):** private compatible native checkpoints/resume,
+  bounded NDJSON result streaming, deterministic shards and measured commit batching.
+  All 33 isolated SYN continuation/capture checks passed. See docs/CONTINUATION.md
+  and validation/CONTINUATION_RESULTS.md; do not merge until latest required CI passes.
 - **Phase 5A:** bounded informational enumeration plugins.
 - **Phase 5B:** original remote packet OS evidence and conservative fingerprints.
 - **Phase 5C:** optional versioned SQLite history and partial-scan comparisons.

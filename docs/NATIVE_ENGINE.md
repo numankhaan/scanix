@@ -166,7 +166,7 @@ cargo-audit/fmt/Clippy passed. Cross-platform native claims depend on PR CI;
 local validation is macOS arm64 only. Measured baseline results are recorded
 separately, not inferred from these test outcomes.
 
-## Phase 4C selection contract (in progress)
+## Phase 4C selection contract
 
 Wire protocol 3 adds `shard_index` (zero-based), `shard_count` (1–1024) and
 `completed` setup frames with at most 4,096 IDs each. Work ID is target index ×
@@ -178,4 +178,5 @@ fail before receiving scope; there is no engine fallback.
 
 The Python adapter supports a bounded result callback and explicit non-retention.
 Its duplicate bitmap is at most one million bytes; scope is still bounded separately.
-Durable storage, CLI integration and benchmark acceptance are not complete yet.
+Durable storage and CLI integration are implemented; see [continuation semantics](CONTINUATION.md)
+and [source-specific measurements](../validation/CONTINUATION_RESULTS.md).

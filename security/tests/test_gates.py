@@ -86,6 +86,7 @@ class PrivacyTests(unittest.TestCase):
             found=check.file_findings('synthetic.'+suffix,b'synthetic fixture','tree')
             self.assertTrue(any(x['category']=='forbidden-file-review' for x in found))
         header={'type':'header','configuration':{},'stream_version':1,'report_schema':4}
+        header['synthetic_padding']='x'*65536
         payload=(json.dumps(header)+'\n'+json.dumps({'type':'result','id':0})+'\n').encode()
         self.assertTrue(any(x['category']=='scan-report-review' for x in
                             check.file_findings('renamed.txt',payload,'tree')))
