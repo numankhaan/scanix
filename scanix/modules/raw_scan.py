@@ -20,7 +20,7 @@ def raw_scan_port(config, resolved, port, cancel_event, runtime=None):
             if config.method == 'syn':
                 probe = syn_probe(transport.source, resolved.ip, port)
                 result.probe_type = 'tcp_syn'
-                classify = lambda reply: classify_syn(probe, reply)
+                classify = lambda reply: classify_syn(probe, reply, os_evidence=config.os_detect)
             else:
                 result.probe_type, probe = udp_probe(transport.source, resolved.ip, port)
                 classify = lambda reply: classify_udp(probe, reply, result.probe_type)
@@ -60,5 +60,8 @@ def raw_scan_port(config, resolved, port, cancel_event, runtime=None):
         # A raw I/O failure never establishes a remote refusal/open state.
         result.state = 'error'
         result.error_code = exc.errno
+    if config.os_detect:
+        from ..core.os_fingerprint import annotate
+        annotate(result)
     result.connection_elapsed_seconds = time.monotonic() - start
     return result

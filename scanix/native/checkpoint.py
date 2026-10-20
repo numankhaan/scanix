@@ -37,7 +37,9 @@ def implementation_digest():
     root=Path(__file__).resolve().parents[1]
     files=sorted(path for path in root.rglob('*.py') if 'tests' not in path.relative_to(root).parts
                  and not any(part.startswith('.') for part in path.relative_to(root).parts))
-    files.append(root/'data'/'probes-v1.json')
+    files.extend(sorted((root/'data').glob('*.json')))
+    if root/'data'/'probes-v1.json' not in files:
+        raise ValueError('missing probe database')
     if len(files)>256 or root/'native'/'checkpoint.py' not in files:
         raise ValueError('unsupported Python implementation layout')
     digest=hashlib.sha256()

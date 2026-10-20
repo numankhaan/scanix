@@ -119,6 +119,17 @@ identification remains a separate bounded stage. See [compatibility, crash/repla
 privacy and resource semantics](docs/CONTINUATION.md) and [actual controlled measurements](validation/CONTINUATION_RESULTS.md).
 This is working native connect/SYN continuation, not an unimplemented resume scaffold.
 
+## Experimental remote OS evidence
+
+```sh
+python -m scanix scan -t 127.0.0.1 -p 8080 --syn --os-detect --preview
+```
+
+Python SYN can collect correlated remote TCP/IP header features. One original exact
+Linux lab profile yields an experimental compatible-stack candidate; TTL alone,
+missing/conflicting data and unsupported systems stay inconclusive. Native/connect/
+UDP OS detection is unsupported. See [evidence, privacy and limits](docs/OS_EVIDENCE.md).
+
 ## Informational plugins
 
 ```sh
@@ -303,14 +314,14 @@ python -m scanix scan -t 127.0.0.1 -p 22,80 --out html --out-file results.html
 python -m scanix scan -t 127.0.0.1 -p 22 --out json --out-file - --progress
 ```
 
-Schema version **4** retains Phase 3 fields and adds engine/session configuration
+Schema version **5** retains Phase 3 fields and adds engine/session configuration
 and top-level `implementation` metadata. Phase 3 introduced `probe_database_version` and
 per-result `service_detection`, with observations, TLS metadata, budgets consumed
 and issues. Unknown evidence is `null`. Existing `service_name`/`port_table` values
 remain port guesses; protocol observations are separate, and UDP does not inherit
 TCP service guesses. Legacy `banner`, `version_evidence` and the existing
-`parse_service_version` helper remain for compatibility. OS detection is still
-unimplemented. CSV adds the database-version metadata column and nested detection
+`parse_service_version` helper remain for compatibility. Optional experimental remote OS evidence requires `--syn --os-detect`;
+see [exact Linux lab support and limitations](docs/OS_EVIDENCE.md). CSV adds the database-version metadata column and nested detection
 JSON cell; schema-2/3/4 consumers must accept the new version/columns, including implementation metadata.
 `connection_elapsed_seconds` is monotonic; for raw probes it includes pacing,
 retries and cleanup. Wall timestamps are UTC ISO 8601.

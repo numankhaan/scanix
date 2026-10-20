@@ -40,6 +40,7 @@ class ScanConfig:
     engine_timeout: float = 3600.0
     syn_cooldown: float = 0.2
     checkpoint_batch: int = 16
+    os_detect: bool = False
     plugins: tuple[str, ...] = ()
     plugin_timeout: float = 2.0
     allow_intrusive_plugins: bool = False
@@ -77,6 +78,8 @@ class ScanConfig:
             raise ValueError('--tls-insecure and --tls-ca-file are mutually exclusive')
         if self.service_detect and self.banner:
             raise ValueError('use --service-detect or legacy --banner, not both')
+        if type(self.os_detect) is not bool or self.os_detect and (self.engine != 'python' or self.method != 'syn'):
+            raise ValueError('OS evidence requires explicit Python SYN scanning; native/connect/UDP unsupported')
         from ..plugins.registry import select
         object.__setattr__(self, 'plugins', select(self.plugins))
         if not math.isfinite(self.plugin_timeout) or not .1 <= self.plugin_timeout <= 10:

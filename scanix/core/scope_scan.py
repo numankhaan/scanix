@@ -18,6 +18,9 @@ def scan_scope(config, plan, stop=None, *, discovery_methods=(), discovery_ports
     report.scope = plan.preview(config.ports, config.method, discovery_methods, limit=0)
     if config.service_detect:
         report.scope['service_detection'] = policy(config)
+    if config.os_detect:
+        from .os_fingerprint import policy as os_policy
+        report.scope['os_detection'] = os_policy(config)
     if config.plugins:
         from ..plugins.engine import annotate
         annotate(report)

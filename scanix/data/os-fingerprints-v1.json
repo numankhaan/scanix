@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "database_version": "1.0.0",
+  "license": "CC0-1.0",
+  "profiles": [
+    {
+      "id": "linux.ipv4.direct-mtu1500.syn-no-options.v1",
+      "candidate": "Linux-compatible",
+      "support": "experimental",
+      "provenance": "Original profile independently observed in an owned Linux IPv4 veth/MTU1500 namespace lab with a SYN lacking TCP options; all five exact signals matched. Also covered by original synthetic fixtures. Experimental compatible stack, not exclusive OS identity.",
+      "signals": {
+        "observed_hop_limit": 64,
+        "dont_fragment": true,
+        "tcp_window": 64240,
+        "option_kinds": [
+          2
+        ],
+        "mss": 1460
+      }
+    }
+  ]
+}
