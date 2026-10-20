@@ -57,15 +57,19 @@ See [policy](SECURITY.md), [audit](docs/SECURITY_AUDIT.md) and
   HTTP/TLS/SSH/DNS plugins, versioned capabilities/evidence API and schema-5 exports,
   shared pacing/cancellation and durable enrichment. See docs/PLUGINS.md.
 
-- **Phase 5B (implementation under review):** opt-in Python SYN captured remote
+- **Phase 5B (merged through #15):** opt-in Python SYN captured remote
   TCP/IP features, one original experimental Linux-compatible IPv4 profile,
   explicit inconclusive evidence and versioned bounded database. Fifteen isolated
   OS capture checks passed; see docs/OS_EVIDENCE.md and validation/OS_RESULTS.md.
   Native OS/other systems/IPv6 profiles remain unsupported.
 
+- **Phase 5C (implementation under review):** optional private versioned SQLite
+  history, aggregate/native stream ingestion, evidence/version provenance, bounded
+  offline comparisons and explicit retention. Missing observations never imply
+  removals; partial/crashed saves remain incomplete. See docs/HISTORY.md.
+
 ## Planned
 
-- **Phase 5C:** optional versioned SQLite history and partial-scan comparisons.
 - **Phase 6:** cross-platform release validation, fuzzing, packaging/license review
   and release-candidate report; no public publishing without separate authorization.
 

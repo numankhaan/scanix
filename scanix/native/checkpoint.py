@@ -102,7 +102,7 @@ class Checkpoint:
             self.db.execute('PRAGMA fullfsync=ON')
             # A resumed database must contain exactly these ordinary tables, no triggers/views.
             if resume:
-                objects = self.db.execute("SELECT type,name,CASE WHEN length(sql)<4096 THEN sql END FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' LIMIT 8").fetchall()
+                objects = self.db.execute("SELECT type,name,CASE WHEN length(sql)<4096 THEN sql END FROM sqlite_master WHERE substr(name,1,7)!='sqlite_' LIMIT 8").fetchall()
                 if sorted(objects) != sorted(('table',name,sql) for name,sql in SCHEMAS.items()):
                     raise ValueError('unsupported checkpoint schema')
             else:
@@ -153,7 +153,7 @@ class Checkpoint:
     def records(self, *, after=-1):
         """Keyset iteration: at most one response-sized record outside SQLite's cache."""
         while True:
-            row = self.db.execute('SELECT id,CASE WHEN length(record)<=? THEN record END,digest '
+            row = self.db.execute('SELECT id,CASE WHEN length(CAST(record AS BLOB))<=? THEN record END,digest '
                                   'FROM results WHERE id>? ORDER BY id LIMIT 1', (MAX_RECORD, after)).fetchone()
             if row is None:
                 return

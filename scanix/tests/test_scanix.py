@@ -457,7 +457,8 @@ class CLITests(unittest.TestCase):
         with patch('scanix.output.save_json.save_json', side_effect=OSError('denied')):
             code, _, stderr, _ = self.invoke(['--out', 'json'])
         self.assertEqual(code, 1)
-        self.assertIn('Output failed: denied', stderr)
+        self.assertIn('Output failed: OSError; export incomplete', stderr)
+        self.assertNotIn('denied', stderr)
 
     def test_ctrl_c_handler_sets_event_and_is_restored(self):
         handler = None
