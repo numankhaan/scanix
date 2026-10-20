@@ -83,6 +83,9 @@ def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None,
     report.scope = {'effective_rate': config.rate or {'connect': 100, 'syn': 10, 'udp': 1}[config.method],
                     'effective_per_host': min(config.concurrency, config.per_host),
                     'effective_retries': 0 if config.method == 'connect' else config.retries}
+    if config.os_detect:
+        from .os_fingerprint import policy
+        report.scope['os_detection'] = policy(config)
     stop = cancel_event if cancel_event is not None else threading.Event()
     resolved = None
     runtime = runtime or Runtime(config)

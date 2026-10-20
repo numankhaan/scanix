@@ -106,7 +106,7 @@ def quoted_error(probe, reply):
     return Evidence('unknown', 'icmp_unreachable_or_path_error', details)
 
 
-def classify_syn(probe, reply):
+def classify_syn(probe, reply, *, os_evidence=False):
     error = quoted_error(probe, reply)
     if error:
         return error
@@ -125,6 +125,13 @@ def classify_syn(probe, reply):
     if flags & 0x17 == 0x14:
         return Evidence('closed', 'syn_rst_ack', details)
     if flags & 0x3f == 0x12:
+        if os_evidence:
+            from ..core.os_fingerprint import tcp_features
+            features=tcp_features(6 if isinstance(outer, IPv6) else 4,
+                int(outer.hlim if isinstance(outer, IPv6) else outer.ttl),
+                None if isinstance(outer, IPv6) else bool(int(outer.flags) & 2), bytes(tcp)[:60])
+            if features is not None:
+                details['remote_tcp']=features
         return Evidence('open', 'syn_ack', details)
     return None
 

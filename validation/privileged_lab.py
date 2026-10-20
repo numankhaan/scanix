@@ -343,7 +343,10 @@ def inside(args):
                 if args.native_binary:
                     from validation.native_syn_lab import validate
                     report['native_syn'] = validate(args.output,args.native_binary,args.parent_netns)
-                if all(case['passed'] for case in report['cases']) and all(check['passed'] for check in report['capture_evidence']) and report['loopback_tests']['passed'] and (not args.native_binary or report.get('native_syn',{}).get('status')=='passed'):
+                if args.os_evidence:
+                    from validation.os_lab import validate as os_validate
+                    report['os_evidence']=os_validate(args.output,args.parent_netns)
+                if all(case['passed'] for case in report['cases']) and all(check['passed'] for check in report['capture_evidence']) and report['loopback_tests']['passed'] and (not args.native_binary or report.get('native_syn',{}).get('status')=='passed') and (not args.os_evidence or report.get('os_evidence',{}).get('status')=='passed'):
                     report['status'] = 'passed'
     except Exception as exc:
         report['error'] = {'type': type(exc).__name__, 'message': str(exc)}
@@ -371,6 +374,7 @@ def inside(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True, help='new output directory; never overwrite previous evidence')
+    parser.add_argument('--os-evidence', action='store_true', help='validate experimental captured remote OS evidence in isolated IPv4/IPv6 lab')
     parser.add_argument('--native-binary', help='trusted built native engine; enables isolated IPv4 SYN validation')
     parser.add_argument('--inside', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--peer', action='store_true', help=argparse.SUPPRESS)
@@ -392,7 +396,8 @@ def main(argv=None):
     result = subprocess.run(['unshare', '--net', '--mount', '--propagation', 'private', '--pid', '--fork', '--kill-child', '--mount-proc',
         sys.executable, '-B', str(Path(__file__).resolve()), '--output', str(args.output),
         '--inside', '--parent-netns', os.readlink('/proc/self/ns/net'),
-        *(['--native-binary',str(Path(args.native_binary).resolve())] if args.native_binary else [])])
+        *(['--native-binary',str(Path(args.native_binary).resolve())] if args.native_binary else []),
+        *(['--os-evidence'] if args.os_evidence else [])])
     if not (args.output / 'results.json').exists():
         record(args.output / 'results.json', {'status': 'unavailable', 'reason': 'namespace setup failed',
                                              'exit_code': result.returncode, 'cases': [], 'capture_evidence': []})

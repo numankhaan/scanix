@@ -65,6 +65,7 @@ def build_parser():
                          help='validated raw SYN; requires capture privileges')
     scan.set_defaults(method='connect')
     methods.add_argument('--udp', dest='method', action='store_const', const='udp', help='protocol-aware UDP; requires raw capture privileges')
+    scan.add_argument('--os-detect', action='store_true', help='experimental remote packet OS evidence, Python SYN only; no TTL-only guesses')
     scan.add_argument('--plugins', default='', help='opt-in builtin IDs or aliases: http,tls,ssh,dns (comma-separated)')
     scan.add_argument('--plugin-timeout', type=float, default=2., help='per-plugin wall budget including process startup, 0.1–10s; endpoint cap quick 3s/deep 8s')
     scan.add_argument('--allow-intrusive-plugins', action='store_true', help='permit plugins declaring intrusive capabilities; none shipped')
@@ -151,7 +152,7 @@ def _run_scan(parser, args):
                             tls_insecure=args.tls_insecure, tls_ca_file=args.tls_ca_file, sni=args.sni,
                             starttls=args.starttls, allow_excluded_probes=args.allow_excluded_probes,
                             engine=args.engine,engine_timeout=args.engine_timeout,syn_cooldown=args.syn_cooldown,
-                            checkpoint_batch=args.checkpoint_batch, plugins=tuple(filter(None,args.plugins.split(','))),
+                            checkpoint_batch=args.checkpoint_batch, os_detect=args.os_detect, plugins=tuple(filter(None,args.plugins.split(','))),
                             plugin_timeout=args.plugin_timeout,allow_intrusive_plugins=args.allow_intrusive_plugins)
     except ValueError as exc:
         parser.error(str(exc))
@@ -183,6 +184,8 @@ def _run_scan(parser, args):
         data['service_detection'] = policy(config)
         from .plugins.registry import policy as plugin_policy
         data['plugins'] = plugin_policy(config)
+        from .core.os_fingerprint import policy as os_policy
+        data['os_detection'] = os_policy(config)
         from .native.adapter import preview
         data['implementation'] = preview(config)
         data['continuation']={'enabled':bool(args.checkpoint),'resume':args.resume,'validated':False,
@@ -261,6 +264,10 @@ def _run_scan(parser, args):
                 if result.service_detection:
                     for observation in result.service_detection.observations:
                         print('  ' + clean(f'{observation.service} {observation.product or ""} {observation.version or ""} [{observation.confidence}; {observation.transport}]'))
+                os_evidence=result.evidence.get('os_detection')
+                if os_evidence:
+                    candidates=', '.join(c['os_family'] for c in os_evidence['candidates'])
+                    print('  ' + clean(f"OS evidence: {os_evidence['status']} {candidates} [{os_evidence['confidence']}]"))
                 for plugin in result.plugin_results:
                     print('  ' + clean(f"plugin {plugin['plugin_id']}: {plugin['status']}"))
     except (OSError, ValueError, TypeError) as exc:

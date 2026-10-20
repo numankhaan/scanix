@@ -32,6 +32,6 @@ jobs:
           rustup toolchain install 1.91.1 --profile minimal
           cargo +1.91.1 build --release --locked --manifest-path native/Cargo.toml
       - name: Validate states and packet-capture evidence in private namespaces
-        run: sudo -- "$(command -v python)" -B validation/privileged_lab.py --output "$RUNNER_TEMP/scanix-lab" --native-binary "$GITHUB_WORKSPACE/native/target/release/scanix-engine"
+        run: sudo -- "$(command -v python)" -B validation/privileged_lab.py --output "$RUNNER_TEMP/scanix-lab" --native-binary "$GITHUB_WORKSPACE/native/target/release/scanix-engine" --os-evidence
       - name: Privacy boundary for lab evidence
         run: echo 'Lab checks completed; raw captures/reports are not uploaded automatically.'
