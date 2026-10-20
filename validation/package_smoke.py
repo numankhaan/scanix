@@ -83,6 +83,8 @@ def run():
                 raise ValueError('installed runtime/database inventory differs from source')
             metadata_name = next(n for n in names if n.endswith('.dist-info/METADATA'))
             metadata = BytesParser().parsebytes(archive.read(metadata_name))
+            if metadata['Version'] != __version__:
+                raise ValueError('distribution metadata/package version mismatch')
             if metadata['License-Expression'] != EXPRESSION or set(metadata.get_all('License-File', [])) != legal_files:
                 raise ValueError('wheel license metadata is incomplete')
             prefix = metadata_name.rsplit('/', 1)[0] + '/licenses/'
@@ -93,7 +95,7 @@ def run():
             members = archive.getnames()
             prefix = members[0].split('/')[0]+'/'
             for filename in legal_files | {'native/LICENSE', 'third_party/licenses.json', 'validation/requirements.txt',
-                                           'validation/licensing.py', 'validation/package_smoke.py'}:
+                                           'validation/licensing.py', 'validation/package_smoke.py', 'CHANGELOG.md'}:
                 if archive.extractfile(prefix+filename).read() != (ROOT/filename).read_bytes():
                     raise ValueError('corresponding source license/build files missing or changed')
             for member in archive.getmembers():
