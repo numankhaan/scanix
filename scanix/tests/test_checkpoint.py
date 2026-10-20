@@ -50,6 +50,20 @@ class CheckpointTests(unittest.TestCase):
             self.assertEqual(len(list(state.records())),1)
         if os.name=='posix':self.assertEqual(self.path.stat().st_mode & 0o777,0o600)
 
+    def test_batch_flush_deadline_and_cancellation_flush_use_deterministic_clock(self):
+        from scanix.native.checkpoint import DurableBatch
+        from unittest.mock import Mock
+        clock=[0.0];stream=Mock()
+        with self.open() as state:
+            batch=DurableBatch(state,stream,16,clock=lambda:clock[0])
+            batch.submit(self.result());self.assertEqual(state.completed,0)
+            clock[0]=.249;batch.tick();self.assertEqual(state.completed,0)
+            clock[0]=.25;batch.tick();self.assertEqual(state.completed,1)
+            stream.result.assert_called_once()
+            batch.submit(self.result(1));self.assertEqual(state.completed,1)
+            batch.flush();self.assertEqual(state.completed,2)
+            self.assertFalse(batch.pending)
+
     def test_atomic_bounded_batch_and_invalid_record_roll_back_all_work(self):
         with self.open() as state:
             with self.assertRaises(ValueError):

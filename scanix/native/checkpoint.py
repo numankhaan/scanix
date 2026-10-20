@@ -254,3 +254,29 @@ class ResultStream:
                 os.fsync(self.stream.fileno())
             finally:
                 self.stream.close()
+
+
+class DurableBatch:
+    """Bounded count and monotonic flush deadline; no SQLite work on extra threads."""
+    def __init__(self, state, stream, limit, *, clock=time.monotonic, interval=.25):
+        if type(limit) is not int or not 1 <= limit <= 64:
+            raise ValueError('invalid durable batch limit')
+        self.state,self.stream,self.limit=state,stream,limit
+        self.clock,self.interval=clock,interval
+        self.pending=[]
+        self.started=None
+
+    def submit(self, row):
+        if not self.pending:self.started=self.clock()
+        self.pending.append(row)
+        if len(self.pending)>=self.limit:self.flush()
+        else:self.tick()
+
+    def tick(self):
+        if self.pending and self.clock()-self.started>=self.interval:self.flush()
+
+    def flush(self):
+        if not self.pending:return
+        batch=self.pending.copy();self.pending.clear();self.started=None
+        for record in self.state.add_batch(batch):
+            self.stream.result(record['evidence']['work_id'],record)

@@ -47,7 +47,10 @@ proof against a malicious person who can edit the file.
 SQLite FULL synchronous rollback-journal commits persist bounded batches before any
 result in a batch is emitted. The default is 16; `--checkpoint-batch 1` commits each
 result and `--checkpoint-batch 64` is the maximum. Batch size is part of compatibility.
-A normal completion or interrupt flushes the final partial batch. Exclusive locking rejects concurrent writers and is released by the
+A normal completion or interrupt flushes the final partial batch. A monotonic .25s
+flush target also protects sparse results; the adapter checks it at most every .05s
+while polling, excluding actual blocking I/O/flush time. SQLite stays on its owning
+thread. This is a scheduling target, not a hard disk-latency guarantee. Exclusive locking rejects concurrent writers and is released by the
 OS after a crash. Fixed schema validation rejects extra views/triggers; SQL is fixed
 and parameterized, extensions are not enabled. Per-record digests detect accidental
 record corruption; they do not authenticate data. No pickle/code is loaded. Standard

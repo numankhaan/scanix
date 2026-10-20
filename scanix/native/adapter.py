@@ -69,7 +69,7 @@ def _integer(value, minimum=0, maximum=1_000_000):
     return type(value) is int and minimum <= value <= maximum
 
 
-def _run(config, targets, stop, report, binary, progress, selection=None, on_result=None, retain=True):
+def _run(config, targets, stop, report, binary, progress, selection=None, on_result=None, retain=True, on_tick=None):
     command = binary or os.environ.get('SCANIX_NATIVE_ENGINE') or shutil.which('scanix-engine')
     if not command:
         raise FileNotFoundError('native engine executable not configured')
@@ -166,6 +166,7 @@ def _run(config, targets, stop, report, binary, progress, selection=None, on_res
             thread=threading.Thread(target=function,daemon=True)
             threads.append(thread);thread.start()
         while True:
+            if on_tick:on_tick()
             now=time.monotonic()
             if stop.is_set() and cancelled_at is None:
                 cancelled_at=now
@@ -332,7 +333,7 @@ def _run(config, targets, stop, report, binary, progress, selection=None, on_res
             report.issues.append({'reason':'native_stderr','bytes_drained':stderr_bytes})
 
 
-def scan_native(config, plan, stop=None, *, binary=None, progress=None, selection=None, on_result=None, retain=True):
+def scan_native(config, plan, stop=None, *, binary=None, progress=None, selection=None, on_result=None, retain=True, on_tick=None):
     if config.engine!='native':
         raise ValueError('native adapter requires an explicit native configuration')
     stop=stop or threading.Event()
@@ -356,7 +357,7 @@ def scan_native(config, plan, stop=None, *, binary=None, progress=None, selectio
             report.issues.append({'reason':'native_syn_requires_linux_ipv4'})
             raise NotImplementedError('unsupported SYN platform or address family')
         if not stop.is_set():
-            _run(config,targets,stop,report,binary,progress,selection,on_result,retain)
+            _run(config,targets,stop,report,binary,progress,selection,on_result,retain,on_tick)
         if config.service_detect:
             from ..service.engine import enrich_results,policy
             from ..service.registry import load_registry

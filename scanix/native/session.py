@@ -9,7 +9,7 @@ import time
 from ..core.models import ScanReport, ScanResult, utc_now
 from ..core.timing import Runtime
 from .adapter import scan_native
-from .checkpoint import Checkpoint, ResultStream, manifest
+from .checkpoint import Checkpoint, DurableBatch, ResultStream, manifest
 
 
 def scan_session(config, plan, checkpoint, stream_file, *, resume=False, shard=(0,1),
@@ -36,23 +36,14 @@ def scan_session(config, plan, checkpoint, stream_file, *, resume=False, shard=(
             state.begin()
             for id, record in state.records():
                 stream.result(id,record)
-            pending=[]
-            def flush():
-                if not pending:return
-                batch=pending.copy();pending.clear()
-                # Commit the entire bounded batch before publishing any result from it.
-                for record in state.add_batch(batch):
-                    stream.result(record['evidence']['work_id'],record)
-            def save(row):
-                pending.append(row)
-                if len(pending)>=config.checkpoint_batch:flush()
+            batch=DurableBatch(state,stream,config.checkpoint_batch)
             remaining=state.selection.remaining
             budget=config.engine_timeout-(time.monotonic()-started)
             guard=1/(config.rate or {'connect':100,'syn':10}[config.method]) if prior and remaining else 0
             if remaining and guard < budget and not stop.wait(guard):
                 run_config=replace(config,service_detect=False,engine_timeout=max(.1,budget-guard))
                 report=scan_native(run_config,plan,stop,binary=command,
-                                   progress=progress,selection=state.selection,on_result=save,retain=False)
+                                   progress=progress,selection=state.selection,on_result=batch.submit,retain=False,on_tick=batch.tick)
                 report.configuration=config
             else:
                 status='interrupted' if stop.is_set() else 'failed' if remaining else 'complete'
@@ -61,7 +52,7 @@ def scan_session(config, plan, checkpoint, stream_file, *, resume=False, shard=(
                                                   'engine_version':None,'session_skipped':
                                                   'no_remaining_ports' if not remaining else 'budget_or_cancellation'})
                 if remaining and not stop.is_set():report.issues.append({'reason':'resume_rate_guard_or_session_budget_exhausted'})
-            flush()  # Normal completion/cancellation commits a final partial batch.
+            batch.flush()  # Normal completion/cancellation commits a final partial batch.
             session_completed=state.completed-prior
             metrics=report.implementation.get('metrics',{})
             if session_completed and (not metrics or config.method=='syn' and metrics.get('capture_drops') is None):
@@ -97,7 +88,7 @@ def scan_session(config, plan, checkpoint, stream_file, *, resume=False, shard=(
             report.implementation['continuation']={'checkpoint_format':1,'fingerprint':identity['fingerprint'],
                 'restored_results':prior,'new_results':session_completed,'shard_index':shard[0],
                 'shard_count':shard[1],'full_scope_pairs':state.selection.total,
-                'retained_result_objects':0,'maximum_pending_records':config.checkpoint_batch,'coverage_loss':True if state.has_loss() else None if unknown_metrics else False,
+                'retained_result_objects':0,'maximum_pending_records':config.checkpoint_batch,'flush_interval_seconds':.25,'coverage_loss':True if state.has_loss() else None if unknown_metrics else False,
                 'prior_session_metrics_unknown':unknown_metrics,
                 'storage_commit_seconds':state.commit_seconds,'storage_commits':state.commit_count}
             if unknown_metrics:
