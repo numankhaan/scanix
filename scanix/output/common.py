@@ -13,6 +13,12 @@ METADATA_FIELDS = ['completion_status', 'incomplete', 'requested_ports', 'comple
 CSV_FIELDS = ['record_type'] + METADATA_FIELDS + RESULT_FIELDS
 
 
+def inline_payload(data):
+    if data.completed_probes is not None and data.completed_probes != len(data.results):
+        raise ValueError('non-retained results require checkpoint/stream output')
+    return data.to_dict()
+
+
 def scalar(value):
     if value is None or isinstance(value, (dict, list, tuple, bool)):
         return json.dumps(value, ensure_ascii=False, sort_keys=True)

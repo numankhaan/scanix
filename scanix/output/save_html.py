@@ -1,10 +1,10 @@
 import html
 import json
-from .common import atomic_text, RESULT_FIELDS, scalar
+from .common import inline_payload, atomic_text, RESULT_FIELDS, scalar
 
 
 def save_html(data, filename='scan_results.html', title='Scanix Results'):
-    payload = data.to_dict()
+    payload = inline_payload(data)
     escape = lambda value: html.escape(str(value), quote=True)
     with atomic_text(filename) as stream:
         stream.write('<!doctype html><html><head><meta charset="utf-8"><title>'

@@ -75,6 +75,18 @@ class NativeWireTests(unittest.TestCase):
             report=scan_native(cfg,ScopePlan(['127.0.0.1']),binary='fixture',selection=selection,retain=False)
         self.assertEqual(report.completion_status,'failed');self.assertEqual(report.completed_probes,0)
 
+    def test_inline_exporters_reject_nonretained_summaries_without_writing_files(self):
+        from scanix.output.save_json import save_json
+        from scanix.output.save_csv import save_csv
+        from scanix.output.save_html import save_html
+        with fake_engine([HELLO,{'type':'ready','requested':1},ROW,DONE]):
+            report=scan_native(self.config(),ScopePlan(['127.0.0.1']),binary='fixture',retain=False)
+        with tempfile.TemporaryDirectory() as folder:
+            for name,save in [('json',save_json),('csv',save_csv),('html',save_html)]:
+                path=Path(folder)/('synthetic.'+name)
+                with self.assertRaises(ValueError):save(report,path)
+                self.assertFalse(path.exists())
+
     def test_nonretained_permission_failure_keeps_failed_semantics(self):
         row={**ROW,'state':'error','reason':'permission_denied','error_code':13}
         with fake_engine([HELLO,{'type':'ready','requested':1},row,DONE]):
