@@ -15,7 +15,7 @@ or public release/package publishing. Preserve security gates and unrelated UDP 
   at runtime source d181e1b; final head only added tests/comments/docs. Measurements
   and limits: validation/NATIVE_SYN_RESULTS.md. Privileged macOS/BPF incomplete.
 - Main post-merge CI: Security 39343940342, CodeQL 39343940329,
-  Native 39343940313, Tests 39343940358 queued/running at branch creation, not passes.
+  Native 39343940313, Tests 39343940358 all passed after merge (verified separately).
 - Worktree: sibling `scanix-phase4c`; branch `phase4c/durable-streaming` from main.
   HEAD initially 66f0455. No Phase 4C PR yet. All prior branches retained.
 - Completed: phases 1–3, security #8, 4A #11, 4B #12. Remaining 4C, 5A/B/C, 6.
@@ -50,3 +50,22 @@ Reconcile post-merge Phase 4B checks. Current uncommitted work includes the chec
 kept separate from the validated selection increment.
 Private audit/lab evidence pointer: `/tmp/scanix-security-session`; never publish raw
 reports/captures or personal metadata. No new Phase 4C external blocker identified.
+
+## Durable storage/CLI milestone
+
+Implemented private format-1 SQLite single-writer FULL per-result commits, exact
+scope/configuration/binary compatibility, bounded NDJSON upsert/replay/export, native
+checkpoint/resume/shard CLI and offline policy, separate bounded service stage.
+Known transmission/capture loss persists; crash/missing counters remain unknown.
+Local `python -B validation/native_ci.py`: 163 run, 160 passed, three documented
+macOS privileged/POSIX skips. Rust 21 passed; release build, strict Clippy and Linux
+aarch64 cross-Clippy passed (cross-build is not execution). Bandit: zero findings;
+tree gate passed. Crash, real cancellation/resume, unchanged completed-connection
+counts, shard union, stream-write failure, CLI and service-state preservation covered.
+
+Next: commit/push validated durable increment, open draft Phase 4C PR; execute extended
+isolated Linux SYN continuation/capture lab on the pushed SHA, run reproducible loopback
+aggregate/stream benchmark and document actual measurements. Inspect latest-head CI.
+No Phase 4C performance or privileged validation has passed yet. Benchmark script and
+extended lab are intended project changes, never raw outputs. Raw evidence remains
+outside Git. Current HEAD before this milestone: 0d29468 selection/protocol commit.

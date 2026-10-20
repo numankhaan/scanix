@@ -156,7 +156,7 @@ def _run(config, targets, stop, report, binary, progress, selection=None, on_res
         except (OSError,ValueError):
             pass
 
-    started=time.monotonic();ready=False;hello=False;done=None;fatal=False;completed_count=0;send_error=False
+    started=time.monotonic();ready=False;hello=False;done=None;fatal=False;completed_count=0;send_error=False;fatal_result_error=False
     full_count=len(targets)*len(config.ports)
     requested=selection.remaining if selection else full_count
     seen=bytearray(full_count)
@@ -256,6 +256,7 @@ def _run(config, targets, stop, report, binary, progress, selection=None, on_res
                 if on_result:on_result(result)
                 if retain:report.results.append(result)
                 send_error |= result.evidence.get('send_error_code') is not None
+                fatal_result_error |= result.reason in ('permission_denied','resource_exhausted')
                 seen[index]=1;completed_count+=1;report.completed_probes=completed_count
                 if progress:
                     progress(completed_count,requested)
@@ -312,7 +313,7 @@ def _run(config, targets, stop, report, binary, progress, selection=None, on_res
             expected={'complete':0,'interrupted':130,'failed':3}[done['status']]
             if process.returncode!=expected or fatal and done['status']!='failed':
                 raise ValueError('native exit status contradicts protocol')
-        if any(r.reason in ('permission_denied','resource_exhausted') for r in report.results):
+        if fatal_result_error:
             report.completion_status='failed'
     finally:
         finished.set()
@@ -341,6 +342,9 @@ def scan_native(config, plan, stop=None, *, binary=None, progress=None, selectio
     if not retain:report.completed_probes=0
     report.scope=plan.preview(config.ports,config.method,limit=0)
     report.scope['implementation']=preview(config)
+    if selection is not None:
+        report.implementation['selection']={'shard_index':selection.index,'shard_count':selection.count,
+                                            'full_scope_pairs':selection.total,'restored_results':selection.done}
     try:
         if not retain and config.service_detect:
             raise ValueError('streaming enrichment must run separately from port classification')

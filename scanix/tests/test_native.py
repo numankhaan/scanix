@@ -75,6 +75,13 @@ class NativeWireTests(unittest.TestCase):
             report=scan_native(cfg,ScopePlan(['127.0.0.1']),binary='fixture',selection=selection,retain=False)
         self.assertEqual(report.completion_status,'failed');self.assertEqual(report.completed_probes,0)
 
+    def test_nonretained_permission_failure_keeps_failed_semantics(self):
+        row={**ROW,'state':'error','reason':'permission_denied','error_code':13}
+        with fake_engine([HELLO,{'type':'ready','requested':1},row,DONE]):
+            report=scan_native(self.config(),ScopePlan(['127.0.0.1']),binary='fixture',retain=False)
+        self.assertEqual(report.completion_status,'failed');self.assertEqual(report.completed_probes,1)
+        self.assertFalse(report.results)
+
     def test_resume_registration_is_bounded_and_completed_ids_rejected(self):
         from scanix.native.selection import Selection
         selected=Selection(1,completed=bytes([1]))
