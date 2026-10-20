@@ -26,8 +26,8 @@ and terminates its peer and capture process even after failure.
 
 The optional GitHub workflow can run on a push to `phase2/scanning-accuracy` that
 changes lab files and explicitly includes `[privileged-lab]` in its commit message.
-It runs separately from the regular test matrix and uploads artifacts on success
-or failure. Manual dispatch is also provided for when the workflow is available
+It runs separately from the regular test matrix. The current security policy prohibits
+raw artifact uploads; captures and raw logs must remain private. Manual dispatch is also provided for when the workflow is available
 on the default branch. No Windows test is disabled or skipped by this workflow.
 
 ## Topology and expectations
@@ -77,14 +77,14 @@ all generated requests/ICMP quotations fit within that snap length. A separate
 raw loopback tests. The driver requires those tests and correlated loopback packet evidence to pass,
 using immediate capture delivery and a finite drain deadline.
 
-**Local macOS execution is unavailable.** `sudo -n true` requires a password;
-`tcpdump -i lo0` cannot open `/dev/bpf0` (permission denied). The installed Podman
-VM fails to start (`vfkit` SIGTRAP, exit code 2), so no local Linux namespace lab
-is available. The driver returns unavailable on macOS without creating sockets or
-sending packets. There is no local pcap and no local privileged validation pass.
+**Privileged local macOS/BPF execution remains unavailable.** Noninteractive
+`sudo -n true` still fails. A later local Linux VM lab succeeded for Phase5B in
+isolated namespaces (see OS_RESULTS.md); the VM was restored stopped. That is Linux
+validation, not macOS raw/BPF coverage. Captures remain private. The driver returns
+unavailable on macOS without creating sockets or sending packets.
 The hosted Linux lab **passed 28 live cases and 28 capture checks**, plus both
 existing opt-in raw loopback integration tests. See [RESULTS.md](RESULTS.md) for
-actual observations, native CI links, pcap hashes and the downloadable artifact.
+actual historical observations and pcap hashes; current workflows do not upload raw captures.
 Linux validation does not establish macOS privileged backend behavior.
 
 See [CI_WINDOWS.md](CI_WINDOWS.md) for exact CI failure evidence and the fixes.

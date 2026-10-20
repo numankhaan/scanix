@@ -1,61 +1,72 @@
 # Autonomous roadmap checkpoint
 
-## Current stage: Phase 5C — final review before first push
+## Current stage: Phase 6 — release validation, not release ready
 
-Main/base:50e620f8200bb064bec4582dc3e12caaf9c70329, Phase 5B PR15 merged.
-Main post-merge CodeQL39410692746, Tests39410692760, Native39410692787 and
-Security39410692763 all passed; reverified on resume. Completed phases1–5B and
-security8; remaining5C and6. PR14/15 implementations/measurements documented in
-PLUGINS.md, OS_EVIDENCE.md and validation reports; branches retained.
+Branch phase6/release-validation; isolated worktree scanix-phase6; base/initialHEAD
+51288fe75298fb29bab9cc88903ff0ff35fabc8d. No Phase6 PR/commits yet.
+Phases1–5C and security8 merged. PR16 https://github.com/numankhaan/scanix/pull/16
+merge51288fe7, reviewed955d5b09bbc161196d220e7d18a26949f63b1b73 exact tree on main.
+Eight final-head push/PR workflows passed:Tests39473796730/39473786165,
+Native39473796821/39473786166,CodeQL39473796601/39473786187,
+Security39473796317/39473786445.31 checks completed, two historical privacy skips.
+Initial prior revision failed stale raw-error assertion, fixed with stronger redaction
+and12 focused tests. No tests disabled. Nine strict main checks preserved, no review
+blockers, normal merge and branches retained. Postmerge39474664273 CodeQL,
+39474664219 Security,39474664070 Native,39474663922 Tests pending at creation.
 
-Branch:phase5c/scan-history; worktree:scanix-phase5c. Two local commits already exist:
-484d589cc2915b9fbc98c115759b803f7efe3b4e literal SQLite reserved prefix validation;
-1ad69592a40788837a678e06d131aee0117835b8 UTF8 encoded-byte checkpoint limits.
-Feature/CLI/tests/docs uncommitted while final review completes. No remote branch or
-Phase5C PR at reconciliation; open PRs9/10 are independent dependency updates.
+## Acceptance and short plan
 
-## Acceptance and implementation
+Add deterministic bounded malformed-input mutation coverage, Python IPv4/IPv6 and
+cross-platform release regression/install tests, local wheel/sdist install/upgrade
+validation without publishing, consistent RC version, dependency/license inventory,
+signature maintenance procedures, platform/privilege matrix and sanitized RC report.
+Reuse unchanged packet labs and exact-source measured benchmarks; measure new history
+storage path once if appropriate. No repeat labs/benchmarks for docs-only revisions.
+Build/test tools must be pinned, actions remain verified full SHAs, gates unchanged.
 
-Optional private SQLite schema1/report5 history, configuration/completion/evidence/
-all version provenance, initial migration only and explicit unknown-schema rejection.
-Aggregate and bounded native NDJSON upserts; invalid/crashed/interrupted saves partial.
-Offline list/show/diff/delete/prune; actual observation changes only, absent rows never
-imply removal/closure, service claims remain unauthenticated. Explicit retention,
-private artifacts ignored/gated, no new dependency, no raw findings/artifacts uploaded.
-Implemented history API, optional lazy backend, CLI persistence, bounded comparisons,
-export preservation/type-only diagnostics, docs/HISTORY.md and tests. Schema-hidden
-objects and encoded-byte safety guards also applied to existing native checkpoints.
-No packet/scheduler changes; no privileged lab or benchmark repeat justified.
+Owner license decision pending: no tracked project LICENSE or packaging metadata.
+Asked asynchronously; do not invent a license or declare licensing acceptance complete.
+Privileged macOS/BPF validation explicitly incomplete; unavailable environment is an
+external blocker, LinuxVM evidence cannot substitute. No public publishing/release
+without separate authorization. Prepare draft RC PR if blockers remain; do not merge
+unfinished acceptance. Historical privacy cleanup pending owner, no rewrite.
 
-## Actual local validation
+## Precise next action
 
-Trusted Python3.14.3/SQLite3.52, Scapy2.8.0; native0.4.2 binary from phase4c worktree.
-`python -B -m unittest scanix.tests.test_history scanix.tests.test_checkpoint.ResumeLoopbackTests`:
-32 passed at prior implementation milestone. Subsequent focused runs:3 encoded-byte
-safety tests,1 optional-backend test and3 migration/version/tamper tests passed.
-`python -B -m unittest discover -s security/tests`:20 passed. Suites overlap; not cumulative coverage.
-Earlier12 checkpoint/schema-safety regressions passed. Bandit0 and diff check clean.
-Full final platform matrix belongs to CI after consolidated push, currently not run.
-
-## Preservation, limitations and precise next action
-
-Original UDP edit preserved/excluded; SHA256
+Reconcile Phase5C postmerge CI after >=60s batched interval while implementing independent
+Phase6 validation. Inspect existing parser/packet/native corpus coverage; add focused
+mutation tests and packaging smoke tests, docs/report. Record exact source/commands and
+actual outcomes, review code/exports/privacy/docs before one coherent push/RC PR.
+Current uncommitted checkpoint planning only. Previous live checkpoint carried privately.
+Original unrelated UDP edit preserved/excluded SHA256
 880894f38bc74007b1ad0d94609964f136667fe8be865e7466cb37535056893c.
-History private, unauthenticated/not encrypted; logical deletion not secure erasure.
-Postscan persistence does not recover a pre-save Python process crash. Native stream
-supports that separate workflow. Privileged macOS/BPF remains incomplete; Linux lab
-is not macOS validation. Historical privacy cleanup pending owner decision, no rewrite.
-Prior native performance measured source66123724901cf85848a433bb2795b992c4a46ebd;
-no new storage throughput claim. Phase5B15 OS capture checks passed as documented.
+No raw findings/captures/reports committed or uploaded. Keep successful output counts,
+inspect failures privately. Final-head CI before any merge. No force push/bypass/deletion.
 
-Next:finish consolidated code/export/checkpoint/privacy/docs review, verify actual help,
-focused static/gates, commit intended feature then substantive docs. Scan outgoing
-range+metadata before first push; push once/open PR with actual local results and
-pending CI. Batch CI polls >=60s; inspect failures only, fix blockers without weakening
-tests. Review current base/final diff/required9 checks/reviews before normal merge.
-Verify main/post-merge CI and continue Phase6; no status-only commits or branch deletion.
-Private raw logs/checkpoint backups remain outside repository, never publish them.
+Milestone:Phase5C postmerge all four workflows passed. Phase6 feature commit
+8940b35ba6e5ecc03a9557f6a3b818d802063191 adds Python local candidate packaging,
+consistent1.0.0rc1 version, bounded deterministic parser corpus, native structured
+correlation corpus, private package install/reinstall validation, pinned build-tool
+CI/audits/Dependabot and synthetic history baseline. Local3 release tests passed,
+3120 parser inputs,1 native structured test,8 packaging checks,20 security tests,
+Bandit0, workflow0, dependency0 in3 inventories, Rust audit0/static passed.
+One actual history baseline at exact committed source8940b35:256 rows/sample,
+3 samples, median801.23 saved observations/s; whole-process memory not streaming
+benefit, no packet/network throughput claim. Later changes docs only; do not repeat.
+See validation/RELEASE_RESULTS.md for measurements/source/runtime digest/limitations.
+No Phase6 push/PR yet. Next:consolidated final code/export/compatibility/privacy/docs
+review, commit substantive docs/report, outgoing snapshot/metadata gate then push once
+and open draft candidate PR. CI full platform matrix, >=60s batch polls. Keep draft,
+no merge while owner license decision/macOS privileged validation acceptance pending.
+Uncommitted files are new release docs and checkpoint while that review completes.
 
-Final documentation/help review:scan --help, history --help and diff --help exit0;
-actual flags/positions verified. Bandit history tree0 findings; no runtime changes
-since focused passing migration/version/byte-limit tests. Diff check clean.
+Final review fixes:74f522f makes all6 pinned build tools auditable on every host
+(no marker-based platform omissions); direct pip-audit0. Offline packaging validation
+uses --no-isolation and PIP_NO_INDEX=1 with installed pinned backend; rerun required
+only for changed packaging path. Production Python runtime digest still matches the
+8940b35 measured source; no history benchmark repeat.
+
+Offline package validation passed all8 checks after the backend/index restrictions.
+Current code HEAD68fe29cecf01f2a92393dd072175c131be09c363. Final documentation links
+checked:0 missing files. Staging only candidate docs/report now; no raw artifacts.
+Then outgoing range/metadata gate, first branch push, draft RC PR and final-head CI.

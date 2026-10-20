@@ -63,15 +63,18 @@ See [policy](SECURITY.md), [audit](docs/SECURITY_AUDIT.md) and
   OS capture checks passed; see docs/OS_EVIDENCE.md and validation/OS_RESULTS.md.
   Native OS/other systems/IPv6 profiles remain unsupported.
 
-- **Phase 5C (implementation under review):** optional private versioned SQLite
+- **Phase 5C (merged through #16):** optional private versioned SQLite
   history, aggregate/native stream ingestion, evidence/version provenance, bounded
   offline comparisons and explicit retention. Missing observations never imply
   removals; partial/crashed saves remain incomplete. See docs/HISTORY.md.
 
 ## Planned
 
-- **Phase 6:** cross-platform release validation, fuzzing, packaging/license review
-  and release-candidate report; no public publishing without separate authorization.
+- **Phase 6 (validation in progress):** bounded deterministic parser mutation corpus,
+  Python candidate packaging/install/reinstall checks across the existing platform
+  matrix, dependency/license inventory and signature maintenance procedures.
+  Owner licensing and privileged macOS/BPF validation remain incomplete. No public
+  publishing without separate authorization; see docs/RELEASE_CANDIDATE.md.
 
 Service follow-ups: more original signatures, broader server interoperability,
 HTTP/2 and richer insecure-certificate metadata, virtual-host enumeration within

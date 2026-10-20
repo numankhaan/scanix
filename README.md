@@ -5,6 +5,13 @@ Rust provides opt-in TCP-connect and Linux IPv4 SYN engines through a versioned 
 boundary alongside existing SYN/UDP, IPv6, discovery and TLS-aware service detection.
 It does not claim Nmap accuracy or Masscan throughput. Scan only authorized systems.
 
+## Release-candidate status
+
+Candidate `1.0.0rc1` adds local package/install validation. No package or release has
+been published. Project licensing and privileged macOS/BPF validation are pending;
+see [candidate support, installation and upgrade boundaries](docs/RELEASE_CANDIDATE.md)
+and [actual validation results](validation/RELEASE_RESULTS.md).
+
 ## Installation
 
 Python **3.10–3.14** is supported. From the repository root:
