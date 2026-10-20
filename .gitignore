@@ -35,3 +35,6 @@ native/target/
 *.sqlite-shm
 *.sqlite3-shm
 *.ndjson
+*.db-journal
+*.db-wal
+*.db-shm

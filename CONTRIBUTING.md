@@ -52,3 +52,8 @@ need careful human review. Do not merge based solely on a green badge.
 When updating scanner/tool pins, verify upstream release SHAs/digests and licenses,
 then rerun the negative/redaction tests. Dependabot covers pip and Actions here;
 binary scanner/cargo-audit installer pins still need maintainer review.
+
+Native continuation checkpoints, SQLite sidecars and NDJSON streams are private scan
+artifacts. The gate blocks their file types and recognizes the stream header even if
+renamed; do not force-add them. Keep only sanitized measurements/digests in validation
+notes, with synthetic samples inline in tests. Ignore rules do not remove tracked data.
