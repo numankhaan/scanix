@@ -1,6 +1,6 @@
 # Phase 6 candidate validation record
 
-Candidate1.0.0rc1; prepared locally without publishing. Code source **8940b35ba6e5ecc03a9557f6a3b818d802063191**. Final-head CI is pending the first candidate push; local passes below are not CI outcomes. Candidate remains draft for owner licensing and unavailable privileged macOS/BPF validation.
+Candidate1.0.0rc1; prepared locally without publishing. Code source **8940b35ba6e5ecc03a9557f6a3b818d802063191**. This is the local pre-push validation snapshot; current CI outcomes are recorded in PR #17 and the progress checkpoint. Local passes below are not CI outcomes. Keep the PR draft pending the remaining CI job and licensing decision. Privileged macOS raw/BPF operation is experimental and unverified; tested unprivileged macOS functionality is retained.
 
 ## Actual local execution
 
@@ -38,4 +38,4 @@ Native connect/stream batching throughput/CPU/RSS measurements remain tied to so
 - Project LICENSE absent; owner decision requested, no invented license. Optional Scapy GPL-2.0-only and locked Rust license inventory reviewed in docs/DEPENDENCY_LICENSES.md. Public distribution/license compliance still pending.
 - `sudo -n true` failed locally: privileged macOS/BPF validation unavailable. LinuxVM evidence does not substitute. Broader network/OS/TLS interoperability remains unverified as earlier docs state.
 - Historical privacy cleanup remains owner-pending. Full reachable-history secret scans remain enforced; scheduled historical privacy inventory is distinct from new-change gates. No history rewrite, new broad allowlist, credential revocation or public release performed.
-- Final candidate push/PR platform/native/security/CodeQL checks pending. Draft PR must remain unmerged while acceptance blockers remain. No raw logs, histories, local install artifacts or captures are published.
+- Current candidate push/PR status is maintained in PR #17. Do not infer supported privileged macOS operation from unprivileged CI. No merge, license addition or publication is authorized now; no raw logs, histories, local install artifacts or captures are published.

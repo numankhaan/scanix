@@ -73,7 +73,8 @@ See [policy](SECURITY.md), [audit](docs/SECURITY_AUDIT.md) and
 - **Phase 6 (validation in progress):** bounded deterministic parser mutation corpus,
   Python candidate packaging/install/reinstall checks across the existing platform
   matrix, dependency/license inventory and signature maintenance procedures.
-  Owner licensing and privileged macOS/BPF validation remain incomplete. No public
+  Owner licensing remains undecided; privileged macOS raw/BPF operation is explicitly
+  experimental and unverified, with tested unprivileged macOS functionality retained. No public
   publishing without separate authorization; see docs/RELEASE_CANDIDATE.md.
 
 Service follow-ups: more original signatures, broader server interoperability,

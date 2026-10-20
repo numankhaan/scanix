@@ -77,7 +77,9 @@ all generated requests/ICMP quotations fit within that snap length. A separate
 raw loopback tests. The driver requires those tests and correlated loopback packet evidence to pass,
 using immediate capture delivery and a finite drain deadline.
 
-**Privileged local macOS/BPF execution remains unavailable.** Noninteractive
+**Privileged macOS raw/BPF operation is experimental and unverified.** No supported
+privileged-operation claim is made; tested unprivileged macOS functionality remains.
+Local privileged execution remains unavailable. Noninteractive
 `sudo -n true` still fails. A later local Linux VM lab succeeded for Phase5B in
 isolated namespaces (see OS_RESULTS.md); the VM was restored stopped. That is Linux
 validation, not macOS raw/BPF coverage. Captures remain private. The driver returns

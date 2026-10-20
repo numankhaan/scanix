@@ -1,8 +1,9 @@
 # Phase 6 release-candidate validation
 
 Candidate: **1.0.0rc1**, prepared locally, not published. This is a draft validation
-candidate, not approval to release. Project license selection and privileged
-macOS/BPF execution remain incomplete. Passing checks do not guarantee security,
+candidate, not approval to release. Project licensing is undecided. Privileged
+macOS raw/BPF operation is experimental and unverified, not a supported privileged
+mode; tested unprivileged macOS functionality is retained. Passing checks do not guarantee security,
 privacy, interoperability or scan accuracy on arbitrary networks.
 
 ## Installation and upgrade boundary
@@ -48,8 +49,8 @@ upgrade. No destructive migration, public publishing or release tagging is perfo
 | --- | --- | --- | --- |
 | Python/native TCP connect IPv4/IPv6, TLS, plugins, exports | Regular CI | Regular CI | Regular CI |
 | Optional SQLite history | Regular CI, SQLite3.31+ | Regular CI, SQLite3.31+ | Regular CI, SQLite3.31+, parent ACL |
-| Python raw SYN/UDP, ICMP | Privileged isolated IPv4/IPv6 lab | Backend supported in code; privileged BPF validation incomplete | Explicitly unsupported |
-| ARP/IPv6 ND | Directly connected isolated Ethernet lab | Requires BPF/layer2, unverified privileged | Explicitly unsupported |
+| Python raw SYN/UDP, ICMP | Privileged isolated IPv4/IPv6 lab | Experimental, unverified privileged/BPF; no supported-operation claim | Explicitly unsupported |
+| ARP/IPv6 ND | Directly connected isolated Ethernet lab | Experimental, unverified privileged/BPF/layer2 | Explicitly unsupported |
 | Native SYN | Linux IPv4 isolated lab | Explicitly unsupported | Explicitly unsupported |
 | Experimental OS evidence | Python SYN constrained Linux IPv4 profile | No validated remote profile/platform claim | No raw backend |
 
@@ -58,7 +59,9 @@ Connect rate controls connection attempts; raw rates cover packets/retries/reset
 enrichment remains a separate bounded stage. DNS/system route lookup timing and
 platform capture constraints remain documented limitations. No public targets are
 used in regression or lab validation. Noninteractive local elevation remains
-unavailable; Linux VM tests do not establish macOS/BPF behavior.
+unavailable; Linux VM tests do not establish macOS/BPF behavior. This does not
+demote the tested unprivileged macOS capabilities in the first two table rows or
+TCP discovery/preview/continuation. No privileged macOS success is inferred from CI.
 
 ## Parser and maintenance coverage
 
@@ -82,9 +85,13 @@ measured source. Unchanged packet/scheduling code does not justify repeating lab
 documentation-only revisions do not justify repeating benchmarks. CI status belongs
 to the exact final candidate head and is recorded separately from local tests.
 
-Before readiness: complete owner licensing/redistribution decisions; execute and
-review privileged macOS/BPF validation or explicitly narrow the release support claim;
-require current-base final-head regression/native/security/CodeQL success and resolve
+Before readiness: the remaining candidate CI job must pass and owner
+licensing/redistribution decisions must be resolved; keep PR #17 draft until both.
+The owner has narrowed macOS raw/BPF claims to experimental and unverified;
+claiming supported privileged operation would require actual validation evidence.
+Require current-base final-head regression/native/security/CodeQL success and resolve
 reviews. Historical privacy cleanup remains independently owner-pending. Do not
 rewrite history or silently accept historical findings. Package/release publication
-requires separate authorization even after a candidate PR is accepted.
+requires separate authorization even after a candidate PR is accepted. No merge,
+license addition or publication is authorized by the current documentation request.
+See [project-license comparison](PROJECT_LICENSE_OPTIONS.md); it selects no license.

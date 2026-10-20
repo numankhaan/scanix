@@ -2,6 +2,9 @@
 
 Local inventory at the Phase6 candidate. Project license selection is pending the owner; no project license is inferred from dependencies or the original CC0 data. Do not publish this candidate until resolved.
 
+See the [concise project-license comparison](PROJECT_LICENSE_OPTIONS.md) for
+permissive/copyleft options and the separate Python/raw/native distribution questions.
+
 ## Runtime and build boundary
 
 - Python standard library follows its interpreter distribution license. No third-party dependency is needed for connect, TLS, plugins or local history.

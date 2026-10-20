@@ -1,72 +1,64 @@
 # Autonomous roadmap checkpoint
 
-## Current stage: Phase 6 — release validation, not release ready
+## Current stage: Phase6 — PR17 must remain draft
 
-Branch phase6/release-validation; isolated worktree scanix-phase6; base/initialHEAD
-51288fe75298fb29bab9cc88903ff0ff35fabc8d. No Phase6 PR/commits yet.
-Phases1–5C and security8 merged. PR16 https://github.com/numankhaan/scanix/pull/16
-merge51288fe7, reviewed955d5b09bbc161196d220e7d18a26949f63b1b73 exact tree on main.
-Eight final-head push/PR workflows passed:Tests39473796730/39473786165,
-Native39473796821/39473786166,CodeQL39473796601/39473786187,
-Security39473796317/39473786445.31 checks completed, two historical privacy skips.
-Initial prior revision failed stale raw-error assertion, fixed with stronger redaction
-and12 focused tests. No tests disabled. Nine strict main checks preserved, no review
-blockers, normal merge and branches retained. Postmerge39474664273 CodeQL,
-39474664219 Security,39474664070 Native,39474663922 Tests pending at creation.
+Remote PR17 https://github.com/numankhaan/scanix/pull/17 is OPEN/DRAFT, base main
+51288fe75298fb29bab9cc88903ff0ff35fabc8d; remote head22af3c5651e09ae7111cc4ed40eb264d5e9491ec.
+Worktree scanix-phase6, branch phase6/release-validation. New documentation prepared
+locally per owner steering; hold its documentation-only commit locally to avoid
+restarting passed CI. Do not push merely for status. PR body carries reviewable policy
+and license comparison now; batch source docs in a later appropriate authorized push.
 
-## Acceptance and short plan
+Latest owner instructions:keep PR17 draft until remaining CI passes and licensing
+is decided. No license addition, merge, publication or history rewrite now.
+Privileged macOS Python raw SYN/UDP/ICMP/ARP/ND are experimental and unverified;
+no supported privileged-operation claim. Tested unprivileged macOS Python/native
+connect,TCP discovery,TLS/plugins,preview,exports,continuation/history retained.
+Native SYN remains Linux-only. Raw validation remains a coverage gap, not a claim
+that unprivileged macOS is unsupported. No code/platform guards changed.
 
-Add deterministic bounded malformed-input mutation coverage, Python IPv4/IPv6 and
-cross-platform release regression/install tests, local wheel/sdist install/upgrade
-validation without publishing, consistent RC version, dependency/license inventory,
-signature maintenance procedures, platform/privilege matrix and sanitized RC report.
-Reuse unchanged packet labs and exact-source measured benchmarks; measure new history
-storage path once if appropriate. No repeat labs/benchmarks for docs-only revisions.
-Build/test tools must be pinned, actions remain verified full SHAs, gates unchanged.
+## Completed and validation provenance
 
-Owner license decision pending: no tracked project LICENSE or packaging metadata.
-Asked asynchronously; do not invent a license or declare licensing acceptance complete.
-Privileged macOS/BPF validation explicitly incomplete; unavailable environment is an
-external blocker, LinuxVM evidence cannot substitute. No public publishing/release
-without separate authorization. Prepare draft RC PR if blockers remain; do not merge
-unfinished acceptance. Historical privacy cleanup pending owner, no rewrite.
+Phases1–5C/security8 merged. PR16 merge51288fe7 exact reviewed955d5b09 tree verified;
+all8 final-head and4 postmerge workflows passed (CodeQL39474664273,Tests39474663922,
+Native39474664070,Security39474664219). All earlier branches/worktrees retained.
+Phase6 code8940b35, audit74f522f, offline-build68fe29c, docs22af3c5 already pushed.
+Python default; native0.4.2/wire3,report5/history1/checkpoint1 unchanged.
+Local3 release tests,3120 deterministic mutation inputs,1 native structured corpus,
+8 final offline packaging checks(52 runtime files),20 security tests passed.
+Bandit0,actionlint/workflow0,pip-audit runtime/build/env0,cargo audit0/warnings0 and
+fmt/Clippy passed. Actual commands/source in validation/RELEASE_RESULTS.md.
+One synthetic SQLite baseline at8940b35:256 rows,3 samples,median801.23 saved
+observations/sec. No network throughput/streaming-memory claim. Runtime SHA
+1e9e1d186438e6a69b917c853982f6a63ca2ec45a38151c264bdd6bafedb73a6 unchanged.
+Do not repeat passed regression/lab/benchmarks for documentation. Only changed-doc
+link/diff/staged secret/privacy checks warranted now; preserve all security hooks.
 
-## Precise next action
+## CI on remote22af3c5
 
-Reconcile Phase5C postmerge CI after >=60s batched interval while implementing independent
-Phase6 validation. Inspect existing parser/packet/native corpus coverage; add focused
-mutation tests and packaging smoke tests, docs/report. Record exact source/commands and
-actual outcomes, review code/exports/privacy/docs before one coherent push/RC PR.
-Current uncommitted checkpoint planning only. Previous live checkpoint carried privately.
+Seven workflows passed. Remaining Tests PULL_REQUEST39476580289 attempt2 queued
+at initial reconciliation. Correct event mapping:PR CodeQL39476580095,Security39476580394,
+Native39476580105,Tests39476580289;PUSH CodeQL39476570007,Security39476570099,
+Native39476570067,Tests39476569982. Earlier progress/PR prose mislabelled the events;
+correct it without changing the actual outcomes. Historical privacy jobs skipped, not passes.
+Attempt1 macOS was cancelled before tests:hosted Runner did not acquire job after
+multiple attempts; other6 jobs passed, no assertion failure/log. One targeted retry
+already issued for job118813979242, private marker6-macos-retry-issued.json; budget1.
+Inspect state before any retry; no indefinite loop, weakening or runner/platform removal.
+
+## Precise next action / preservation
+
+Finish concise license-options and macOS policy docs, commit intended docs only
+locally (no push/CI restart), update PR body from current remote text. Poll remaining
+job at >=60s intervals; retain draft even if green while license undecided. No new
+license grant, package metadata license, merge, publishing or rewrite authorized.
+License comparison considers MIT/BSD,Apache2,GPL2-only/or-later,GPL3-only and actual
+optional in-process Scapy GPL2-only/native subprocess distribution. No option chosen;
+review ownership/distribution boundary/dependency notices before selection.
+Next resume:read checkpoint, inspect local vs remote heads and PR/CI before action;
+do not duplicate committed local docs or the already issued infrastructure retry.
+Uncommitted checkpoint status notes only after local docs commit; preserve them
+without status-only commits. Generated build artifacts ignored; private raw logs,
+license source copies/captures remain outside Git. Historical privacy cleanup owner-pending.
 Original unrelated UDP edit preserved/excluded SHA256
 880894f38bc74007b1ad0d94609964f136667fe8be865e7466cb37535056893c.
-No raw findings/captures/reports committed or uploaded. Keep successful output counts,
-inspect failures privately. Final-head CI before any merge. No force push/bypass/deletion.
-
-Milestone:Phase5C postmerge all four workflows passed. Phase6 feature commit
-8940b35ba6e5ecc03a9557f6a3b818d802063191 adds Python local candidate packaging,
-consistent1.0.0rc1 version, bounded deterministic parser corpus, native structured
-correlation corpus, private package install/reinstall validation, pinned build-tool
-CI/audits/Dependabot and synthetic history baseline. Local3 release tests passed,
-3120 parser inputs,1 native structured test,8 packaging checks,20 security tests,
-Bandit0, workflow0, dependency0 in3 inventories, Rust audit0/static passed.
-One actual history baseline at exact committed source8940b35:256 rows/sample,
-3 samples, median801.23 saved observations/s; whole-process memory not streaming
-benefit, no packet/network throughput claim. Later changes docs only; do not repeat.
-See validation/RELEASE_RESULTS.md for measurements/source/runtime digest/limitations.
-No Phase6 push/PR yet. Next:consolidated final code/export/compatibility/privacy/docs
-review, commit substantive docs/report, outgoing snapshot/metadata gate then push once
-and open draft candidate PR. CI full platform matrix, >=60s batch polls. Keep draft,
-no merge while owner license decision/macOS privileged validation acceptance pending.
-Uncommitted files are new release docs and checkpoint while that review completes.
-
-Final review fixes:74f522f makes all6 pinned build tools auditable on every host
-(no marker-based platform omissions); direct pip-audit0. Offline packaging validation
-uses --no-isolation and PIP_NO_INDEX=1 with installed pinned backend; rerun required
-only for changed packaging path. Production Python runtime digest still matches the
-8940b35 measured source; no history benchmark repeat.
-
-Offline package validation passed all8 checks after the backend/index restrictions.
-Current code HEAD68fe29cecf01f2a92393dd072175c131be09c363. Final documentation links
-checked:0 missing files. Staging only candidate docs/report now; no raw artifacts.
-Then outgoing range/metadata gate, first branch push, draft RC PR and final-head CI.
