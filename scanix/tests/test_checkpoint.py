@@ -107,6 +107,22 @@ os._exit(23)
             with self.subTest(field='compatibility'),self.assertRaises(ValueError):
                 Checkpoint(self.path,identity,self.config,self.targets,resume=True)
 
+    def test_resume_with_zero_completed_rows_still_waits_for_previous_possible_sends(self):
+        from unittest.mock import Mock,patch
+        from scanix.core.models import ScanReport
+        from scanix.native.session import scan_session
+        config=replace(self.config,rate=2)
+        identity=manifest(config,self.plan,self.targets,self.binary,0,1)
+        with Checkpoint(self.path,identity,config,self.targets):pass
+        stop=Mock();stop.is_set.return_value=False;stop.wait.return_value=False
+        partial=ScanReport(config,completion_status='failed',completed_probes=0,requested_probes=2)
+        with patch('scanix.native.session.scan_native',return_value=partial) as native:
+            report=scan_session(config,self.plan,self.path,Path(self.tmp.name)/'guard.ndjson',
+                                resume=True,binary=str(self.binary),stop=stop)
+        stop.wait.assert_called_once_with(.5)
+        self.assertEqual(native.call_count,1);self.assertEqual(report.completed_probes,0)
+        self.assertLess(native.call_args.args[0].engine_timeout,config.engine_timeout)
+
     def test_python_registry_and_custom_ca_changes_invalidate_resume(self):
         from unittest.mock import patch
         original=self.identity

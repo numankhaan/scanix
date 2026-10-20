@@ -39,7 +39,7 @@ def scan_session(config, plan, checkpoint, stream_file, *, resume=False, shard=(
             batch=DurableBatch(state,stream,config.checkpoint_batch)
             remaining=state.selection.remaining
             budget=config.engine_timeout-(time.monotonic()-started)
-            guard=1/(config.rate or {'connect':100,'syn':10}[config.method]) if prior and remaining else 0
+            guard=1/(config.rate or {'connect':100,'syn':10}[config.method]) if resume and remaining else 0
             if remaining and guard < budget and not stop.wait(guard):
                 run_config=replace(config,service_detect=False,engine_timeout=max(.1,budget-guard))
                 report=scan_native(run_config,plan,stop,binary=command,

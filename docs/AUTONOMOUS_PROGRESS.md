@@ -93,3 +93,18 @@ docs and targeted security header-envelope test only. No raw reports/captures st
 Private evidence pointer: `/tmp/scanix-security-session`. Reconcile Git/GitHub before
 repeating any push, dispatch, ready or merge. Privileged macOS/BPF remains incomplete;
 native IPv6 SYN/UDP/discovery unsupported. No new external blocker for Phase4C.
+
+## Final-head reconciliation
+
+955a861a81b77b0883a0d92ac7a6328519157ffe was pushed; all eight latest-head workflows
+passed (Security39402955006/39402960791, CodeQL39402954978/39402960727,
+Tests39402955374/39402960825, Native39402955391/39402961189). Native Python169/job,
+Rust Linux/MSRV24/non-Linux22; security20 tests. Main is still66f0455; required nine
+contexts/strict base verified, no branch deletion, one resolved review thread/no blockers.
+Final review found the resume guard skipped sessions with zero completed rows despite
+possible previous sends. Fixed guard for every resumed nonempty session; deterministic
+wait/decreased-budget regression added. Local native170 run,167 passed/three skips.
+Commit/push this focused fix, inspect replacement latest checks, update PR body, merge
+normally only when green, then verify main/post-merge and continue Phase5A. Prior final
+commit/push operations succeeded; do not repeat them. No scanning algorithm/data scope
+or measured baseline claim changed; the new case is a pre-send pacing edge condition.
