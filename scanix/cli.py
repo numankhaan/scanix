@@ -83,6 +83,7 @@ def build_parser():
     scan.add_argument('--native-binary', help='trusted native executable path; otherwise SCANIX_NATIVE_ENGINE or PATH')
     scan.add_argument('--syn-cooldown', type=float, default=.2, help='native SYN final receive cooldown seconds (0–1)')
     scan.add_argument('--engine-timeout', type=float, default=3600, help='native session budget seconds, 0.1–86400')
+    scan.add_argument('--history', help='opt-in owner-private SQLite scan history; existing exports remain available')
     scan.add_argument('--checkpoint', help='private native resume SQLite file; requires --stream-file')
     scan.add_argument('--checkpoint-batch', type=int, default=16, help='durable result commit batch 1–64; default 16, 1 commits each result')
     scan.add_argument('--resume', action='store_true', help='continue exact checkpoint configuration and resolved scope')
@@ -110,6 +111,8 @@ def build_parser():
     disc.add_argument('--concurrency', type=int, default=16, help='parallel hosts, capped at 64')
     disc.add_argument('--out-file', help='JSON report path; default stdout')
     disc.add_argument('--progress', action='store_true')
+    from .history.cli import register as register_history
+    register_history(sub)
     trace = sub.add_parser('traceroute', help='legacy system traceroute (outside Phase 1)')
     trace.add_argument('-t', '--target', required=True)
     return parser
@@ -156,6 +159,14 @@ def _run_scan(parser, args):
                             plugin_timeout=args.plugin_timeout,allow_intrusive_plugins=args.allow_intrusive_plugins)
     except ValueError as exc:
         parser.error(str(exc))
+    if args.history and not args.preview:
+        try:
+            from .history.store import History
+            with History(args.history,create=True):
+                pass  # Validate storage before DNS/probes; close explicitly on every platform.
+        except Exception as exc:
+            print('History unavailable: '+type(exc).__name__+'; no scan started',file=sys.stderr)
+            return 1
     # Validate CLI/config before DNS, sockets or capture. Offline preview requires no Scapy.
     simple = (len(args.target) == 1 and not args.target_file and not args.exclude and not args.exclude_file
               and args.family == '4' and args.dns_policy == 'first' and '/' not in args.target[0]
@@ -243,6 +254,7 @@ def _run_scan(parser, args):
     finally:
         signal.signal(signal.SIGINT, previous_handler)
     code = {'complete': 0, 'failed': 1, 'interrupted': 130}[report.completion_status]
+    output_failed=history_failed=False
     try:
         if args.stream_file:
             pass  # Result/coverage frames were emitted incrementally to the selected private file.
@@ -271,13 +283,22 @@ def _run_scan(parser, args):
                 for plugin in result.plugin_results:
                     print('  ' + clean(f"plugin {plugin['plugin_id']}: {plugin['status']}"))
     except (OSError, ValueError, TypeError) as exc:
-        print(f'Output failed: {exc}', file=sys.stderr)
-        return 1
+        print('Output failed: '+type(exc).__name__+'; export incomplete', file=sys.stderr)
+        output_failed=True
+    if args.history:
+        try:
+            from .history.store import History
+            with History(args.history) as history:
+                history_id=history.save(report,stream_file=args.stream_file)
+            print('History scan: '+history_id,file=sys.stderr)
+        except Exception as exc:
+            print('History recording failed: '+type(exc).__name__+'; inspect private history, exports retained',file=sys.stderr)
+            history_failed=True
     print(f"Scan {report.completion_status}: {report.to_dict()['completed_ports']}/{report.to_dict()['requested_ports']} "
           'port results.', file=sys.stderr)
     for issue in report.issues:
         print('Scan issue: ' + json.dumps(issue, ensure_ascii=True), file=sys.stderr)
-    return code
+    return 1 if output_failed or history_failed else code
 
 
 def _run_discovery(parser, args):
@@ -331,6 +352,9 @@ def run_cli(argv=None):
     try:
         if args.command == 'scan':
             return _run_scan(parser, args)
+        if args.command == 'history':
+            from .history.cli import run as run_history
+            return run_history(args)
         if args.command == 'discover':
             return _run_discovery(parser, args)
         elif args.command == 'traceroute':
