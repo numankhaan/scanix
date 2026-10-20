@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools==84.2.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scanix"
+dynamic = ["version"]
+description = "Bounded network reconnaissance with explicit observation evidence"
+readme = "README.md"
+requires-python = ">=3.10"
+# Project license is pending the owner's decision. Do not publish this candidate.
+dependencies = []
+
+[project.optional-dependencies]
+raw = ["scapy==2.8.0"]
+
+[project.scripts]
+scanix = "scanix.cli:run_cli"
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.dynamic]
+version = {attr = "scanix.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["scanix*"]
+exclude = ["scanix.tests*"]
+
+[tool.setuptools.package-data]
+scanix = ["data/*.json"]

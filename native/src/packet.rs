@@ -285,4 +285,28 @@ pub(crate) mod tests {
             let _ = classify(p, &bytes);
         }
     }
+
+    #[test]
+    fn structured_mutations_never_accept_mismatched_endpoints_or_ack() {
+        let p = probe();
+        let response = reply(0x12);
+        // Repair the outer checksum so mutations reach correlation logic rather
+        // than all stopping at the first IP integrity check. Synthetic only.
+        for position in (12..24).chain(28..32) {
+            for bit in 0..8 {
+                let mut bytes = response;
+                bytes[position] ^= 1 << bit;
+                repair_ip(&mut bytes);
+                assert!(classify(p, &bytes).is_none());
+            }
+        }
+        for offset in 0..response.len() {
+            for bit in 0..8 {
+                let mut bytes = response;
+                bytes[offset] ^= 1 << bit;
+                repair_ip(&mut bytes);
+                assert_eq!(classify(p, &bytes), classify(p, &bytes));
+            }
+        }
+    }
 }

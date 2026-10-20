@@ -1,0 +1,7 @@
+include README.md ROADMAP.md SECURITY.md CONTRIBUTING.md requirements.txt
+include native/Cargo.toml native/Cargo.lock
+recursive-include native/src *.rs
+recursive-include docs *.md
+prune scanix/tests
+prune native/target
+global-exclude *.pyc *.key *.pem *.pcap *.pcapng *.sqlite *.ndjson .env

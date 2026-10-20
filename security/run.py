@@ -45,6 +45,7 @@ def main():
             # --disable-pip avoids requirement resolution/build execution.
             all_issues = []
             audits = [('runtime', ['-r', 'requirements.txt', '--disable-pip', '--no-deps']),
+                      ('validation tools', ['-r', 'validation/requirements.txt', '--disable-pip', '--no-deps']),
                       ('tool environment', ['--local'])]
             for label, options in audits:
                 report = folder/('audit-' + label.replace(' ', '-') + '.json')
