@@ -119,6 +119,23 @@ identification remains a separate bounded stage. See [compatibility, crash/repla
 privacy and resource semantics](docs/CONTINUATION.md) and [actual controlled measurements](validation/CONTINUATION_RESULTS.md).
 This is working native connect/SYN continuation, not an unimplemented resume scaffold.
 
+## Optional private history
+
+Add `--history private/history.sqlite` to persist observations after a scan. Create
+an owner-private directory first. Offline commands stream JSON lines:
+
+```sh
+python -m scanix history --help
+python -m scanix history --db private/history.sqlite list
+python -m scanix history --db private/history.sqlite diff PREVIOUS_ID CURRENT_ID
+```
+
+History schema 1 stores report schema 5, configuration, completion and versioned
+service/packet evidence. Missing observations never imply removal or closure.
+Native NDJSON ingestion stays bounded; partial saves stay explicitly incomplete.
+Retention/deletion is explicit and logical, not secure erasure. See [commands,
+privacy, migration and resource semantics](docs/HISTORY.md).
+
 ## Experimental remote OS evidence
 
 ```sh

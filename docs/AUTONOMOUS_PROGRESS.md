@@ -1,70 +1,61 @@
 # Autonomous roadmap checkpoint
 
-## Current stage: Phase5B — reviewed implementation, prepare PR/CI
+## Current stage: Phase 5C — final review before first push
 
-Autonomous focused feature commits/push/PR/normal merges authorized after completion,
-current base, all required/latest CI and no unresolved reviews. No force push,
-bypass, branch deletion, public scans, history rewrite or public release publishing.
+Main/base:50e620f8200bb064bec4582dc3e12caaf9c70329, Phase 5B PR15 merged.
+Main post-merge CodeQL39410692746, Tests39410692760, Native39410692787 and
+Security39410692763 all passed; reverified on resume. Completed phases1–5B and
+security8; remaining5C and6. PR14/15 implementations/measurements documented in
+PLUGINS.md, OS_EVIDENCE.md and validation reports; branches retained.
 
-- Completed:1–3, security8,4A11,4B12,4C13,5A14. Main7407b1332d7032a3d617a5d5525c21d9febec57e
-  contains reviewed Phase5A head53e862f. PR:https://github.com/numankhaan/scanix/pull/14.
-  All eight final-head checks passed. Post-merge Tests39407877636,CodeQL39407877657,
-  Security39407877631,Native39407877734 passed. Main retains9 strict required checks.
-- Branch:phase5b/remote-os-evidence; sibling worktree scanix-phase5b.
-  Feature commit:c444e43a31de2f4db651339fcf499785ea73162a. Docs commit follows;
-  inspect current HEAD before resuming. No Phase5B push/PR yet.
-- Original UDP edit remains excluded/unchanged, SHA256
-  880894f38bc74007b1ad0d94609964f136667fe8be865e7466cb37535056893c.
-  Security gates remain; no new dependency or exception. Historical privacy cleanup
-  awaits owner decision; privileged macOS/BPF remains incomplete.
+Branch:phase5c/scan-history; worktree:scanix-phase5c. Two local commits already exist:
+484d589cc2915b9fbc98c115759b803f7efe3b4e literal SQLite reserved prefix validation;
+1ad69592a40788837a678e06d131aee0117835b8 UTF8 encoded-byte checkpoint limits.
+Feature/CLI/tests/docs uncommitted while final review completes. No remote branch or
+Phase5C PR at reconciliation; open PRs9/10 are independent dependency updates.
 
-## Implemented acceptance
+## Acceptance and implementation
 
-Opt-in --syn --os-detect (Python only), remote TCP/IP features from correlated
-SYN/ACK, <=60-byte bounded header parsing, no extra probes, existing pacing/reset/
-cancellation. Original schema1/feature1/database1.0.0, one experimental exact Linux
-IPv4 veth/MTU1500 profile (five mandatory signals). TTL alone, missing/unsupported,
-malformed/conflicting signals stay inconclusive; legacy os remains null. No general
-OS/version or native support claim. JSON/CSV/HTML evidence and explicit terminal/
-preview policy. Failed fingerprint enrichment preserves observed open. All bundled
-JSON databases now participate in native checkpoint compatibility hashing.
+Optional private SQLite schema1/report5 history, configuration/completion/evidence/
+all version provenance, initial migration only and explicit unknown-schema rejection.
+Aggregate and bounded native NDJSON upserts; invalid/crashed/interrupted saves partial.
+Offline list/show/diff/delete/prune; actual observation changes only, absent rows never
+imply removal/closure, service claims remain unauthenticated. Explicit retention,
+private artifacts ignored/gated, no new dependency, no raw findings/artifacts uploaded.
+Implemented history API, optional lazy backend, CLI persistence, bounded comparisons,
+export preservation/type-only diagnostics, docs/HISTORY.md and tests. Schema-hidden
+objects and encoded-byte safety guards also applied to existing native checkpoints.
+No packet/scheduler changes; no privileged lab or benchmark repeat justified.
 
-Acceptance pending:final-head full platform/security CI, final base/diff/review,
-normal PR merge and main post-merge checks. Do not mark complete merely from local
-passes. Next stages5C optional history then6 RC validation; no publishing authorized.
+## Actual local validation
 
-## Actual validation
+Trusted Python3.14.3/SQLite3.52, Scapy2.8.0; native0.4.2 binary from phase4c worktree.
+`python -B -m unittest scanix.tests.test_history scanix.tests.test_checkpoint.ResumeLoopbackTests`:
+32 passed at prior implementation milestone. Subsequent focused runs:3 encoded-byte
+safety tests,1 optional-backend test and3 migration/version/tamper tests passed.
+`python -B -m unittest discover -s security/tests`:20 passed. Suites overlap; not cumulative coverage.
+Earlier12 checkpoint/schema-safety regressions passed. Bandit0 and diff check clean.
+Full final platform matrix belongs to CI after consolidated push, currently not run.
 
-- Focused packet/OS/raw timing/lab integration:36 tests passed.
-- Subsequent OS/export/checkpoint tests:23 passed (overlap, not a unique total).
-- Subsequent focused cancellation evidence test:1 passed. CLI scan --help successful.
-- Security tests20 passed, Bandit0, actionlint/workflow policy passed; diff and staged
-  secret/privacy+prospective metadata gate passed. Full platform matrix left to CI.
-- Actual optional Linux lab:python -B validation/privileged_lab.py --output
-  <new-private-directory> --os-evidence in a pinned official-Python3.14 container,
-  Scapy2.8.0, no container external network, separate scanner/peer netns/veth.
-  28 existing state/discovery cases,28 independent capture checks, both privileged
-  loopback tests and15 new OS checks passed; OS capture kernel drops0.
-- All five original IPv4 profile values matched independent remote capture. IPv6
-  features collected but fingerprint explicitly inconclusive. No profile widening.
-  Packet/matching/lab file hashes equal c444e43; subsequent changes only terminal,
-  output/hash/cancellation tests, provenance text and docs. Raw captures/reports stay
-  private; sanitized evidence:validation/OS_RESULTS.md. VM initially stopped and
-  restored stopped. No host routes/firewall/account settings changed.
-- Existing native labs/benchmarks not rerun:Rust/native packet/scheduling unchanged.
-  Existing measured source6612372 remains attributed there; no new speed claim.
+## Preservation, limitations and precise next action
 
-## Precise next action and uncommitted work
+Original UDP edit preserved/excluded; SHA256
+880894f38bc74007b1ad0d94609964f136667fe8be865e7466cb37535056893c.
+History private, unauthenticated/not encrypted; logical deletion not secure erasure.
+Postscan persistence does not recover a pre-save Python process crash. Native stream
+supports that separate workflow. Privileged macOS/BPF remains incomplete; Linux lab
+is not macOS validation. Historical privacy cleanup pending owner decision, no rewrite.
+Prior native performance measured source66123724901cf85848a433bb2795b992c4a46ebd;
+no new storage throughput claim. Phase5B15 OS capture checks passed as documented.
 
-Consolidated review complete across code, exports, compatibility, privacy and docs.
-Commit substantive docs/checkpoint, scan outgoing snapshots/metadata, fetch/reconcile
-main and existing PRs, push one coherent revision, open/reuse Phase5B PR into main.
-Record actual URL/head/run IDs here. Batch polls >=60s; detailed logs only failures.
-Fix correctness/security blockers without scope expansion; no status-only commits.
-After all latest checks/current base/no reviews, merge normally, verify main CI and
-carry checkpoint into5C. Do not rerun lab for terminal/docs/provenance-only revisions.
+Next:finish consolidated code/export/checkpoint/privacy/docs review, verify actual help,
+focused static/gates, commit intended feature then substantive docs. Scan outgoing
+range+metadata before first push; push once/open PR with actual local results and
+pending CI. Batch CI polls >=60s; inspect failures only, fix blockers without weakening
+tests. Review current base/final diff/required9 checks/reviews before normal merge.
+Verify main/post-merge CI and continue Phase6; no status-only commits or branch deletion.
+Private raw logs/checkpoint backups remain outside repository, never publish them.
 
-Uncommitted:reviewed README/ROADMAP, OS guide/results and this checkpoint awaiting
-substantive docs commit. Feature code committed. Private evidence pointer:
-/tmp/scanix-security-session; VM/lab artifact path held only in private evidence.
-Do not publish raw audit reports, captures, results, personal values or credentials.
+Final documentation/help review:scan --help, history --help and diff --help exit0;
+actual flags/positions verified. Bandit history tree0 findings; no runtime changes
+since focused passing migration/version/byte-limit tests. Diff check clean.
