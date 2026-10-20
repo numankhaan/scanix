@@ -1,4 +1,5 @@
 """Private synthetic resume fixtures; no credentials, captures or external traffic."""
+from contextlib import closing
 from dataclasses import replace
 import json
 import os
@@ -83,13 +84,18 @@ os._exit(23)
 
     def test_untrusted_schema_record_and_permissions_fail_closed(self):
         with self.open() as state:state.add(self.result())
-        with sqlite3.connect(self.path) as db:db.execute("UPDATE results SET record='{}'")
+        with closing(sqlite3.connect(self.path)) as db, db:db.execute("UPDATE results SET record='{}'")
         with self.assertRaises(ValueError):self.open(resume=True)
-        with sqlite3.connect(self.path) as db:db.execute('CREATE VIEW unexpected AS SELECT 1')
+        with closing(sqlite3.connect(self.path)) as db, db:db.execute('CREATE VIEW unexpected AS SELECT 1')
         with self.assertRaises(ValueError):self.open(resume=True)
         if os.name=='posix':
-            os.chmod(self.path,0o644)
-            with self.assertRaises(ValueError):self.open(resume=True)
+            from types import SimpleNamespace
+            from unittest.mock import patch
+            status=self.path.stat()
+            unsafe=SimpleNamespace(st_mode=status.st_mode | 0o040,st_size=status.st_size,st_uid=status.st_uid)
+            with patch.object(Path,'lstat',return_value=unsafe),patch('sqlite3.connect') as connect:
+                with self.assertRaises(ValueError):self.open(resume=True)
+                connect.assert_not_called()
 
     def test_no_overwrite_symlink_or_out_of_scope_record(self):
         with self.open() as state:
