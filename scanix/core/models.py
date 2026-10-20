@@ -39,6 +39,7 @@ class ScanConfig:
     engine: str = 'python'
     engine_timeout: float = 3600.0
     syn_cooldown: float = 0.2
+    checkpoint_batch: int = 16
 
     def __post_init__(self):
         if not isinstance(self.target, str) or not self.target.strip() or '\x00' in self.target:
@@ -73,6 +74,8 @@ class ScanConfig:
             raise ValueError('--tls-insecure and --tls-ca-file are mutually exclusive')
         if self.service_detect and self.banner:
             raise ValueError('use --service-detect or legacy --banner, not both')
+        if type(self.checkpoint_batch) is not int or not 1 <= self.checkpoint_batch <= 64:
+            raise ValueError('checkpoint batch must be within 1–64')
         if self.engine not in ('python','native'):
             raise ValueError('unknown scan engine')
         if not math.isfinite(self.engine_timeout) or not .1 <= self.engine_timeout <= 86400:

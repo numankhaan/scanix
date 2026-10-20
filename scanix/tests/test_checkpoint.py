@@ -50,6 +50,17 @@ class CheckpointTests(unittest.TestCase):
             self.assertEqual(len(list(state.records())),1)
         if os.name=='posix':self.assertEqual(self.path.stat().st_mode & 0o777,0o600)
 
+    def test_atomic_bounded_batch_and_invalid_record_roll_back_all_work(self):
+        with self.open() as state:
+            with self.assertRaises(ValueError):
+                state.add_batch([self.result(),replace(self.result(1),resolved_ip='127.0.0.2')])
+            self.assertEqual(state.completed,0);self.assertEqual(list(state.records()),[])
+            rows=state.add_batch([self.result(),self.result(1)])
+            self.assertEqual(len(rows),2);self.assertEqual(state.completed,2)
+            self.assertEqual(state.commit_count,1)
+            with self.assertRaises(ValueError):state.add_batch([])
+            with self.assertRaises(ValueError):state.add_batch([self.result()]*65)
+
     def test_crash_replays_only_uncommitted_work(self):
         # Child commits one fixture then exits without closing SQLite. OS releases the lock.
         with self.open():pass
@@ -187,13 +198,24 @@ class ResumeLoopbackTests(unittest.TestCase):
         from unittest.mock import patch
         from scanix.native.session import scan_session
         with patch('scanix.native.checkpoint.ResultStream.result',side_effect=OSError('synthetic write failure')):
-            report=scan_session(self.config,self.plan,self.db,Path(self.tmp.name)/'broken.ndjson')
+            report=scan_session(replace(self.config,checkpoint_batch=1),self.plan,self.db,Path(self.tmp.name)/'broken.ndjson')
         self.assertEqual(report.completion_status,'failed');self.assertGreater(report.completed_probes,0)
         output=Path(self.tmp.name)/'recovered.ndjson'
-        report=scan_session(self.config,self.plan,self.db,output,resume=True)
+        report=scan_session(replace(self.config,checkpoint_batch=1),self.plan,self.db,output,resume=True)
         self.assertEqual(report.completed_probes,4)
         self.assertTrue(report.implementation['continuation']['prior_session_metrics_unknown'])
         self.assertIsNone(report.implementation['continuation']['coverage_loss'])
+
+    def test_batched_stream_failure_keeps_every_committed_record(self):
+        from unittest.mock import patch
+        from scanix.native.session import scan_session
+        with patch('scanix.native.checkpoint.ResultStream.result',side_effect=OSError('synthetic write failure')):
+            with self.assertRaises(OSError):
+                scan_session(self.config,self.plan,self.db,Path(self.tmp.name)/'batch-broken.ndjson')
+        with closing(sqlite3.connect(self.db)) as db, db:self.assertEqual(db.execute('SELECT count(*) FROM results').fetchone()[0],4)
+        report=scan_session(self.config,self.plan,self.db,Path(self.tmp.name)/'batch-recovered.ndjson',resume=True)
+        self.assertEqual(report.completed_probes,4)
+        self.assertTrue(report.implementation['continuation']['prior_session_metrics_unknown'])
 
     def test_actual_cli_stream_and_summary(self):
         from io import StringIO

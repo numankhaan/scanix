@@ -23,10 +23,12 @@ def main(argv=None):
     parser.add_argument('--binary',required=True)
     parser.add_argument('--ports',type=int,default=128)
     parser.add_argument('--samples',type=int,default=3)
+    parser.add_argument('--batch',type=int,default=16)
     parser.add_argument('--output',required=True,help='private output file')
     parser.add_argument('--worker',choices=['aggregate','stream'],help=argparse.SUPPRESS)
     parser.add_argument('--port-list',help=argparse.SUPPRESS)
     args=parser.parse_args(argv)
+    if not 1<=args.batch<=64:parser.error('batch 1–64')
     if not 2<=args.ports<=128 or not 1<=args.samples<=10:parser.error('ports 2–128; samples 1–10')
     if args.worker:
         from scanix.core.models import ScanConfig
@@ -34,7 +36,7 @@ def main(argv=None):
         from scanix.native.adapter import scan_native
         from scanix.native.session import scan_session
         cfg=ScanConfig('127.0.0.1',tuple(map(int,args.port_list.split(','))),engine='native',
-                       concurrency=16,per_host=16,rate=500,timeout=5,adaptive=False)
+                       concurrency=16,per_host=16,rate=500,timeout=5,adaptive=False,checkpoint_batch=args.batch)
         plan=ScopePlan(['127.0.0.1'])
         with tempfile.TemporaryDirectory() as folder:
             output=Path(folder)/'results.ndjson';checkpoint=Path(folder)/'resume.sqlite'
@@ -79,7 +81,7 @@ def main(argv=None):
             for sample in range(args.samples):
                 for mode in ('aggregate','stream') if sample%2==0 else ('stream','aggregate'):
                     command=[sys.executable,'-B',str(Path(__file__).resolve()),'--binary',args.binary,
-                             '--ports',str(args.ports),'--samples','1','--output',args.output,
+                             '--ports',str(args.ports),'--samples','1','--batch',str(args.batch),'--output',args.output,
                              '--worker',mode,'--port-list',','.join(map(str,sorted(ports)))]
                     row=json.loads(subprocess.check_output(command,cwd=ROOT,text=True,timeout=60))
                     row['sample']=sample;records.append(row)
@@ -90,9 +92,9 @@ def main(argv=None):
             'dirty':bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT)),
             'platform':platform.platform(),'machine':platform.machine(),'logical_cpus':os.cpu_count(),
             'python':platform.python_version(),'sqlite':__import__('sqlite3').sqlite_version,
-            'config':{'ports':args.ports,'rate':500,'per_host':16,'concurrency':16,'timeout':5,'adaptive':False},
+            'config':{'checkpoint_batch':args.batch,'ports':args.ports,'rate':500,'per_host':16,'concurrency':16,'timeout':5,'adaptive':False},
             'topology':'IPv4 loopback only, ephemeral accepting listeners, all expected open',
-            'scope':'Includes adapter startup, binary hash/SQLite FULL per-result commit and JSONL in stream mode. '
+            'scope':'Includes adapter startup, binary hash/SQLite FULL bounded-batch commit and JSONL in stream mode. '
                     'Excludes worker interpreter/import and listener setup from wall. Tracemalloc excludes Rust/SQLite C allocations. '
                     'RSS sums self/child high-water upper bounds, not simultaneous peak. No raw/SYN/scalability/parity claim.',
             'records':records}

@@ -11,6 +11,8 @@ The adapter and binary must both support wire protocol 3 (engine 0.4.2). There i
 fallback to an old binary or the Python engine. Report schema stays 4, with optional
 `completed_probes` for nonretained results and implementation continuation metadata.
 Checkpoint format and NDJSON stream format are independently versioned at 1.
+SQLite 3.31 or newer with working local file locks/rollback journaling is required;
+unsupported capabilities fail explicitly. No extra Python dependency is introduced.
 
 For an authorized loopback endpoint (choose an existing local listener):
 
@@ -42,8 +44,10 @@ rebuilt/upgraded binary therefore require a new checkpoint; no automatic migrati
 or widened scope. A checkpoint is local unauthenticated evidence, not a signature or
 proof against a malicious person who can edit the file.
 
-SQLite FULL synchronous rollback-journal commits persist one validated result before
-it is emitted. Exclusive locking rejects concurrent writers and is released by the
+SQLite FULL synchronous rollback-journal commits persist bounded batches before any
+result in a batch is emitted. The default is 16; `--checkpoint-batch 1` commits each
+result and `--checkpoint-batch 64` is the maximum. Batch size is part of compatibility.
+A normal completion or interrupt flushes the final partial batch. Exclusive locking rejects concurrent writers and is released by the
 OS after a crash. Fixed schema validation rejects extra views/triggers; SQL is fixed
 and parameterized, extensions are not enabled. Per-record digests detect accidental
 record corruption; they do not authenticate data. No pickle/code is loaded. Standard
@@ -51,7 +55,9 @@ SQLite/filesystem durability assumptions apply, not a guarantee against broken d
 network filesystems or lying flush implementations. Regular tests exercise abrupt
 process exit, not power-loss hardware fault injection.
 
-A result becomes completed only when durably committed. Unfinished probes may already
+A result becomes durably completed only when its batch commits. After a crash, up to
+one batch of received observations may not yet be committed, in addition to outstanding
+probes. Unfinished probes may already
 have reached the network; after interruption/crash they may be sent again. Semantics
 are **at least once for unfinished work**, not exactly-once transmission. A normal
 interrupt preserves completed rows; resume skips those IDs in both native schedulers.
@@ -60,8 +66,9 @@ metrics can be unknown and remain explicitly unknown, rather than zero. Known ca
 transmission loss is sticky in the checkpoint and prevents a clean completion; use a
 fresh checkpoint for a new observation. Positive evidence remains preserved.
 
-A completed checkpoint can be re-exported without launching an engine. Each invocation
-first streams restored rows, then new rows, then optional enrichment updates and a final
+A completed checkpoint can be re-exported without launching an engine. Each header includes configuration and bounded scope-policy counts plus the exact
+scope fingerprint; expanded input/exclusion lists are supplied by the caller and are
+not duplicated into an oversized frame. Each invocation first streams restored rows, then new rows, then optional enrichment updates and a final
 summary. Result frames are **upserts by stable work ID**; enrichment may repeat an ID.
 Latest frame wins. A missing final summary, malformed/truncated final line or a summary
 with `incomplete: true` must be treated as partial. The durable checkpoint is authoritative
@@ -79,8 +86,9 @@ Changing shard count/index is incompatible with an existing checkpoint.
 
 Scope remains bounded to 65,536 targets, 4,096 ports and one million full-scope pairs.
 Completed/duplicate bitmaps are at most one million bytes each, plus the bounded target
-and port scope. Streaming retains zero result objects in the report; one record at a
-time is serialized/restored, SQLite cache is 2 MiB, records are at most 64 KiB and a
+and port scope. Streaming retains zero result objects in the report and at most one configured batch
+of pending observations (1–64); restored records are read individually. SQLite cache
+is 2 MiB, records are at most 64 KiB and a
 new 4 KiB-page checkpoint is capped at 1 GiB. Disk exhaustion or scanner/storage failure
 is an error, never a clean scan. These are bounds, not measured total process RSS.
 

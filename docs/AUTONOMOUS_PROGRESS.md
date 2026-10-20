@@ -69,3 +69,27 @@ aggregate/stream benchmark and document actual measurements. Inspect latest-head
 No Phase 4C performance or privileged validation has passed yet. Benchmark script and
 extended lab are intended project changes, never raw outputs. Raw evidence remains
 outside Git. Current HEAD before this milestone: 0d29468 selection/protocol commit.
+
+## Measured optimization and CI triage
+
+Draft PR https://github.com/numankhaan/scanix/pull/13 targets main. Pushed implementation
+90d3f37535c2631fc218e3b37fd4d6e21b398ffc; local fixture fix cfc3eed follows it.
+At 90d3f37, Windows regression/native CI failed temporary-file cleanup (unclosed test
+SQLite connections; transaction contexts do not close them). CodeQL blocked a deliberately
+permissive synthetic fixture chmod. Fixed explicit fixture closure and mocked unsafe
+metadata with assertion that SQLite is never opened; no gate suppression/weakening.
+Other OS/regression and native/MSRV jobs passed. Replacement latest-head CI is pending.
+
+Clean-source 90d3f37 baseline, 128 IPv4 loopback listeners, three fresh workers/mode:
+aggregate median .479394 s, durable per-record median 2.125346 s; commits 1.975667 s.
+This established flush overhead, not a native packet bottleneck. Added bounded batches
+(default 16, configurable 1–64), atomic commits before emission, final partial-batch flush
+on normal completion/cancellation and documented at-least-once crash replay. Batch1 is
+available for per-observation commits. Atomicity/failure tests added. Latest local native
+regression 165 run, 162 passed, three explicit skips; Bandit zero findings.
+
+Next: commit/push bounded-batch increment, inspect replacement Windows/CodeQL/security/
+MSRV CI, dispatch extended isolated SYN resume lab once on pushed SHA, measure batch1
+versus16 at the same clean source, document actual results, finish README/ROADMAP and
+final PR review. Do not ready/merge before those acceptance items pass. Uncommitted files
+are intended batching/CLI/storage/test/docs/benchmark changes only; no raw audit data.

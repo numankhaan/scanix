@@ -47,6 +47,8 @@ def private_create(filename):
 
 class Checkpoint:
     def __init__(self, filename, identity, config, targets, *, resume=False, index=0, count=1):
+        if sqlite3.sqlite_version_info < (3,31,0):
+            raise ValueError('checkpoint requires SQLite 3.31 or newer')
         self.db = None
         self.commit_seconds=0.0
         self.commit_count=0
@@ -65,6 +67,8 @@ class Checkpoint:
             self.db = sqlite3.connect(self.filename, timeout=0)
             # No extensions, arbitrary SQL or callbacks are accepted from the database.
             self.db.execute('PRAGMA trusted_schema=OFF')
+            if self.db.execute('PRAGMA trusted_schema').fetchone() != (0,):
+                raise ValueError('checkpoint backend cannot disable trusted schema')
             self.db.execute('PRAGMA cache_size=-2048')
             self.db.execute('PRAGMA mmap_size=0')
             self.db.execute('PRAGMA temp_store=MEMORY')
@@ -153,25 +157,33 @@ class Checkpoint:
         return self.db.execute("SELECT value FROM meta WHERE key='metrics_unknown'").fetchone() is not None
 
     def add(self, result):
-        record = asdict(result)
-        # Canonical JSON converts tuples to arrays for validation/export.
-        data = encode(record)
-        if len(data.encode()) > MAX_RECORD:
-            raise ValueError('checkpoint result exceeds record limit')
-        record = _decode(data)
-        id = record['evidence']['work_id']
-        self._validate(id, record)
-        if self.selection.completed[id]:
-            raise ValueError('duplicate checkpoint result')
+        return self.add_batch([result])[0]
+
+    def add_batch(self, results):
+        if not 1 <= len(results) <= 64:
+            raise ValueError('checkpoint batch exceeds record bound')
+        rows=[];records=[];ids=set()
+        for result in results:
+            record=asdict(result)
+            record['original_targets']=list(result.original_targets)
+            data=encode(record)
+            if len(data.encode()) > MAX_RECORD:
+                raise ValueError('checkpoint result exceeds record limit')
+            id=record['evidence']['work_id']
+            self._validate(id,record)
+            if self.selection.completed[id] or id in ids:
+                raise ValueError('duplicate checkpoint result')
+            ids.add(id);records.append(record)
+            rows.append((id,data,hashlib.sha256(data.encode()).hexdigest()))
         started=time.monotonic()
         with self.db:
-            self.db.execute('INSERT INTO results VALUES (?,?,?)', (id, data, hashlib.sha256(data.encode()).hexdigest()))
+            self.db.executemany('INSERT INTO results VALUES (?,?,?)',rows)
         self.commit_seconds+=time.monotonic()-started
         self.commit_count+=1
-        self.selection.completed[id] = 1
-        self._done += 1
-        if self.record_loss(record):self.set_loss()
-        return record
+        for id in ids:self.selection.completed[id]=1
+        self._done+=len(ids)
+        if any(self.record_loss(record) for record in records):self.set_loss()
+        return records
 
     def update_enrichment(self, id, result):
         record = _decode(encode(asdict(result)))
@@ -218,7 +230,11 @@ class ResultStream:
     """Version-1 NDJSON: stable ID upserts, followed by a coverage summary."""
     def __init__(self, filename, header):
         self.stream = os.fdopen(private_create(filename), 'w', encoding='utf-8')
-        self.write({'type': 'header', 'stream_version': 1, 'report_schema': 4, **header})
+        try:
+            self.write({'type': 'header', 'stream_version': 1, 'report_schema': 4, **header})
+        except BaseException:
+            self.stream.close()
+            raise
 
     def write(self, frame):
         payload = encode(frame)
@@ -233,6 +249,8 @@ class ResultStream:
 
     def close(self):
         if not self.stream.closed:
-            self.stream.flush()
-            os.fsync(self.stream.fileno())
-            self.stream.close()
+            try:
+                self.stream.flush()
+                os.fsync(self.stream.fileno())
+            finally:
+                self.stream.close()

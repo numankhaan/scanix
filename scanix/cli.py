@@ -80,6 +80,7 @@ def build_parser():
     scan.add_argument('--syn-cooldown', type=float, default=.2, help='native SYN final receive cooldown seconds (0–1)')
     scan.add_argument('--engine-timeout', type=float, default=3600, help='native session budget seconds, 0.1–86400')
     scan.add_argument('--checkpoint', help='private native resume SQLite file; requires --stream-file')
+    scan.add_argument('--checkpoint-batch', type=int, default=16, help='durable result commit batch 1–64; default 16, 1 commits each result')
     scan.add_argument('--resume', action='store_true', help='continue exact checkpoint configuration and resolved scope')
     scan.add_argument('--stream-file', help='new private NDJSON output; bounded native result retention, requires --checkpoint')
     scan.add_argument('--shard', default='0/1', help='native deterministic zero-based INDEX/COUNT, count 1–1024')
@@ -146,7 +147,8 @@ def _run_scan(parser, args):
                             service_timeout=args.service_timeout, service_workers=args.service_workers,
                             tls_insecure=args.tls_insecure, tls_ca_file=args.tls_ca_file, sni=args.sni,
                             starttls=args.starttls, allow_excluded_probes=args.allow_excluded_probes,
-                            engine=args.engine,engine_timeout=args.engine_timeout,syn_cooldown=args.syn_cooldown)
+                            engine=args.engine,engine_timeout=args.engine_timeout,syn_cooldown=args.syn_cooldown,
+                            checkpoint_batch=args.checkpoint_batch)
     except ValueError as exc:
         parser.error(str(exc))
     # Validate CLI/config before DNS, sockets or capture. Offline preview requires no Scapy.
@@ -181,7 +183,8 @@ def _run_scan(parser, args):
                               'shard_index':shard[0],'shard_count':shard[1],
                               'selected_pairs':None if data['effective_target_count'] is None else
                               Selection(data['effective_target_count']*len(config.ports),*shard).requested,
-                              'result_retention':'stream' if args.stream_file else 'aggregate'}
+                              'result_retention':'stream' if args.stream_file else 'aggregate',
+                              'checkpoint_batch':config.checkpoint_batch if args.checkpoint else None}
         json.dump(data, sys.stdout, indent=2)
         print()
         return 0
