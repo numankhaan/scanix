@@ -15,13 +15,13 @@ from .checkpoint import Checkpoint, DurableBatch, ResultStream, manifest
 def scan_session(config, plan, checkpoint, stream_file, *, resume=False, shard=(0,1),
                  binary=None, stop=None, progress=None):
     stop = stop or threading.Event()
+    started = time.monotonic()
     targets = list(plan)
     command = binary or os.environ.get('SCANIX_NATIVE_ENGINE') or shutil.which('scanix-engine')
     if command is None:
         raise FileNotFoundError('native engine executable not configured')
     command = shutil.which(command) or command
     identity = manifest(config,plan,targets,command,*shard)
-    started = time.monotonic()
     with Checkpoint(checkpoint,identity,config,targets,resume=resume,index=shard[0],count=shard[1]) as state:
         prior = state.completed
         unknown_metrics=state.metrics_unknown()

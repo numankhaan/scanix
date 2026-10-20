@@ -38,7 +38,11 @@ or sending probes. Preview does not assert checkpoint compatibility.
 
 The manifest hashes every configuration field, input/exclusion/family/DNS policy,
 resolved numeric target and original hostname association, ordering, shard, report/
-wire/format version and exact trusted binary bytes. Resume re-resolves the explicit
+wire/format version, exact trusted binary bytes, production Python source/probe database
+bytes and explicit CA bundle contents. Source/CA/engine hashing has bounded file-size
+budgets; unsupported layouts fail rather than skipping compatibility. Changes to the
+system default trust store are not snapshotted; TLS verification evidence describes
+the observation time. Resume re-resolves the explicit
 scope and rejects any difference **before traffic**. Changed DNS answers/order or a
 rebuilt/upgraded binary therefore require a new checkpoint; no automatic migration
 or widened scope. A checkpoint is local unauthenticated evidence, not a signature or

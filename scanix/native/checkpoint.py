@@ -23,21 +23,44 @@ def encode(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False)
 
 
-def manifest(config, plan, targets, binary, index, count):
-    """Hash resolved associations, inputs/exclusions, policy and trusted binary bytes."""
-    digest = hashlib.sha256()
-    with open(binary, 'rb') as stream:
-        while chunk := stream.read(65536):
+def file_digest(filename, limit=64*1024*1024):
+    digest=hashlib.sha256();size=0
+    with open(filename,'rb') as stream:
+        while chunk:=stream.read(65536):
+            size+=len(chunk)
+            if size>limit:raise ValueError('implementation input exceeds hash budget')
             digest.update(chunk)
+    return digest.hexdigest()
+
+
+def implementation_digest():
+    root=Path(__file__).resolve().parents[1]
+    files=sorted(path for path in root.rglob('*.py') if 'tests' not in path.relative_to(root).parts
+                 and not any(part.startswith('.') for part in path.relative_to(root).parts))
+    files.append(root/'data'/'probes-v1.json')
+    if len(files)>256 or root/'native'/'checkpoint.py' not in files:
+        raise ValueError('unsupported Python implementation layout')
+    digest=hashlib.sha256()
+    for path in files:
+        digest.update(path.relative_to(root).as_posix().encode());digest.update(b'\0')
+        digest.update(file_digest(path,2*1024*1024).encode());digest.update(b'\n')
+    return digest.hexdigest()
+
+
+def manifest(config, plan, targets, binary, index, count):
+    """Hash resolved associations, inputs/exclusions, policy and implementation bytes."""
+    engine_digest=file_digest(binary)
     identity = {'format': FORMAT, 'schema': 4, 'wire': 3,
-                'engine_sha256': digest.hexdigest(), 'configuration': asdict(config),
+                'engine_sha256':engine_digest,'python_implementation_sha256':implementation_digest(),
+                'configuration': asdict(config),
+                'custom_ca_sha256':file_digest(config.tls_ca_file,16*1024*1024) if config.tls_ca_file else None,
                 'scope': plan.preview(config.ports, config.method, limit=0),
                 'shard_index': index, 'shard_count': count}
     scope = hashlib.sha256(encode(identity).encode())
-    # Incremental hashing avoids one large serialized scope allocation.
     for target in targets:
         scope.update(b'\n'); scope.update(encode(asdict(target)).encode())
-    return {'format': FORMAT, 'fingerprint': scope.hexdigest(), 'engine_sha256': digest.hexdigest()}
+    return {'format': FORMAT, 'fingerprint': scope.hexdigest(), 'engine_sha256':engine_digest,
+            'python_implementation_sha256':identity['python_implementation_sha256']}
 
 
 def private_create(filename):
@@ -77,8 +100,8 @@ class Checkpoint:
             self.db.execute('PRAGMA fullfsync=ON')
             # A resumed database must contain exactly these ordinary tables, no triggers/views.
             if resume:
-                objects = dict(self.db.execute("SELECT name,CASE WHEN length(sql)<4096 THEN sql END FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' LIMIT 8"))
-                if objects != SCHEMAS:
+                objects = self.db.execute("SELECT type,name,CASE WHEN length(sql)<4096 THEN sql END FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' LIMIT 8").fetchall()
+                if sorted(objects) != sorted(('table',name,sql) for name,sql in SCHEMAS.items()):
                     raise ValueError('unsupported checkpoint schema')
             else:
                 for sql in SCHEMAS.values():

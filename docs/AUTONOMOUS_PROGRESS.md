@@ -93,3 +93,25 @@ MSRV CI, dispatch extended isolated SYN resume lab once on pushed SHA, measure b
 versus16 at the same clean source, document actual results, finish README/ROADMAP and
 final PR review. Do not ready/merge before those acceptance items pass. Uncommitted files
 are intended batching/CLI/storage/test/docs/benchmark changes only; no raw audit data.
+
+## Controlled validation and compatibility hardening
+
+At fbbee23942da25ff8d02b4cc38ad999d2ee7fcf5, isolated Linux run 39399173545
+passed all 33 native SYN checks, including resume skips verified on captures and a
+completed checkpoint emitting no probes. Six private captures, all measured drops zero.
+No raw evidence uploaded. CodeQL/regression/native/MSRV passed on this head; Security
+runs 39399120200/39399115301 were still running at inspection, not counted passed.
+
+Clean-source same-head benchmarks (three fresh workers/mode, 128 loopback listeners):
+batch1 stream median 2.121314s, 128 commits/1.972343s; batch16 .581271s,
+eight commits/.125628s. Aggregate .484–.486s median; batch16 still slower. Streaming
+retained zero report rows; small-case peak traced memory was higher from fixed overhead.
+No large-scan speed/memory or raw-packet performance claim. Full measurements private.
+
+Final review adds bounded source/probe database/custom CA content fingerprints and
+strict schema object type/name validation (same-name triggers cannot hide in a map).
+Local native regression 168 run, 165 passed/three explicit skips; Bandit zero findings.
+Next: commit/push this final runtime hardening; repeat isolated lab on the new runtime
+SHA, measure final clean source if needed, finalize measurement/README/ROADMAP docs,
+inspect all latest-head CI and review blockers, then ready/merge #13 only if complete.
+Current uncommitted files: intended compatibility/schema/timing tests and docs only.

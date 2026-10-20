@@ -107,6 +107,23 @@ os._exit(23)
             with self.subTest(field='compatibility'),self.assertRaises(ValueError):
                 Checkpoint(self.path,identity,self.config,self.targets,resume=True)
 
+    def test_python_registry_and_custom_ca_changes_invalidate_resume(self):
+        from unittest.mock import patch
+        original=self.identity
+        with patch('scanix.native.checkpoint.implementation_digest',return_value='changed-synthetic-fingerprint'):
+            changed=manifest(self.config,self.plan,self.targets,self.binary,0,1)
+        self.assertNotEqual(original,changed)
+        ca=Path(self.tmp.name)/'synthetic-ca.txt';ca.write_text('synthetic CA bytes, not a certificate')
+        config=replace(self.config,tls_ca_file=str(ca))
+        first=manifest(config,self.plan,self.targets,self.binary,0,1)
+        ca.write_text('different synthetic CA bytes')
+        self.assertNotEqual(first,manifest(config,self.plan,self.targets,self.binary,0,1))
+        from scanix.native.checkpoint import file_digest
+        def changed_registry(filename,limit=64*1024*1024):
+            return 'changed registry' if Path(filename).name=='probes-v1.json' else file_digest(filename,limit)
+        with patch('scanix.native.checkpoint.file_digest',side_effect=changed_registry):
+            self.assertNotEqual(manifest(self.config,self.plan,self.targets,self.binary,0,1),original)
+
     def test_untrusted_schema_record_and_permissions_fail_closed(self):
         with self.open() as state:state.add(self.result())
         with closing(sqlite3.connect(self.path)) as db, db:db.execute("UPDATE results SET record='{}'")
@@ -121,6 +138,14 @@ os._exit(23)
             with patch.object(Path,'lstat',return_value=unsafe),patch('sqlite3.connect') as connect:
                 with self.assertRaises(ValueError):self.open(resume=True)
                 connect.assert_not_called()
+
+    def test_schema_name_collisions_cannot_hide_triggers(self):
+        with self.open():pass
+        with closing(sqlite3.connect(self.path)) as db, db:
+            db.execute("CREATE TRIGGER meta AFTER INSERT ON results BEGIN SELECT RAISE(ABORT,'synthetic trigger'); END")
+        with self.assertRaises(ValueError):self.open(resume=True)
+        with closing(sqlite3.connect(self.path)) as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM results').fetchone()[0],0)
 
     def test_no_overwrite_symlink_or_out_of_scope_record(self):
         with self.open() as state:
