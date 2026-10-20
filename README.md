@@ -89,7 +89,7 @@ Use the `.exe` binary on Windows. Python remains the default and no fallback occ
 Rust implements bounded asynchronous **connect** scanning; Phase 4B adds validated Linux
 IPv4 SYN. Native UDP/discovery remain unsupported. `--service-detect` reuses the separate bounded Python enrichment
 stage. Native `--banner` and discovery gates are explicit unsupported combinations.
-The protocol is version 3 (engine 0.4.2); reports are schema 4. See [contract, bounds, build and
+The protocol is version 3 (engine 0.4.2); reports are schema 5. See [contract, bounds, build and
 benchmark instructions](docs/NATIVE_ENGINE.md) and [autonomous checkpoint](docs/AUTONOMOUS_PROGRESS.md).
 
 Phase 4B adds a Linux-only native IPv4 SYN path;
@@ -119,6 +119,19 @@ identification remains a separate bounded stage. See [compatibility, crash/repla
 privacy and resource semantics](docs/CONTINUATION.md) and [actual controlled measurements](validation/CONTINUATION_RESULTS.md).
 This is working native connect/SYN continuation, not an unimplemented resume scaffold.
 
+## Informational plugins
+
+```sh
+python -m scanix scan -t 127.0.0.1 -p 8080 --plugins http --out json --out-file -
+python -m scanix scan -t localhost -p 8443 --plugins tls --tls-insecure
+python -m scanix scan -t 127.0.0.1 -p 2222 --plugins ssh --preview
+```
+
+Opt-in HTTP/TLS/SSH/DNS builtins enrich confirmed open endpoints in bounded trusted
+subprocesses, sharing pacing and cancellation. These processes are not a sandbox.
+Evidence never changes port states; TLS verifies by default. See [exact coverage,
+API/schema versions, budgets, exclusions and continuation](docs/PLUGINS.md).
+
 ## Service identification
 
 ```sh
@@ -139,7 +152,7 @@ SNI uses the original hostname or `--sni`, while connections remain within scope
 Quick/deep profiles bound attempts, writes, bytes, time and workers; all operations
 share existing pacing. Printer/spooler ports 515 and 9100–9107 are excluded unless
 `--allow-excluded-probes` is set. Offline preview shows this policy without traffic.
-The original CC0 registry is schema 1/database 1.0.0; reports are schema 4.
+The original CC0 registry is schema 1/database 1.0.0; reports are schema 5.
 See [exact coverage, confidence rules, TLS policy and limits](docs/SERVICE_DETECTION.md)
 and [actual loopback validation](validation/SERVICE_RESULTS.md).
 
@@ -298,7 +311,7 @@ remain port guesses; protocol observations are separate, and UDP does not inheri
 TCP service guesses. Legacy `banner`, `version_evidence` and the existing
 `parse_service_version` helper remain for compatibility. OS detection is still
 unimplemented. CSV adds the database-version metadata column and nested detection
-JSON cell; schema-2/3 consumers must accept the new version/columns, including implementation metadata.
+JSON cell; schema-2/3/4 consumers must accept the new version/columns, including implementation metadata.
 `connection_elapsed_seconds` is monotonic; for raw probes it includes pacing,
 retries and cleanup. Wall timestamps are UTC ISO 8601.
 

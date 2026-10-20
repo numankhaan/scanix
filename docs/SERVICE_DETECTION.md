@@ -39,13 +39,13 @@ No new production dependency is required: service detection uses the standard li
 
 ## Evidence and report schema
 
-Report schema **4** retains the Phase 3 service fields below and adds engine
+Report schema **5** retains the Phase 3 service fields below and adds engine
 implementation metadata; native/Python policy is documented in NATIVE_ENGINE.md.
 The Phase 3 service extension introduced top-level
 `probe_database_version` (null when enrichment is disabled) and per-result
 `service_detection` (null for unenriched/non-open results). CSV has the same new
 metadata column and a JSON cell for nested detection; HTML renders escaped nested
-evidence through the existing atomic exporters. Consumers that require schema 2/3
+evidence through the existing atomic exporters. Consumers that require schema 2/3/4
 must accept the new version/columns. Discovery's separate JSON envelope is unchanged.
 
 `service_name` with `detection_source: port_table` remains a **port guess**, even
@@ -191,3 +191,6 @@ are required by regular CI or the service lab.
 
 TLS handshakes require TLS 1.2 or newer, including `--tls-insecure`; that flag
 changes certificate verification only. Legacy TLS protocol enumeration is unsupported.
+
+Phase 5A adds separate opt-in plugin results and API/registry metadata in schema 5;
+see [informational plugins](PLUGINS.md). Native wire remains 3.

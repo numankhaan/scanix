@@ -41,7 +41,7 @@ def scan_session(config, plan, checkpoint, stream_file, *, resume=False, shard=(
             budget=config.engine_timeout-(time.monotonic()-started)
             guard=1/(config.rate or {'connect':100,'syn':10}[config.method]) if resume and remaining else 0
             if remaining and guard < budget and not stop.wait(guard):
-                run_config=replace(config,service_detect=False,engine_timeout=max(.1,budget-guard))
+                run_config=replace(config,service_detect=False,plugins=(),engine_timeout=max(.1,budget-guard))
                 report=scan_native(run_config,plan,stop,binary=command,
                                    progress=progress,selection=state.selection,on_result=batch.submit,retain=False,on_tick=batch.tick)
                 report.configuration=config
@@ -59,7 +59,7 @@ def scan_session(config, plan, checkpoint, stream_file, *, resume=False, shard=(
                 state.mark_metrics_unknown();unknown_metrics=True
             if any(metrics.get(key) for key in ('send_errors','queue_drops','capture_drops')):
                 state.set_loss()
-            if config.service_detect and not stop.is_set():
+            if (config.service_detect or config.plugins) and not stop.is_set():
                 from ..service.engine import enrich_results
                 from ..service.registry import load_registry
                 report.probe_database_version=load_registry().version
@@ -68,7 +68,9 @@ def scan_session(config, plan, checkpoint, stream_file, *, resume=False, shard=(
                 runtime.limiter.acquire(stop)
                 for id, record in state.records():
                     detection=record.get('service_detection')
-                    if record['state']!='open' or detection and detection.get('status') not in ('interrupted','not_attempted'):
+                    service_pending=config.service_detect and (not detection or detection.get('status') in ('interrupted','not_attempted'))
+                    plugin_pending=any(not any(p['plugin_id']==id and p['status']!='interrupted' for p in record.get('plugin_results',[])) for id in config.plugins)
+                    if record['state']!='open' or not (service_pending or plugin_pending):
                         continue
                     if stop.is_set():break
                     if time.monotonic()-started >= config.engine_timeout:
@@ -77,14 +79,35 @@ def scan_session(config, plan, checkpoint, stream_file, *, resume=False, shard=(
                         break
                     row=ScanResult(**{**record,'original_targets':tuple(record['original_targets']),
                                       'service_detection':None})
+                    if detection:
+                        from ..service.models import DetectionReport, ServiceEvidence, TLSEvidence
+                        row.service_detection=DetectionReport(**{**detection,
+                            'observations':[ServiceEvidence(**entry) for entry in detection['observations']],
+                            'tls':[TLSEvidence(**entry) for entry in detection['tls']]})
                     # One endpoint at a time bounds memory and all existing per-host/global limits.
                     budget=max(.1,min(config.service_timeout or (3 if config.service_profile=='quick' else 8),
                                       config.engine_timeout-(time.monotonic()-started)))
-                    enrich_results([row],replace(config,service_timeout=budget),stop,runtime)
+                    if service_pending:
+                        enrich_results([row],replace(config,service_timeout=budget),stop,runtime)
+                    plugin_budget_exhausted=False
+                    if plugin_pending and not stop.is_set():
+                        from ..plugins.engine import enrich_results as enrich_plugins
+                        remaining=config.engine_timeout-(time.monotonic()-started)
+                        if remaining>.1:
+                            enrich_plugins([row],replace(config,plugin_timeout=min(config.plugin_timeout,remaining)),stop,runtime,deadline=started+config.engine_timeout)
+                        else:
+                            plugin_budget_exhausted=True
                     stream.result(id,state.update_enrichment(id,row))
+                    if plugin_budget_exhausted:
+                        report.completion_status='failed'
+                        report.issues.append({'reason':'plugin_session_budget_exhausted'})
+                        break
             report.requested_probes=state.selection.requested
             report.completed_probes=state.completed
             report.scope=plan.preview(config.ports,config.method,limit=0)
+            if config.plugins:
+                from ..plugins.engine import annotate
+                annotate(report)
             report.implementation['continuation']={'checkpoint_format':1,'fingerprint':identity['fingerprint'],
                 'restored_results':prior,'new_results':session_completed,'shard_index':shard[0],
                 'shard_count':shard[1],'full_scope_pairs':state.selection.total,
@@ -101,7 +124,7 @@ def scan_session(config, plan, checkpoint, stream_file, *, resume=False, shard=(
             summary=report.to_dict()
             # Fixed-size summary: expanded config/scope live in caller input, not this stream frame.
             summary={key:summary[key] for key in ('schema_version','started_at','finished_at','completion_status',
-                      'requested_ports','completed_ports','incomplete','implementation','issues','probe_database_version')}
+                      'requested_ports','completed_ports','incomplete','implementation','issues','probe_database_version','plugin_api_version','plugin_registry_version')}
             summary['elapsed_including_storage_seconds']=time.monotonic()-started
             summary['new_results_per_second']=session_completed/max(summary['elapsed_including_storage_seconds'],1e-9)
             state.finish(summary)

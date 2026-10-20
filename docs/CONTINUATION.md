@@ -8,8 +8,9 @@ exports continue to work without the new options. They retain results in memory.
 
 Build the engine with `cargo build --release --locked --manifest-path native/Cargo.toml`.
 The adapter and binary must both support wire protocol 3 (engine 0.4.2). There is no
-fallback to an old binary or the Python engine. Report schema stays 4, with optional
+fallback to an old binary or the Python engine. Report schema is 5 after Phase 5A, with optional
 `completed_probes` for nonretained results and implementation continuation metadata.
+Schema-4 checkpoints require a new scan; no incompatible automatic migration.
 Checkpoint format and NDJSON stream format are independently versioned at 1.
 SQLite 3.31 or newer with working local file locks/rollback journaling is required;
 unsupported capabilities fail explicitly. No extra Python dependency is introduced.
@@ -139,3 +140,6 @@ may be repeated and are not added to a later row's attempt count. Previous strea
 retain earlier session metrics; a new stream is self-contained for cumulative results,
 not a complete per-session history. Service evidence remains unauthenticated and its
 observation time is bounded by the port timestamp and relevant session completion.
+
+Phase 5A plugin outcomes are durable enrichment upserts; completed outcomes survive
+resume, interrupted/missing plugins can repeat. See [plugin budgets and semantics](PLUGINS.md).

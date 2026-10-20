@@ -65,6 +65,9 @@ def build_parser():
                          help='validated raw SYN; requires capture privileges')
     scan.set_defaults(method='connect')
     methods.add_argument('--udp', dest='method', action='store_const', const='udp', help='protocol-aware UDP; requires raw capture privileges')
+    scan.add_argument('--plugins', default='', help='opt-in builtin IDs or aliases: http,tls,ssh,dns (comma-separated)')
+    scan.add_argument('--plugin-timeout', type=float, default=2., help='per-plugin wall budget including process startup, 0.1–10s; endpoint cap quick 3s/deep 8s')
+    scan.add_argument('--allow-intrusive-plugins', action='store_true', help='permit plugins declaring intrusive capabilities; none shipped')
     scan.add_argument('--service-detect', action='store_true', help='bounded protocol/TLS identification of confirmed open ports')
     scan.add_argument('--service-profile', choices=['quick', 'deep'], default='quick', help='quick: 3 connections/3s; deep: 5 connections/8s per open endpoint')
     scan.add_argument('--service-timeout', type=float, help='total seconds per open endpoint, 0.1–30')
@@ -148,7 +151,8 @@ def _run_scan(parser, args):
                             tls_insecure=args.tls_insecure, tls_ca_file=args.tls_ca_file, sni=args.sni,
                             starttls=args.starttls, allow_excluded_probes=args.allow_excluded_probes,
                             engine=args.engine,engine_timeout=args.engine_timeout,syn_cooldown=args.syn_cooldown,
-                            checkpoint_batch=args.checkpoint_batch)
+                            checkpoint_batch=args.checkpoint_batch, plugins=tuple(filter(None,args.plugins.split(','))),
+                            plugin_timeout=args.plugin_timeout,allow_intrusive_plugins=args.allow_intrusive_plugins)
     except ValueError as exc:
         parser.error(str(exc))
     # Validate CLI/config before DNS, sockets or capture. Offline preview requires no Scapy.
@@ -177,6 +181,8 @@ def _run_scan(parser, args):
                           'min_timeout': config.min_timeout, 'max_timeout': config.max_timeout}
         from .service.engine import policy
         data['service_detection'] = policy(config)
+        from .plugins.registry import policy as plugin_policy
+        data['plugins'] = plugin_policy(config)
         from .native.adapter import preview
         data['implementation'] = preview(config)
         data['continuation']={'enabled':bool(args.checkpoint),'resume':args.resume,'validated':False,
@@ -255,6 +261,8 @@ def _run_scan(parser, args):
                 if result.service_detection:
                     for observation in result.service_detection.observations:
                         print('  ' + clean(f'{observation.service} {observation.product or ""} {observation.version or ""} [{observation.confidence}; {observation.transport}]'))
+                for plugin in result.plugin_results:
+                    print('  ' + clean(f"plugin {plugin['plugin_id']}: {plugin['status']}"))
     except (OSError, ValueError, TypeError) as exc:
         print(f'Output failed: {exc}', file=sys.stderr)
         return 1

@@ -298,7 +298,7 @@ class ResourceAndReportTests(unittest.TestCase):
             for name,save in (('json',save_json),('csv',save_csv),('html',save_html)):
                 save(report,Path(folder)/('report.'+name))
             data=json.loads((Path(folder)/'report.json').read_text())
-            self.assertEqual(data['schema_version'],4)
+            self.assertEqual(data['schema_version'],5)
             self.assertEqual(data['implementation']['engine'],'python')
             self.assertEqual(data['probe_database_version'],'1.0.0')
             self.assertTrue(data['incomplete'])

@@ -186,6 +186,14 @@ def scan_target(config: ScanConfig, cancel_event: threading.Event | None = None,
             except Exception as exc:
                 report.issues.append({'reason': 'enrichment_failure', 'exception_type': type(exc).__name__})
                 report.completion_status = 'failed'
+        if config.plugins:
+            from ..plugins.engine import annotate, enrich_results as enrich_plugins
+            try:
+                annotate(report)
+                enrich_plugins(report.results, config, stop, runtime)
+            except Exception as exc:
+                report.issues.append({'reason': 'plugin_stage_failure', 'exception_type': type(exc).__name__})
+                report.completion_status = 'failed'
         if stop.is_set():
             report.completion_status = 'interrupted'
         elif any(r.reason in ('permission_denied', 'resource_exhausted', 'worker_exception')

@@ -49,13 +49,16 @@ See [policy](SECURITY.md), [audit](docs/SECURITY_AUDIT.md) and
   Linux ground-truth/capture checks passed.
   See docs/NATIVE_SYN.md; latest-head and post-merge CI passed.
 
-## Planned
-
-- **Phase 4C (PR #13, final review/CI):** private compatible native checkpoints/resume,
+- **Phase 4C (merged through #13):** private compatible native checkpoints/resume,
   bounded NDJSON result streaming, deterministic shards and measured commit batching.
   All 33 isolated SYN continuation/capture checks passed. See docs/CONTINUATION.md
-  and validation/CONTINUATION_RESULTS.md; do not merge until latest required CI passes.
-- **Phase 5A:** bounded informational enumeration plugins.
+  and validation/CONTINUATION_RESULTS.md; latest-head and post-merge CI passed.
+- **Phase 5A (implementation under review):** opt-in bounded trusted subprocess
+  HTTP/TLS/SSH/DNS plugins, versioned capabilities/evidence API and schema-5 exports,
+  shared pacing/cancellation and durable enrichment. See docs/PLUGINS.md.
+
+## Planned
+
 - **Phase 5B:** original remote packet OS evidence and conservative fingerprints.
 - **Phase 5C:** optional versioned SQLite history and partial-scan comparisons.
 - **Phase 6:** cross-platform release validation, fuzzing, packaging/license review
