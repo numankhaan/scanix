@@ -153,7 +153,7 @@ class Checkpoint:
     def records(self, *, after=-1):
         """Keyset iteration: at most one response-sized record outside SQLite's cache."""
         while True:
-            row = self.db.execute('SELECT id,CASE WHEN length(record)<=? THEN record END,digest '
+            row = self.db.execute('SELECT id,CASE WHEN length(CAST(record AS BLOB))<=? THEN record END,digest '
                                   'FROM results WHERE id>? ORDER BY id LIMIT 1', (MAX_RECORD, after)).fetchone()
             if row is None:
                 return
