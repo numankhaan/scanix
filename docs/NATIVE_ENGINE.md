@@ -37,7 +37,7 @@ remain in Python reports and supply SNI to existing bounded service detection.
 
 ## Versioned wire contract
 
-Protocol **2**, UTF-8 JSON objects, exactly one newline-terminated object per frame,
+Protocol **3**, UTF-8 JSON objects, exactly one newline-terminated object per frame,
 maximum **65,536 bytes including newline**. Adapter response JSON is limited to
 16 container levels, independently of interpreter recursion behavior. Unknown commands/fields, duplicates,
 malformed input, nonnumeric target addresses and out-of-limit settings are rejected
@@ -119,11 +119,11 @@ consumer can delay shutdown up to the documented pipe deadline.
 
 ## Report compatibility, tests and benchmarks
 
-Report schema **4** adds top-level `implementation` metadata and configuration
+Report schema **5** retains top-level `implementation` metadata and configuration
 engine/session-budget fields. CSV adds the implementation metadata column. Python
 reports identify engine=python; native reports include engine version, wire protocol,
 exit code and metrics. Existing result/service fields and atomic file exports remain.
-Schema-3 consumers must accept the new schema/column; the probe database stays 1.0.0.
+Schema-3/4 consumers must accept the new schema/column; the probe database stays 1.0.0.
 
 ```sh
 cargo test --locked --manifest-path native/Cargo.toml
