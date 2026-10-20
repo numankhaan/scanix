@@ -39,7 +39,8 @@ def wheel_inventory(names):
 def execute(command, *, cwd, timeout=180):
     # Build/install tools may include local paths or metadata in diagnostics.
     # Keep raw output private in memory; CI emits only fixed failure categories.
-    env = dict(os.environ, PYTHONNOUSERSITE='1', PYTHONDONTWRITEBYTECODE='1')
+    env = dict(os.environ, PYTHONNOUSERSITE='1', PYTHONDONTWRITEBYTECODE='1',
+               PIP_NO_INDEX='1', PIP_DISABLE_PIP_VERSION_CHECK='1')
     env.pop('PYTHONPATH', None)
     result = subprocess.run(command, cwd=cwd, env=env, capture_output=True, timeout=timeout)
     if result.returncode:
@@ -63,7 +64,7 @@ def run():
     from scanix import __version__
     with tempfile.TemporaryDirectory(prefix='scanix-package-') as folder:
         private = Path(folder); artifacts = private / 'artifacts'
-        execute([sys.executable, '-B', '-m', 'build', '--outdir', str(artifacts), str(ROOT)], cwd=private)
+        execute([sys.executable, '-B', '-m', 'build', '--no-isolation', '--outdir', str(artifacts), str(ROOT)], cwd=private)
         wheels = list(artifacts.glob('*.whl')); sources = list(artifacts.glob('*.tar.gz'))
         if len(wheels) != 1 or len(sources) != 1:
             raise ValueError('missing or ambiguous distribution')
