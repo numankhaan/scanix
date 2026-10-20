@@ -38,3 +38,8 @@ native/target/
 *.db-journal
 *.db-wal
 *.db-shm
+*.db
+# Local packaging artifacts; distribution contents are separately validated.
+build/
+dist/
+*.egg-info/

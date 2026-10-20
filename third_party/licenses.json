@@ -1,0 +1,401 @@
+{
+  "cargo_lock_sha256": "4e395345749b75e51aa710abf0b83c15554b5fca6d662f624d80a3606ae91143",
+  "crates": [
+    {
+      "archive_sha256": "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb",
+      "declared": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "path": "third_party/licenses/errno-0.3.14-MIT.txt",
+          "sha256": "8764a597675778ddfd4e25f81b08a05dbcf089ac05662df7613fe67f150e3aa2",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "errno",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/errno/0.3.14/download",
+      "version": "0.3.14"
+    },
+    {
+      "archive_sha256": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682",
+      "declared": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "path": "third_party/licenses/itoa-1.0.18-MIT.txt",
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "itoa",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/itoa/1.0.18/download",
+      "version": "1.0.18"
+    },
+    {
+      "archive_sha256": "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a",
+      "declared": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "path": "third_party/licenses/libc-0.2.191-MIT.txt",
+          "sha256": "123a331b5dbf04c30097fa43b8f858bc85df671fe776de498d01f3d6b7c1f69e",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "libc",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/libc/0.2.191/download",
+      "version": "0.2.191"
+    },
+    {
+      "archive_sha256": "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98",
+      "declared": "Unlicense OR MIT",
+      "files": [
+        {
+          "path": "third_party/licenses/memchr-2.8.3-MIT.txt",
+          "sha256": "0f96a83840e146e43c0ec96a22ec1f392e0680e6c1226e6f3ba87e0740af850f",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "memchr",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/memchr/2.8.3/download",
+      "version": "2.8.3"
+    },
+    {
+      "archive_sha256": "1788edb87fdc09c7e26304471e2f5be8cdefb1b6930d6e3985fc02ff53bf86ee",
+      "declared": "MIT",
+      "files": [
+        {
+          "path": "third_party/licenses/mio-1.2.4-MIT.txt",
+          "sha256": "07919255c7e04793d8ea760d6c2ce32d19f9ff02bdbdde3ce90b1e1880929a9b",
+          "upstream_path": "LICENSE"
+        }
+      ],
+      "name": "mio",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/mio/1.2.4/download",
+      "version": "1.2.4"
+    },
+    {
+      "archive_sha256": "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd",
+      "declared": "Apache-2.0 OR MIT",
+      "files": [
+        {
+          "path": "third_party/licenses/pin-project-lite-0.2.17-MIT.txt",
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "pin-project-lite",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/pin-project-lite/0.2.17/download",
+      "version": "0.2.17"
+    },
+    {
+      "archive_sha256": "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9",
+      "declared": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "path": "third_party/licenses/proc-macro2-1.0.107-MIT.txt",
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "proc-macro2",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/proc-macro2/1.0.107/download",
+      "version": "1.0.107"
+    },
+    {
+      "archive_sha256": "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001",
+      "declared": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "path": "third_party/licenses/quote-1.0.47-MIT.txt",
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "quote",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/quote/1.0.47/download",
+      "version": "1.0.47"
+    },
+    {
+      "archive_sha256": "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba",
+      "declared": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "path": "third_party/licenses/serde-1.0.229-MIT.txt",
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "serde",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/serde/1.0.229/download",
+      "version": "1.0.229"
+    },
+    {
+      "archive_sha256": "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48",
+      "declared": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "path": "third_party/licenses/serde_core-1.0.229-MIT.txt",
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "serde_core",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/serde_core/1.0.229/download",
+      "version": "1.0.229"
+    },
+    {
+      "archive_sha256": "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348",
+      "declared": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "path": "third_party/licenses/serde_derive-1.0.229-MIT.txt",
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "serde_derive",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/serde_derive/1.0.229/download",
+      "version": "1.0.229"
+    },
+    {
+      "archive_sha256": "e7e9cc8b1b85264074fbcc02a88680c4096b1e47df8f739dceb03bf482f04bd6",
+      "declared": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "path": "third_party/licenses/serde_json-1.0.154-MIT.txt",
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "serde_json",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/serde_json/1.0.154/download",
+      "version": "1.0.154"
+    },
+    {
+      "archive_sha256": "c4db69cba1110affc0e9f7bcd48bbf87b3f4fc7c61fc9155afd4c469eb3d6c1b",
+      "declared": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "path": "third_party/licenses/signal-hook-registry-1.4.8-MIT.txt",
+          "sha256": "503558bfefe66ca15e4e3f7955b3cb0ec87fd52f29bf24b336af7bd00e946d5c",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "signal-hook-registry",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/signal-hook-registry/1.4.8/download",
+      "version": "1.4.8"
+    },
+    {
+      "archive_sha256": "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4",
+      "declared": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "path": "third_party/licenses/socket2-0.6.5-MIT.txt",
+          "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "socket2",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/socket2/0.6.5/download",
+      "version": "0.6.5"
+    },
+    {
+      "archive_sha256": "d78c8dee4c7bf0e14673097256fed6142ce9d3b85a408189d07482442145823b",
+      "declared": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "path": "third_party/licenses/syn-3.0.9-MIT.txt",
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "syn",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/syn/3.0.9/download",
+      "version": "3.0.9"
+    },
+    {
+      "archive_sha256": "a0c168a474b95bfecfe908a65d4bdffc523144b649a74c09c286afb35d53e0bc",
+      "declared": "MIT",
+      "files": [
+        {
+          "path": "third_party/licenses/tokio-1.54.0-MIT.txt",
+          "sha256": "253cd04c6714889df2d32f3f64d669179a1c95c76ac43c40882c52eb06bc3552",
+          "upstream_path": "LICENSE"
+        }
+      ],
+      "name": "tokio",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/tokio/1.54.0/download",
+      "version": "1.54.0"
+    },
+    {
+      "archive_sha256": "78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e",
+      "declared": "MIT",
+      "files": [
+        {
+          "path": "third_party/licenses/tokio-macros-2.7.2-MIT.txt",
+          "sha256": "0b83dc40cba89b9922bb84b0a9c7d2768ce37c1d7e138b7424fd4549915778c9",
+          "upstream_path": "LICENSE"
+        }
+      ],
+      "name": "tokio-macros",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/tokio-macros/2.7.2/download",
+      "version": "2.7.2"
+    },
+    {
+      "archive_sha256": "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563",
+      "declared": "(MIT OR Apache-2.0) AND Unicode-3.0",
+      "files": [
+        {
+          "path": "third_party/licenses/unicode-ident-1.0.27-MIT.txt",
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "third_party/licenses/unicode-ident-1.0.27-Unicode-3.0.txt",
+          "sha256": "f7db81051789b729fea528a63ec4c938fdcb93d9d61d97dc8cc2e9df6d47f2a1",
+          "upstream_path": "LICENSE-UNICODE"
+        }
+      ],
+      "name": "unicode-ident",
+      "selected": "MIT AND Unicode-3.0",
+      "source_url": "https://crates.io/api/v1/crates/unicode-ident/1.0.27/download",
+      "version": "1.0.27"
+    },
+    {
+      "archive_sha256": "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b",
+      "declared": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "files": [
+        {
+          "path": "third_party/licenses/wasi-0.11.1+wasi-snapshot-preview1-MIT.txt",
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "wasi",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/wasi/0.11.1+wasi-snapshot-preview1/download",
+      "version": "0.11.1+wasi-snapshot-preview1"
+    },
+    {
+      "archive_sha256": "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5",
+      "declared": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "path": "third_party/licenses/windows-link-0.2.1-MIT.txt",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "upstream_path": "license-mit"
+        }
+      ],
+      "name": "windows-link",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/windows-link/0.2.1/download",
+      "version": "0.2.1"
+    },
+    {
+      "archive_sha256": "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc",
+      "declared": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "path": "third_party/licenses/windows-sys-0.61.2-MIT.txt",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "upstream_path": "license-mit"
+        }
+      ],
+      "name": "windows-sys",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/windows-sys/0.61.2/download",
+      "version": "0.61.2"
+    },
+    {
+      "archive_sha256": "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b",
+      "declared": "MIT",
+      "files": [
+        {
+          "path": "third_party/licenses/zmij-1.0.23-MIT.txt",
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+          "upstream_path": "LICENSE-MIT"
+        }
+      ],
+      "name": "zmij",
+      "selected": "MIT",
+      "source_url": "https://crates.io/api/v1/crates/zmij/1.0.23/download",
+      "version": "1.0.23"
+    }
+  ],
+  "notice_files": {
+    "third_party/licenses/BSD-2-Clause.txt": "f32fb3b417a194167cfad068223fc975ba96c5960513a10f66a3c28720aec1df",
+    "third_party/licenses/CC0-1.0.txt": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+    "third_party/licenses/Unicode-3.0.txt": "f7db81051789b729fea528a63ec4c938fdcb93d9d61d97dc8cc2e9df6d47f2a1",
+    "third_party/licenses/colorama-0.4.6-BSD-3-Clause.txt": "cac35c02686e5d04a5a7140bfb3b36e73aed496656e891102e428886d7930318",
+    "third_party/licenses/errno-0.3.14-MIT.txt": "8764a597675778ddfd4e25f81b08a05dbcf089ac05662df7613fe67f150e3aa2",
+    "third_party/licenses/itoa-1.0.18-MIT.txt": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+    "third_party/licenses/libc-0.2.191-MIT.txt": "123a331b5dbf04c30097fa43b8f858bc85df671fe776de498d01f3d6b7c1f69e",
+    "third_party/licenses/memchr-2.8.3-MIT.txt": "0f96a83840e146e43c0ec96a22ec1f392e0680e6c1226e6f3ba87e0740af850f",
+    "third_party/licenses/mio-1.2.4-MIT.txt": "07919255c7e04793d8ea760d6c2ce32d19f9ff02bdbdde3ce90b1e1880929a9b",
+    "third_party/licenses/pin-project-lite-0.2.17-MIT.txt": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+    "third_party/licenses/proc-macro2-1.0.107-MIT.txt": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+    "third_party/licenses/quote-1.0.47-MIT.txt": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+    "third_party/licenses/rust-1.91.1-COPYRIGHT-library.html": "592ea218c47b2b50c8d8c53bf44512856fc93942e6686cca55e64311363681c0",
+    "third_party/licenses/rust-1.91.1-COPYRIGHT.txt": "172020dbfd5b53a226dfde77616190a48dcff519b0bc0e6deb91a8450782c4af",
+    "third_party/licenses/rust-1.91.1-MIT.txt": "b71bd43a069ca0641a9ecfe585ca7b3c53b5cc1608f8b68321168698e28b5ea1",
+    "third_party/licenses/serde-1.0.229-MIT.txt": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+    "third_party/licenses/serde_core-1.0.229-MIT.txt": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+    "third_party/licenses/serde_derive-1.0.229-MIT.txt": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+    "third_party/licenses/serde_json-1.0.154-MIT.txt": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+    "third_party/licenses/signal-hook-registry-1.4.8-MIT.txt": "503558bfefe66ca15e4e3f7955b3cb0ec87fd52f29bf24b336af7bd00e946d5c",
+    "third_party/licenses/socket2-0.6.5-MIT.txt": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397",
+    "third_party/licenses/syn-3.0.9-MIT.txt": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+    "third_party/licenses/tokio-1.54.0-MIT.txt": "253cd04c6714889df2d32f3f64d669179a1c95c76ac43c40882c52eb06bc3552",
+    "third_party/licenses/tokio-macros-2.7.2-MIT.txt": "0b83dc40cba89b9922bb84b0a9c7d2768ce37c1d7e138b7424fd4549915778c9",
+    "third_party/licenses/unicode-ident-1.0.27-MIT.txt": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+    "third_party/licenses/unicode-ident-1.0.27-Unicode-3.0.txt": "f7db81051789b729fea528a63ec4c938fdcb93d9d61d97dc8cc2e9df6d47f2a1",
+    "third_party/licenses/wasi-0.11.1+wasi-snapshot-preview1-MIT.txt": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+    "third_party/licenses/windows-link-0.2.1-MIT.txt": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+    "third_party/licenses/windows-sys-0.61.2-MIT.txt": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+    "third_party/licenses/zmij-1.0.23-MIT.txt": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+  },
+  "policy_files": {
+    "pyproject.toml": "d6f010df98de3d9a9f6a8608d95dce147cc726b8d532366bb825f0b56f9682e3",
+    "requirements.txt": "0e56ebcc71e0de2f8bb762b21b34d90b71970dfe9671705f50cc7f2e66bd65e8",
+    "validation/requirements.txt": "bb396bdc2abbb06a82c249ce78cac826d017206f1e42c61bf7bda9132063bab6"
+  },
+  "project_code_license": "GPL-2.0-only",
+  "project_license_sha256": "aaf135472f81c5b4a0dca9367e5bb5e9750032b5bebe5442b36e4c0a47430df3",
+  "python_distribution_license": "GPL-2.0-only AND CC0-1.0",
+  "python_optional": {
+    "colorama": {
+      "archive_sha256": "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6",
+      "bundled": false,
+      "license": "BSD-3-Clause",
+      "notice_sha256": "cac35c02686e5d04a5a7140bfb3b36e73aed496656e891102e428886d7930318",
+      "source_url": "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl",
+      "upstream_path": "colorama-0.4.6.dist-info/licenses/LICENSE.txt",
+      "version": "0.4.6"
+    },
+    "scapy": {
+      "bundled": false,
+      "license": "GPL-2.0-only",
+      "source_url": "https://github.com/secdev/scapy/blob/v2.8.0/LICENSE",
+      "version": "2.8.0"
+    }
+  },
+  "rust_toolchain": "1.91.1",
+  "schema_version": 1,
+  "source_of_cc0_text": "https://github.com/spdx/license-list-data/blob/main/text/CC0-1.0.txt",
+  "source_of_gpl_text": "https://github.com/spdx/license-list-data/blob/main/text/GPL-2.0-only.txt"
+}

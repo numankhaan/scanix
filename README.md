@@ -5,6 +5,15 @@ Rust provides opt-in TCP-connect and Linux IPv4 SYN engines through a versioned 
 boundary alongside existing SYN/UDP, IPv6, discovery and TLS-aware service detection.
 It does not claim Nmap accuracy or Masscan throughput. Scan only authorized systems.
 
+## Release-candidate status
+
+Candidate `1.0.0rc1` adds local package/install validation. No package or release has
+been published. Original project code is GPL-2.0-only; existing CC0 data and third-party terms are retained.
+See [licensing and corresponding-source obligations](docs/LICENSING.md). Privileged macOS raw/BPF operation
+is experimental and unverified. Tested unprivileged macOS functionality is retained;
+see [candidate support, installation and upgrade boundaries](docs/RELEASE_CANDIDATE.md)
+and [actual validation results](validation/RELEASE_RESULTS.md).
+
 ## Installation
 
 Python **3.10–3.14** is supported. From the repository root:
@@ -21,9 +30,14 @@ python -m scanix discover --help
 
 TCP connect, TCP discovery, exports and offline preview use the standard library.
 Scapy (`==2.8.0`, pinned for reproducible dependency audits) is required for raw scans, raw discovery
-and synthetic packet tests. Raw I/O supports Linux and macOS with a working Scapy
-capture backend and appropriate raw-socket/BPF privileges (usually root). Windows
-supports connect/TCP discovery; raw methods fail explicitly. Capture is opened
+and synthetic packet tests. Linux raw I/O has isolated privileged validation and
+requires a working capture backend and raw-socket privileges (usually root).
+The macOS Python raw SYN/UDP/ICMP and ARP/ND paths are **experimental and unverified**:
+successful privileged BPF operation has not been demonstrated. They are not claimed
+as supported privileged operation. Tested unprivileged macOS connect (Python/native),
+TCP discovery, TLS/service plugins, preview, exports, continuation and history remain
+available. Native SYN remains Linux-only. Windows supports connect/TCP discovery;
+raw methods fail explicitly. Capture is opened
 before probes are scheduled; setup failures are reported without a connect fallback.
 Linux loopback uses raw IP sockets. ARP/ND also require Ethernet layer-2 capture.
 
@@ -187,7 +201,8 @@ and [actual loopback validation](validation/SERVICE_RESULTS.md).
 ## SYN and UDP evidence
 
 Raw examples below match the CLI help. They require the privileges described above;
-local macOS validation exercised their permission-failure path. The isolated hosted
+local macOS validation exercised only their permission-failure path, not successful
+privileged operation. macOS raw scanning remains experimental and unverified. The isolated hosted
 Linux lab validated successful IPv4/IPv6 raw behavior and preserved packet captures
 ([results and evidence](validation/RESULTS.md)).
 

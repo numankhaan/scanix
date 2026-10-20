@@ -57,3 +57,13 @@ Native continuation checkpoints, SQLite sidecars and NDJSON streams are private 
 artifacts. The gate blocks their file types and recognizes the stream header even if
 renamed; do not force-add them. Keep only sanitized measurements/digests in validation
 notes, with synthetic samples inline in tests. Ignore rules do not remove tracked data.
+
+Release validation uses `python -B validation/parser_corpus.py --cases 128` and
+`python -B validation/package_smoke.py` after installing pinned
+`validation/requirements.txt`. Builds/installs stay local; no upload is authorized.
+See [signature maintenance](docs/SIGNATURE_MAINTENANCE.md),
+[candidate support/upgrade policy](docs/RELEASE_CANDIDATE.md) and
+[dependency license inventory](docs/DEPENDENCY_LICENSES.md). Project code is GPL-2.0-only; original CC0 data and dependency licenses remain.
+Confirm rights and compatible terms for contributions; do not infer ownership from
+a Git identity, strip notices, or copy unreviewed third-party code/databases.
+See [licensing/provenance/source-delivery rules](docs/LICENSING.md).

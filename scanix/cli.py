@@ -53,7 +53,8 @@ def selected_discovery(value):
 
 def build_parser():
     parser = argparse.ArgumentParser(prog='scanix', description='Scanix bounded IPv4/IPv6 network reconnaissance')
-    parser.add_argument('--version', action='version', version='Scanix Phase 4C (development)')
+    from . import __version__
+    parser.add_argument('--version', action='version', version='Scanix ' + __version__)
     sub = parser.add_subparsers(dest='command', required=True)
     scan = sub.add_parser('scan', help='TCP connect, raw SYN or protocol-aware UDP scan')
     scan.add_argument('-t', '--target', action='append', default=[], help='IP, hostname or CIDR; repeatable')

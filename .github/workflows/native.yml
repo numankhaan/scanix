@@ -32,6 +32,10 @@ jobs:
       - run: cargo +1.91.1 build --release --locked --manifest-path native/Cargo.toml
       - run: python -m pip install --upgrade pip==26.2.1
       - run: python -m pip install -r requirements.txt
+      - name: Verify locked dependency license texts against primary cached archives
+        run: cargo +1.91.1 fetch --locked --manifest-path native/Cargo.toml
+      - name: Check reviewed license and notice contents offline
+        run: python -B validation/licensing.py --cached
       - name: Run Python regressions with real native subprocess integration
         run: python -B validation/native_ci.py
   msrv:
