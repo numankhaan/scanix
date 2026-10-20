@@ -53,13 +53,18 @@ See [policy](SECURITY.md), [audit](docs/SECURITY_AUDIT.md) and
   bounded NDJSON result streaming, deterministic shards and measured commit batching.
   All 33 isolated SYN continuation/capture checks passed. See docs/CONTINUATION.md
   and validation/CONTINUATION_RESULTS.md; latest-head and post-merge CI passed.
-- **Phase 5A (implementation under review):** opt-in bounded trusted subprocess
+- **Phase 5A (merged through #14):** opt-in bounded trusted subprocess
   HTTP/TLS/SSH/DNS plugins, versioned capabilities/evidence API and schema-5 exports,
   shared pacing/cancellation and durable enrichment. See docs/PLUGINS.md.
 
+- **Phase 5B (implementation under review):** opt-in Python SYN captured remote
+  TCP/IP features, one original experimental Linux-compatible IPv4 profile,
+  explicit inconclusive evidence and versioned bounded database. Fifteen isolated
+  OS capture checks passed; see docs/OS_EVIDENCE.md and validation/OS_RESULTS.md.
+  Native OS/other systems/IPv6 profiles remain unsupported.
+
 ## Planned
 
-- **Phase 5B:** original remote packet OS evidence and conservative fingerprints.
 - **Phase 5C:** optional versioned SQLite history and partial-scan comparisons.
 - **Phase 6:** cross-platform release validation, fuzzing, packaging/license review
   and release-candidate report; no public publishing without separate authorization.
