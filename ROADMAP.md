@@ -41,10 +41,12 @@ See [policy](SECURITY.md), [audit](docs/SECURITY_AUDIT.md) and
 - **Phase 4A (merged through #11):** opt-in Rust asynchronous TCP connect
   engine, bounded versioned subprocess contract, Python adapter, schema-4 metadata,
   deterministic tests and a measured loopback baseline. Python remains the default.
-  Native raw SYN, UDP, discovery and durable resume are not implemented here.
+  Subsequent phases supply Linux IPv4 SYN and durable resume. Native UDP/discovery
+  remain unsupported.
 
 - **Phase 4B (merged through #12):** Linux IPv4 native SYN packet/state/I/O
-  and protocol-2 integration; 25 isolated Linux ground-truth/capture checks passed.
+  and original protocol-2 integration (current wire 3 with Phase 4C); 25 isolated
+  Linux ground-truth/capture checks passed.
   See docs/NATIVE_SYN.md; latest-head and post-merge CI passed.
 
 ## Planned

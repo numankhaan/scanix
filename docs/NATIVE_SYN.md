@@ -17,7 +17,7 @@ selected trusted binary. Only numeric IPv4 SYN is supported. Native IPv6 SYN,
 UDP and discovery are rejected before traffic; use existing Python implementations
 where supported. No Python connect fallback or automatic binary download/build.
 
-Wire **protocol 2**, engine **0.4.1**: adds required retries and cooldown_ms start
+Phase 4B introduced wire **protocol 2**, engine **0.4.1**, with required retries and cooldown_ms start
 fields, SYN/ICMP state evidence and measured counters. Version-1 clients/binaries
 reject the mismatch; rebuild a binary matching the checkout. Connect semantics
 remain unchanged. Report schema remains 4; per-result attempts/evidence and top-level
@@ -102,3 +102,8 @@ validation remains incomplete; this backend explicitly does not support macOS ra
 Primary API references: [Linux packet sockets](https://man7.org/linux/man-pages/man7/packet.7.html),
 [Linux raw sockets](https://man7.org/linux/man-pages/man7/raw.7.html),
 [Tokio AsyncFd ownership/readiness](https://docs.rs/tokio/latest/tokio/io/unix/struct.AsyncFd.html).
+
+Current Phase 4C uses **protocol 3 / engine 0.4.2**, adding deterministic selection,
+shards and completed-work registration; see [the current contract](NATIVE_ENGINE.md)
+and [continuation semantics](CONTINUATION.md). Packet-state semantics and bounds above
+remain applicable. Protocol-2 binaries are incompatible with the current adapter.
