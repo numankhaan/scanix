@@ -134,6 +134,7 @@ class ScanReport:
     completion_status: Literal["complete", "failed", "interrupted"] = "complete"
     issues: list[dict] = field(default_factory=list)
 
+    completed_probes: int | None = None
     requested_probes: int | None = None
     scope: dict = field(default_factory=dict)
     discovery: list[dict] = field(default_factory=list)
@@ -143,7 +144,7 @@ class ScanReport:
         data['configuration']['ports'] = list(self.configuration.ports)
         for result in data['results']:
             result['original_targets'] = list(result['original_targets'])
-        data['completed_ports'] = len(self.results)
+        data['completed_ports'] = self.completed_probes if self.completed_probes is not None else len(self.results)
         data['requested_ports'] = (self.requested_probes if self.requested_probes is not None else len(self.configuration.ports))
-        data['incomplete'] = self.completion_status != 'complete' or len(self.results) < data['requested_ports']
+        data['incomplete'] = self.completion_status != 'complete' or data['completed_ports'] < data['requested_ports']
         return data

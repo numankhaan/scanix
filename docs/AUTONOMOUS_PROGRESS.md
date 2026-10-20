@@ -1,88 +1,52 @@
 # Autonomous roadmap checkpoint
 
-## Current stage: Phase 4B — final review/CI before ready and merge
+## Current stage: Phase 4C — implementation
 
-Owner authorizes autonomous stage PRs and merges after completion, latest required
-checks, current base and resolved review blockers. No routine merge confirmation.
-No force-push, bypass, branch deletion, public scans, history rewrite or release publishing.
+Autonomous implementation/PR/merge authorized after completion, current base and passing
+required checks. No force push, bypass, branch deletion, public scans, rewritten history
+or public release/package publishing. Preserve security gates and unrelated UDP edit.
 
-- Main: `3e57881a8e03e3d4b5b0a58835714cb3a652d483`, Phase 4A #11 merged.
-  Post-merge CodeQL 39338314167, Tests 39338314100, Native 39338314108,
-  Security 39338314099 all passed; declared Rust 1.85 minimum tested.
-- Completed stages: 1–3, security #8 and 4A #11. Remaining: 4B final merge, 4C,
-  5A plugins, 5B remote OS evidence, 5C optional SQLite history, 6 release validation.
-- Branch/worktree: `phase4b/native-syn-design`, sibling `scanix-phase4b`.
-  PR: https://github.com/numankhaan/scanix/pull/12 (base main; still draft).
-  Current HEAD: `git rev-parse HEAD`. Latest fully runtime-tested head:
-  `d181e1b1eee2ea1cd71c8bb8f9db112576bac67d`.
-- Commits: `e0d0842` packet fixtures, `05422a9` SYN/protocol-2 integration,
-  `59f61a4` retry/cancellation evidence fix, `d181e1b` controlled lab/resource metrics.
-  This final follow-up adds Linux-only IPC tests and measured/support documentation.
-  Production runtime is unchanged from the live-tested head (test code/comments only).
-- All old branches preserved. Original unrelated UDP edit verified unchanged; never
-  stage it. Main required security/CodeQL/regression ruleset remains active. Historical
-  privacy cleanup still awaits owner decision; no new allowlist or rewrite.
+- Main: `66f0455e6d69c0807de04e84f9c391dbd07776c5`, Phase 4B #12 merged.
+- Phase 4B PR: https://github.com/numankhaan/scanix/pull/12; reviewed head
+  `58a618e926cbee73a638f808414dd72a0d525e4d`. Latest push/PR Security, CodeQL,
+  seven regression jobs and native/MSRV all passed before merge. Linux Rust 21,
+  other platforms 19; Python 145/job with explicit platform/privileged skips.
+- Phase 4B Linux namespace/capture run 39342284692 passed all 25 native checks
+  at runtime source d181e1b; final head only added tests/comments/docs. Measurements
+  and limits: validation/NATIVE_SYN_RESULTS.md. Privileged macOS/BPF incomplete.
+- Main post-merge CI: Security 39343940342, CodeQL 39343940329,
+  Native 39343940313, Tests 39343940358 queued/running at branch creation, not passes.
+- Worktree: sibling `scanix-phase4c`; branch `phase4c/durable-streaming` from main.
+  HEAD initially 66f0455. No Phase 4C PR yet. All prior branches retained.
+- Completed: phases 1–3, security #8, 4A #11, 4B #12. Remaining 4C, 5A/B/C, 6.
+- Original unrelated UDP edit hash verified unchanged; do not stage it. Historical
+  privacy cleanup awaits owner decision; no allowlist/rewrite. Main nine required
+  security/CodeQL/regression contexts remain enabled with strict base updating.
 
-## Acceptance and actual implementation
+## Phase 4C acceptance and plan
 
-Linux numeric IPv4 native SYN: independent paced transmitter/receivers, source/route/
-privilege/capture preflight, strict TCP/quoted-ICMP correlation and reset cleanup,
-bounded global/per-host work, retries, windows/cooldown/session and actual send/drop
-metrics. Cancellation preserves positive/error evidence without counting unsent retries.
-Protocol 2/engine 0.4.1, report schema 4; Python default/connect and exporters retained;
-service enrichment remains separate. Native IPv6 SYN/UDP/discovery unsupported explicitly.
-Rust streams, Python export aggregation remains bounded to the pair ceiling (4C later).
-
-## Actual validation and exact commands
-
-- `cargo test --locked --manifest-path native/Cargo.toml`: 19 passed locally before
-  this test-only follow-up; Linux/non-Linux counts will differ with two new IPC tests.
-- `cargo fmt --manifest-path native/Cargo.toml --check`, strict Clippy and release
-  build passed. Linux aarch64 cross-Clippy passed using rustup stable compiler;
-  cross-build is not execution. New IPC tests compile, awaiting Linux CI execution.
-- `python -B validation/native_ci.py`: initial 143 run, 140 pass/three macOS skips.
-  At d181e1b CI: 145/job; native Linux 143 pass/two skips, macOS 142/three,
-  Windows 141/four. Ordinary jobs 137/eight, Windows 136/nine (six native cases
-  explicitly unavailable, plus privileged/POSIX cases). No skipped case counted pass.
-- Six SYN wire tests passed locally, including invalid evidence, drop metrics,
-  setup cancellation and retry-failure preservation. 19 security-gate tests passed.
-- d181e1b all push/PR workflows passed, logs checked:
-  Security 39342280858/39342285880; CodeQL 39342280892/39342285865;
-  Tests 39342280871/39342286055; Native/MSRV 39342280864/39342285903.
-  Security had three zero-finding gates and 19 tests. Historical privacy jobs skipped
-  on push/PR, not passed; their separate historical inventory remains unresolved.
-- `gh workflow run privileged-lab.yml --ref phase4b/native-syn-design` dispatched
-  exactly once at d181e1b. Run **39342284692 passed**: 25 native SYN checks plus
-  existing Phase 2 namespace/capture/loopback regression. No public traffic.
-- `python -m scanix scan -t 127.0.0.1 -p 19000 --engine native --syn --rate 20
-  --retries 1 --syn-cooldown .2 --preview`: verified offline policy/CLI, no child.
-- Local macOS privileged-lab preflight exited 2/unavailable, not pass. Privileged
-  macOS/BPF remains incomplete; native SYN explicitly supports Linux only.
-
-## Measured Linux evidence
-
-Source d181e1b, 4-core x86_64 GitHub Ubuntu runner, ~15.6 GiB RAM, isolated veth
-namespaces/no external default route. All four expected states and Python agreement
-passed. Five SYN sends (one retry), one reset, four attempted/completed pairs,
-three matched replies, one timeout, kernel/userspace/capture drops zero. Minimum
-captured explicit gap .050554 s at ceiling 20/s. Native session 1.602965 s,
-CPU .014989 s; getrusage RSS high-water 93,597,696 bytes is an upper bound that may
-include the pre-exec Python image, not isolated Rust workload memory. Single small
-correctness case dominated by silence/cooldown, not throughput/scalability/parity.
-Actual topology, counts, capture digests and resource boundaries:
-validation/NATIVE_SYN_RESULTS.md. Raw captures stayed private/ephemeral, no upload.
+1. Versioned private durable checkpoint with exact configuration/resolved-scope/
+   implementation compatibility, fail before traffic on mismatch, single writer,
+   crash-safe completed records and explicit at-least-once unfinished-probe semantics.
+2. Bounded streaming result path without retaining every result; preserve aggregate
+   exports/default Python behavior. Explicitly separate service enrichment.
+3. Stable target-major work IDs, deterministic optional shards, completed-work skips
+   enforced by the engine, coverage/duplicate/cancellation tests.
+4. Actual coverage/loss/throughput and CPU/RSS limits; reproducible isolated loopback
+   resume/stream baseline; optimize only measured problems, no parity claims.
+5. Meaningful Python/Rust/local and latest CI validation, reviewed separate PR, merge
+   only when acceptance is met and required checks pass; verify main and continue.
 
 ## Precise next action
 
-Commit intended final Linux IPC tests/docs/checkpoint; push after GitHub head/base
-check. Inspect all latest-head Security/CodeQL/Tests/Native/MSRV jobs and run the new
-nonprivileged Linux IPC tests in CI. Fix actual failures. Live runtime remains the
-already tested d181e1b; final diff must show only test/documentation follow-up.
-Review final PR diff/reviews/required checks, mark ready only when acceptance passes,
-merge #12 normally at exact reviewed SHA without deleting branch, then verify main
-and post-merge CI. Update checkpoint on a new Phase 4C branch and continue roadmap.
-
-Current uncommitted files: intended Linux IPC tests and measured/support docs only.
-Private evidence pointer: `/tmp/scanix-security-session`. On any resume inspect
-Git/GitHub before repeating push/dispatch/ready/merge. Historical cleanup and
-privileged macOS/BPF remain explicitly unresolved. No new external blocker for 4B.
+First increment implemented: protocol 3/engine 0.4.2, deterministic shard/completed-ID
+selection enforced by both schedulers, bounded callback/non-retention and duplicate
+bitmap. Local Rust 21 passed; Python native fixtures 26 run, 20 pass/six real-engine
+skips. Private checkpoint tests plus native fixtures: 33 run, 27 pass/six skips.
+Checkpoint storage is uncommitted pending CLI/integration/robustness validation.
+Next: finish CLI resume/streaming and separate enrichment, real native loopback tests,
+controlled measurements, full regression/security validation, then PR.
+Reconcile post-merge Phase 4B checks. Current uncommitted work includes the checkpoint storage module and its synthetic tests,
+kept separate from the validated selection increment.
+Private audit/lab evidence pointer: `/tmp/scanix-security-session`; never publish raw
+reports/captures or personal metadata. No new Phase 4C external blocker identified.

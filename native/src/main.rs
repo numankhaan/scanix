@@ -80,6 +80,14 @@ async fn scan(
         let mut port_index = 0;
         let mut rtt = connect::Adaptive::new(&cfg);
         while port_index < cfg.ports.len() || !jobs.is_empty() {
+            while port_index < cfg.ports.len()
+                && !cfg.selected(index * cfg.ports.len() + port_index)
+            {
+                port_index += 1;
+            }
+            if port_index == cfg.ports.len() && jobs.is_empty() {
+                break;
+            }
             if *stop.borrow() {
                 break;
             }
@@ -172,7 +180,7 @@ async fn engine(
             "attempted":0,"peak_outstanding":0,"elapsed_seconds":0.,"reason":"cancelled_during_setup"})).await?;
         return Ok(130);
     }
-    let cfg = match first {
+    let mut cfg = match first {
         Some(Input::Frame(Command::Start(c))) => c,
         _ => {
             diagnostic(writer, "expected_start").await?;
@@ -205,7 +213,25 @@ async fn engine(
                 }
                 targets.push(ip);
             }
+            Some(Input::Frame(Command::Completed { ids })) => {
+                if ids.is_empty() || ids.len() > 4096 {
+                    diagnostic(writer, "invalid_completed_scope").await?;
+                    return Ok(2);
+                }
+                for id in ids {
+                    if id >= cfg.max_results || cfg.completed.get(id).copied().unwrap_or(false) {
+                        diagnostic(writer, "invalid_completed_scope").await?;
+                        return Ok(2);
+                    }
+                    cfg.completed.resize(cfg.completed.len().max(id + 1), false);
+                    cfg.completed[id] = true;
+                }
+            }
             Some(Input::Frame(Command::Run)) => {
+                if let Err(reason) = cfg.requested(&targets) {
+                    diagnostic(writer, reason).await?;
+                    return Ok(2);
+                }
                 if cfg.method == "syn" {
                     #[cfg(target_os = "linux")]
                     {
